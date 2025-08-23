@@ -17,6 +17,7 @@ data class User(
     val phoneNumber: String? = null,
     val phoneVerified: Boolean = false,
     val isAnonymous: Boolean = false,
+    val anonymousSessionId: String? = null,
     val createdAt: Instant,
     val updatedAt: Instant,
     val lastSignInAt: Instant? = null,

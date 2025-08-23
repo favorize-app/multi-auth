@@ -134,6 +134,18 @@ sealed class AuthEvent {
     }
     
     /**
+     * Events related to anonymous authentication.
+     */
+    sealed class Anonymous : AuthEvent() {
+        data class AnonymousSessionCreated(val user: User, val anonymousUser: app.multiauth.auth.AnonymousUser) : Anonymous()
+        data class AnonymousUserConverted(val anonymousUser: User, val permanentUser: User) : Anonymous()
+        data class AnonymousSessionExtended(val user: User, val additionalHours: Long) : Anonymous()
+        data class AnonymousSessionTerminated(val user: User) : Anonymous()
+        data class AnonymousSessionExpired(val user: User) : Anonymous()
+        data class AnonymousActionFailed(val action: String, val error: AuthError) : Anonymous()
+    }
+    
+    /**
      * Events related to state changes.
      */
     sealed class State : AuthEvent() {
