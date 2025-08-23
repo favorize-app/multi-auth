@@ -490,6 +490,16 @@ enum class SuspiciousActivityRisk {
 }
 
 /**
+ * Represents security severity levels.
+ */
+enum class SecuritySeverity {
+    INFO,
+    WARNING,
+    HIGH,
+    CRITICAL
+}
+
+/**
  * Represents security event types.
  */
 enum class SecurityEvent(val severity: SecuritySeverity) {
@@ -505,16 +515,6 @@ enum class SecurityEvent(val severity: SecuritySeverity) {
     SESSION_CREATED(SecuritySeverity.INFO),
     SESSION_EXPIRED(SecuritySeverity.INFO),
     SESSION_TERMINATED(SecuritySeverity.INFO)
-}
-
-/**
- * Represents security severity levels.
- */
-enum class SecuritySeverity {
-    INFO,
-    WARNING,
-    HIGH,
-    CRITICAL
 }
 
 /**
