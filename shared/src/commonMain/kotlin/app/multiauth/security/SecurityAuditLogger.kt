@@ -8,8 +8,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.time.Instant
-import java.util.concurrent.ConcurrentHashMap
+import kotlinx.datetime.Instant
+import kotlinx.datetime.Clock
 
 /**
  * Security audit logger for tracking security-related events and activities.
@@ -36,8 +36,8 @@ class SecurityAuditLogger {
     private val _suspiciousActivities = MutableStateFlow<List<SuspiciousActivity>>(emptyList())
     val suspiciousActivities: StateFlow<List<SuspiciousActivity>> = _suspiciousActivities.asStateFlow()
     
-    private val _userActivityCounts = ConcurrentHashMap<String, MutableList<Instant>>()
-    private val _ipActivityCounts = ConcurrentHashMap<String, MutableList<Instant>>()
+    private val _userActivityCounts = mutableMapOf<String, MutableList<Instant>>()
+    private val _ipActivityCounts = mutableMapOf<String, MutableList<Instant>>()
     
     /**
      * Logs a security event.
@@ -47,14 +47,14 @@ class SecurityAuditLogger {
      * @param metadata Additional metadata about the event
      */
     fun logSecurityEvent(
-        event: SecurityEvent,
+        event: String,
         user: User? = null,
         metadata: Map<String, Any> = emptyMap()
     ) {
         scope.launch {
             try {
                 val entry = SecurityAuditEntry(
-                    timestamp = Instant.now(),
+                    timestamp = Clock.System.now(),
                     event = event,
                     userId = user?.id,
                     userEmail = user?.email,
@@ -62,14 +62,19 @@ class SecurityAuditLogger {
                     userAgent = metadata["userAgent"] as? String,
                     sessionId = metadata["sessionId"] as? String,
                     metadata = metadata,
-                    severity = event.severity
+                    severity = when (event) {
+                        "AUTHENTICATION_SUCCESS", "ACCOUNT_UNLOCKED", "PASSWORD_CHANGED", "PASSWORD_RESET", "MFA_ENABLED", "SESSION_CREATED", "SESSION_EXPIRED", "SESSION_TERMINATED" -> SecuritySeverity.INFO
+                        "AUTHENTICATION_FAILED", "MFA_DISABLED" -> SecuritySeverity.WARNING
+                        "ACCOUNT_LOCKED", "SUSPICIOUS_ACTIVITY_DETECTED" -> SecuritySeverity.HIGH
+                        else -> SecuritySeverity.INFO
+                    }
                 )
                 
                 addAuditEntry(entry)
                 updateSecurityMetrics(event, user)
                 checkForSuspiciousActivity(user?.id, metadata["ipAddress"] as? String)
                 
-                logger.info("security", "Security event logged: ${event.name} for user: ${user?.displayName ?: "unknown"}")
+                logger.info("security", "Security event logged: $event for user: ${user?.displayName ?: "unknown"}")
                 
             } catch (e: Exception) {
                 logger.error("security", "Failed to log security event", e)
@@ -89,9 +94,9 @@ class SecurityAuditLogger {
         reason: String,
         metadata: Map<String, Any> = emptyMap()
     ) {
-        val event = SecurityEvent.AUTHENTICATION_FAILED
+        val event = "AUTHENTICATION_FAILED"
         val entry = SecurityAuditEntry(
-            timestamp = Instant.now(),
+            timestamp = Clock.System.now(),
             event = event,
             userId = null,
             userEmail = userEmail,
@@ -99,14 +104,14 @@ class SecurityAuditLogger {
             userAgent = metadata["userAgent"] as? String,
             sessionId = metadata["sessionId"] as? String,
             metadata = metadata + ("reason" to reason),
-            severity = event.severity
+            severity = SecuritySeverity.WARNING
         )
         
         addAuditEntry(entry)
         updateSecurityMetrics(event, null)
         checkForSuspiciousActivity(null, metadata["ipAddress"] as? String)
         
-        logger.warn("Failed authentication attempt for email: $userEmail, reason: $reason")
+        logger.warn("security", "Failed authentication attempt for email: $userEmail, reason: $reason")
     }
     
     /**
@@ -121,9 +126,9 @@ class SecurityAuditLogger {
         method: String,
         metadata: Map<String, Any> = emptyMap()
     ) {
-        val event = SecurityEvent.AUTHENTICATION_SUCCESS
+        val event = "AUTHENTICATION_SUCCESS"
         val entry = SecurityAuditEntry(
-            timestamp = Instant.now(),
+            timestamp = Clock.System.now(),
             event = event,
             userId = user.id,
             userEmail = user.email,
@@ -131,13 +136,13 @@ class SecurityAuditLogger {
             userAgent = metadata["userAgent"] as? String,
             sessionId = metadata["sessionId"] as? String,
             metadata = metadata + ("method" to method),
-            severity = event.severity
+            severity = SecuritySeverity.INFO
         )
         
         addAuditEntry(entry)
         updateSecurityMetrics(event, user)
         
-        logger.info("Successful authentication for user: ${user.displayName}, method: $method")
+        logger.info("security", "Successful authentication for user: ${user.displayName}, method: $method")
     }
     
     /**
@@ -150,9 +155,9 @@ class SecurityAuditLogger {
         activity: SuspiciousActivity,
         user: User? = null
     ) {
-        val event = SecurityEvent.SUSPICIOUS_ACTIVITY_DETECTED
+        val event = "SUSPICIOUS_ACTIVITY_DETECTED"
         val entry = SecurityAuditEntry(
-            timestamp = Instant.now(),
+            timestamp = Clock.System.now(),
             event = event,
             userId = user?.id,
             userEmail = user?.email,
@@ -164,7 +169,7 @@ class SecurityAuditLogger {
                 "description" to activity.description,
                 "riskScore" to activity.riskScore
             ),
-            severity = event.severity
+            severity = SecuritySeverity.HIGH
         )
         
         addAuditEntry(entry)
@@ -229,7 +234,7 @@ class SecurityAuditLogger {
     fun cleanupOldEntries() {
         scope.launch {
             try {
-                val cutoffTime = Instant.now().minusSeconds(RETENTION_DAYS * 24 * 60 * 60)
+                val cutoffTime = Clock.System.now().minus(kotlinx.datetime.Duration.parse("P${RETENTION_DAYS}D"))
                 val currentEntries = _auditEntries.value
                 val filteredEntries = currentEntries.filter { it.timestamp.isAfter(cutoffTime) }
                 
@@ -250,14 +255,15 @@ class SecurityAuditLogger {
      * @param filters Optional filters to apply
      * @return Exported audit data
      */
-    fun exportAuditData(format: ExportFormat, filters: AuditFilters? = null): String {
+    fun exportAuditData(format: String, filters: AuditFilters? = null): String {
         return try {
             val entries = applyFilters(_auditEntries.value, filters)
             
             when (format) {
-                ExportFormat.CSV -> exportToCsv(entries)
-                ExportFormat.JSON -> exportToJson(entries)
-                ExportFormat.XML -> exportToXml(entries)
+                "CSV" -> exportToCsv(entries)
+                "JSON" -> exportToJson(entries)
+                "XML" -> exportToXml(entries)
+                else -> exportToCsv(entries)
             }
         } catch (e: Exception) {
             logger.error("security", "Failed to export audit data", e)
@@ -279,20 +285,20 @@ class SecurityAuditLogger {
         _auditEntries.value = currentEntries
     }
     
-    private fun updateSecurityMetrics(event: SecurityEvent, user: User?) {
+    private fun updateSecurityMetrics(event: String, user: User?) {
         val currentMetrics = _securityMetrics.value
         
         val updatedMetrics = when (event) {
-            SecurityEvent.AUTHENTICATION_SUCCESS -> currentMetrics.copy(
+            "AUTHENTICATION_SUCCESS" -> currentMetrics.copy(
                 successfulAuthentications = currentMetrics.successfulAuthentications + 1
             )
-            SecurityEvent.AUTHENTICATION_FAILED -> currentMetrics.copy(
+            "AUTHENTICATION_FAILED" -> currentMetrics.copy(
                 failedAuthentications = currentMetrics.failedAuthentications + 1
             )
-            SecurityEvent.ACCOUNT_LOCKED -> currentMetrics.copy(
+            "ACCOUNT_LOCKED" -> currentMetrics.copy(
                 accountsLocked = currentMetrics.accountsLocked + 1
             )
-            SecurityEvent.SUSPICIOUS_ACTIVITY_DETECTED -> currentMetrics.copy(
+            "SUSPICIOUS_ACTIVITY_DETECTED" -> currentMetrics.copy(
                 suspiciousActivitiesDetected = currentMetrics.suspiciousActivitiesDetected + 1
             )
             else -> currentMetrics
@@ -311,8 +317,8 @@ class SecurityAuditLogger {
     
     private fun checkUserActivity(userId: String) {
         val userActivities = _userActivityCounts.getOrPut(userId) { mutableListOf() }
-        val now = Instant.now()
-        val cutoffTime = now.minusSeconds(SUSPICIOUS_ACTIVITY_WINDOW_MINUTES * 60)
+        val now = Clock.System.now()
+        val cutoffTime = now.minus(kotlinx.datetime.Duration.parse("PT${SUSPICIOUS_ACTIVITY_WINDOW_MINUTES}M"))
         
         // Remove old activities
         userActivities.removeAll { it.isBefore(cutoffTime) }
@@ -338,8 +344,8 @@ class SecurityAuditLogger {
     
     private fun checkIpActivity(ipAddress: String) {
         val ipActivities = _ipActivityCounts.getOrPut(ipAddress) { mutableListOf() }
-        val now = Instant.now()
-        val cutoffTime = now.minusSeconds(SUSPICIOUS_ACTIVITY_WINDOW_MINUTES * 60)
+        val now = Clock.System.now()
+        val cutoffTime = now.minus(kotlinx.datetime.Duration.parse("PT${SUSPICIOUS_ACTIVITY_WINDOW_MINUTES}M"))
         
         // Remove old activities
         ipActivities.removeAll { it.isBefore(cutoffTime) }
@@ -396,7 +402,7 @@ class SecurityAuditLogger {
         csv.appendLine("Timestamp,Event,UserId,UserEmail,IPAddress,Severity,Metadata")
         
         entries.forEach { entry ->
-            csv.appendLine("${entry.timestamp},${entry.event.name},${entry.userId ?: ""},${entry.userEmail ?: ""},${entry.ipAddress ?: ""},${entry.severity.name},${entry.metadata}")
+            csv.appendLine("${entry.timestamp},${entry.event},${entry.userId ?: ""},${entry.userEmail ?: ""},${entry.ipAddress ?: ""},${entry.severity.name},${entry.metadata}")
         }
         
         return csv.toString()
@@ -405,8 +411,28 @@ class SecurityAuditLogger {
     private fun exportToJson(entries: List<SecurityAuditEntry>): String {
         // In a real implementation, this would use a proper JSON library
         return entries.joinToString("\n") { entry ->
-            """{"timestamp":"${entry.timestamp}","event":"${entry.event.name}","userId":"${entry.userId ?: ""}","severity":"${entry.severity.name}"}"""
+            """{"timestamp":"${entry.timestamp}","event":"${entry.event}","userId":"${entry.userId ?: ""}","severity":"${entry.severity.name}"}"""
         }
+    }
+    
+    private fun exportToXml(entries: List<SecurityAuditEntry>): String {
+        val xml = StringBuilder()
+        xml.appendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
+        xml.appendLine("<auditEntries>")
+        
+        entries.forEach { entry ->
+            xml.appendLine("  <entry>")
+            xml.appendLine("    <timestamp>${entry.timestamp}</timestamp>")
+            xml.appendLine("    <event>${entry.event}</event>")
+            xml.appendLine("    <userId>${entry.userId ?: ""}</userId>")
+            xml.appendLine("    <userEmail>${entry.userEmail ?: ""}</userEmail>")
+            xml.appendLine("    <ipAddress>${entry.ipAddress ?: ""}</ipAddress>")
+            xml.appendLine("    <severity>${entry.severity.name}</severity>")
+            xml.appendLine("  </entry>")
+        }
+        
+        xml.appendLine("</auditEntries>")
+        return xml.toString()
     }
     
     private fun exportToXml(entries: List<SecurityAuditEntry>): String {
@@ -431,9 +457,11 @@ class SecurityAuditLogger {
 /**
  * Represents a security audit entry.
  */
+@Serializable
 data class SecurityAuditEntry(
+    @kotlinx.serialization.Contextual
     val timestamp: Instant,
-    val event: SecurityEvent,
+    val event: String,
     val userId: String?,
     val userEmail: String?,
     val ipAddress: String?,
@@ -446,23 +474,27 @@ data class SecurityAuditEntry(
 /**
  * Represents security metrics.
  */
-data class SecurityMetrics(
-    val successfulAuthentications: Long = 0,
-    val failedAuthentications: Long = 0,
-    val accountsLocked: Long = 0,
-    val suspiciousActivitiesDetected: Long = 0,
-    val lastUpdated: Instant = Instant.now()
-)
+    @Serializable
+    data class SecurityMetrics(
+        val successfulAuthentications: Long = 0,
+        val failedAuthentications: Long = 0,
+        val accountsLocked: Long = 0,
+        val suspiciousActivitiesDetected: Long = 0,
+        @kotlinx.serialization.Contextual
+        val lastUpdated: Instant = Clock.System.now()
+    )
 
 /**
  * Represents a suspicious activity.
  */
+@Serializable
 data class SuspiciousActivity(
     val type: SuspiciousActivityType,
     val description: String,
     val userId: String?,
     val ipAddress: String?,
     val riskScore: SuspiciousActivityRisk,
+    @kotlinx.serialization.Contextual
     val timestamp: Instant,
     val activityCount: Int = 1
 )
@@ -499,41 +531,21 @@ enum class SecuritySeverity {
     CRITICAL
 }
 
-/**
- * Represents security event types.
- */
-enum class SecurityEvent(val severity: SecuritySeverity) {
-    AUTHENTICATION_SUCCESS(SecuritySeverity.INFO),
-    AUTHENTICATION_FAILED(SecuritySeverity.WARNING),
-    ACCOUNT_LOCKED(SecuritySeverity.HIGH),
-    ACCOUNT_UNLOCKED(SecuritySeverity.INFO),
-    PASSWORD_CHANGED(SecuritySeverity.INFO),
-    PASSWORD_RESET(SecuritySeverity.INFO),
-    MFA_ENABLED(SecuritySeverity.INFO),
-    MFA_DISABLED(SecuritySeverity.WARNING),
-    SUSPICIOUS_ACTIVITY_DETECTED(SecuritySeverity.HIGH),
-    SESSION_CREATED(SecuritySeverity.INFO),
-    SESSION_EXPIRED(SecuritySeverity.INFO),
-    SESSION_TERMINATED(SecuritySeverity.INFO)
-}
+// SecurityEvent is defined in ThreatDetection.kt to avoid redeclaration
 
-/**
- * Represents export formats.
- */
-enum class ExportFormat {
-    CSV,
-    JSON,
-    XML
-}
+// ExportFormat is defined in ThreatDetection.kt to avoid redeclaration
 
 /**
  * Represents audit filters.
  */
+@Serializable
 data class AuditFilters(
     val userId: String? = null,
     val severity: SecuritySeverity? = null,
-    val eventType: SecurityEvent? = null,
+    val eventType: String? = null, // Changed from SecurityEvent to String to match ThreatDetection.kt
+    @kotlinx.serialization.Contextual
     val startTime: Instant? = null,
+    @kotlinx.serialization.Contextual
     val endTime: Instant? = null
 )
 

@@ -912,6 +912,7 @@ data class SecurityAlert(
     val severity: SecurityEventSeverity,
     val type: SecurityAlertType,
     val description: String,
+    @kotlinx.serialization.Contextual
     val timestamp: Instant,
     val metadata: Map<String, String>
 )
@@ -944,6 +945,7 @@ data class LoggingResult(
     val eventId: String,
     val success: Boolean,
     val issues: List<String>,
+    @kotlinx.serialization.Contextual
     val timestamp: Instant
 )
 
@@ -958,6 +960,7 @@ data class MonitoringResult(
     val patternName: String,
     val success: Boolean,
     val message: String,
+    @kotlinx.serialization.Contextual
     val timestamp: Instant
 )
 
@@ -966,6 +969,7 @@ data class IntegrityCheckResult(
     val isIntegrityMaintained: Boolean,
     val issues: List<String>,
     val recommendations: List<String>,
+    @kotlinx.serialization.Contextual
     val timestamp: Instant
 )
 
@@ -976,6 +980,7 @@ data class ExportResult(
     val timeRange: TimeRange,
     val eventCount: Long,
     val data: String,
+    @kotlinx.serialization.Contextual
     val timestamp: Instant
 )
 
@@ -990,6 +995,7 @@ data class AuditReport(
     val securityAnalysis: SecurityAnalysis,
     val complianceStatus: ComplianceStatus,
     val recommendations: List<String>,
+    @kotlinx.serialization.Contextual
     val timestamp: Instant
 )
 
@@ -1073,33 +1079,7 @@ enum class SecurityAlertType {
     COMPLIANCE_VIOLATION
 }
 
-enum class AnomalyType {
-    UNKNOWN_DEVICE,
-    UNUSUAL_TIME,
-    RAPID_ACTIONS,
-    MULTIPLE_FAILURES,
-    RARE_EVENTS
-}
-
-enum class AutomatedAction {
-    ACCOUNT_LOCKOUT,
-    ADDITIONAL_VERIFICATION,
-    ENHANCED_MONITORING,
-    ALERT_ADMIN
-}
-
-enum class RiskLevel {
-    LOW,
-    MEDIUM,
-    HIGH,
-    CRITICAL
-}
-
-enum class ExportFormat {
-    JSON,
-    CSV,
-    XML
-}
+// These enums are defined in other files to avoid redeclaration
 
 // Event correlation engine for real-time monitoring
 
