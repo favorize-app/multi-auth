@@ -8,9 +8,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.Instant
+import kotlinx.datetime.plus
 import java.security.SecureRandom
-import java.time.Instant
 import java.time.temporal.ChronoUnit
 
 /**
@@ -44,7 +46,7 @@ class SmsVerificationService {
      */
     suspend fun initiateVerification(user: User, phoneNumber: String): Result<Unit> {
         return try {
-            logger.info("Initiating SMS verification for user: ${user.displayName}, phone: $phoneNumber")
+            logger.info("sms", "Initiating SMS verification for user: ${user.displayName}, phone: $phoneNumber")
             
             // Check if user has exceeded attempt limits
             val attempts = _userAttempts[user.id] ?: 0
@@ -56,7 +58,8 @@ class SmsVerificationService {
             
             // Generate verification code
             val code = generateSmsCode()
-            val expiryTime = Instant.now().plus(SmsVerificationService.SMS_CODE_EXPIRY_MINUTES, ChronoUnit.MINUTES)
+            val expiryTime = Clock.System.now()
+                .plus(SMS_CODE_EXPIRY_MINUTES, DateTimeUnit.MINUTE)
             
             val verification = SmsVerification(
                 userId = user.id,
@@ -64,7 +67,7 @@ class SmsVerificationService {
                 code = code,
                 expiryTime = expiryTime,
                 attempts = 0,
-                createdAt = Instant.now()
+                createdAt = Clock.System.now()
             )
             
             _pendingVerifications[user.id] = verification
@@ -78,7 +81,7 @@ class SmsVerificationService {
             }.onFailure { error ->
                 _verificationState.value = SmsVerificationState.Error(error)
                 _pendingVerifications.remove(user.id)
-                logger.error("Failed to send SMS verification code", error)
+                logger.error("sms", "Failed to send SMS verification code", error)
             }
             
             sendResult
@@ -107,7 +110,7 @@ class SmsVerificationService {
             }
             
             // Check if code has expired
-            if (Instant.now().isAfter(verification.expiryTime)) {
+            if (Clock.System.now() > verification.expiryTime) {
                 _pendingVerifications.remove(user.id)
                 return Result.failure(SmsVerificationException("Verification code has expired"))
             }
@@ -170,7 +173,9 @@ class SmsVerificationService {
             }
             
             // Check cooldown period
-            val timeSinceLastSend = ChronoUnit.SECONDS.between(verification.createdAt, Instant.now())
+            val timeSinceLastSend = ChronoUnit.SECONDS.between(verification.createdAt,
+                Clock.System.now()
+            )
             if (timeSinceLastSend < SMS_RESEND_COOLDOWN_SECONDS) {
                 val remainingTime = SMS_RESEND_COOLDOWN_SECONDS - timeSinceLastSend
                 return Result.failure(SmsVerificationException("Please wait $remainingTime seconds before requesting another code"))
@@ -180,11 +185,11 @@ class SmsVerificationService {
             
             // Generate new code
             val newCode = generateSmsCode()
-            val newExpiryTime = Instant.now().plus(SMS_CODE_EXPIRY_MINUTES, ChronoUnit.MINUTES)
+            val newExpiryTime = Clock.System.now().plus(SMS_CODE_EXPIRY_MINUTES, ChronoUnit.MINUTES)
             
             verification.code = newCode
             verification.expiryTime = newExpiryTime
-            verification.createdAt = Instant.now()
+            verification.createdAt = Clock.System.now()
             
             // Simulate sending SMS
             val sendResult = sendSms(verification.phoneNumber, newCode)
@@ -194,7 +199,7 @@ class SmsVerificationService {
                 logger.info("mfa", "SMS verification code resent successfully to: ${verification.phoneNumber}")
             }.onFailure { error ->
                 _verificationState.value = SmsVerificationState.Error(error)
-                logger.error("Failed to resend SMS verification code", error)
+                logger.error("mfa", "Failed to resend SMS verification code", error)
             }
             
             sendResult
@@ -226,7 +231,7 @@ class SmsVerificationService {
     fun getTimeRemaining(user: User): Long? {
         val verification = _pendingVerifications[user.id] ?: return null
         
-        val remaining = ChronoUnit.SECONDS.between(Instant.now(), verification.expiryTime)
+        val remaining = ChronoUnit.SECONDS.between(Clock.System.now(), verification.expiryTime)
         return if (remaining > 0) remaining else 0
     }
     
@@ -300,9 +305,9 @@ data class SmsVerification(
     val userId: String,
     val phoneNumber: String,
     var code: String,
-    val expiryTime: Instant,
+    var expiryTime: Instant,
     var attempts: Int,
-    val createdAt: Instant
+    var createdAt: Instant
 )
 
 /**

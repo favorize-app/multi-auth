@@ -93,19 +93,19 @@ class OAuthManager(
                         logger.info("oath", "OAuth sign-in completed successfully for user: ${user.displayName}")
                         Result.success(user)
                     }.onFailure { error ->
-                        logger.error("Failed to create user session", error)
+                        logger.error("oauth", "Failed to create user session", error)
                         _oauthState.value = OAuthState.Error(error)
                         _oauthState.value = OAuthState.Idle
                         Result.failure(error)
                     }
                 }.onFailure { error ->
-                    logger.error("Failed to exchange code for tokens", error)
+                    logger.error("oauth", "Failed to exchange code for tokens", error)
                     _oauthState.value = OAuthState.Error(error)
                     _oauthState.value = OAuthState.Idle
                     Result.failure(error)
                 }
             }.onFailure { error ->
-                logger.error("OAuth flow failed", error)
+                logger.error("oauth", "OAuth flow failed", error)
                 _oauthState.value = OAuthState.Error(error)
                 _oauthState.value = OAuthState.Idle
                 Result.failure(error)
@@ -166,7 +166,7 @@ class OAuthManager(
                     logger.info("oauth", "OAuth token refresh completed successfully")
                     Result.success(Unit)
                 }.onFailure { error ->
-                    logger.error("Failed to refresh OAuth token", error)
+                    logger.error("oauth", "Failed to refresh OAuth token", error)
                     Result.failure(error)
                 }
             } else {

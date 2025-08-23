@@ -70,7 +70,7 @@ class BiometricManager(
                     eventBus.dispatch(AuthEvent.Biometric.BiometricAvailable(result.supportedTypes))
                 }
             }.onFailure { error ->
-                logger.error("Failed to check biometric availability", error)
+                logger.error("biometrics", "Failed to check biometric availability", error)
                 _isBiometricAvailable.value = false
                 _biometricType.value = null
             }
@@ -119,7 +119,7 @@ class BiometricManager(
                 
                 Result.success(user)
             }.onFailure { error ->
-                logger.error("Biometric authentication failed", error)
+                logger.error("biometrics", "Biometric authentication failed", error)
                 _biometricState.value = BiometricState.Error(error)
                 _biometricState.value = BiometricState.Idle
                 
@@ -166,7 +166,7 @@ class BiometricManager(
                 
                 Result.success(Unit)
             }.onFailure { error ->
-                logger.error("Failed to enable biometric authentication", error)
+                logger.error("biometrics", "Failed to enable biometric authentication", error)
                 _biometricState.value = BiometricState.Error(error)
                 _biometricState.value = BiometricState.Idle
                 
@@ -208,7 +208,7 @@ class BiometricManager(
                 
                 Result.success(Unit)
             }.onFailure { error ->
-                logger.error("Failed to disable biometric authentication", error)
+                logger.error("biometrics", "Failed to disable biometric authentication", error)
                 _biometricState.value = BiometricState.Error(error)
                 _biometricState.value = BiometricState.Idle
                 
