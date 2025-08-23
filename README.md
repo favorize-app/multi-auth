@@ -213,7 +213,7 @@ val result = devOpsManager.provisionInfrastructure(
 The Multi-Auth system includes extensive documentation covering all aspects:
 
 #### **Core Documentation**
-- **`docs/PHASE_15_DEVOPS_DOCUMENTATION.md`** - Complete DevOps guide
+- **`docs/DEVOPS_DOCUMENTATION.md`** - Complete DevOps guide
 - **`docs/TESTING_GUIDE.md`** - Complete testing framework documentation
 - **`docs/API_REFERENCE.md`** - Comprehensive API documentation
 - **`docs/USER_GUIDE.md`** - Step-by-step usage instructions
