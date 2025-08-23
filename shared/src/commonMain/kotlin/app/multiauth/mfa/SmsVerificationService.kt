@@ -13,7 +13,6 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.Instant
 import kotlinx.datetime.plus
 import java.security.SecureRandom
-import java.time.temporal.ChronoUnit
 
 /**
  * Service for handling SMS-based MFA verification.
@@ -173,11 +172,10 @@ class SmsVerificationService {
             }
             
             // Check cooldown period
-            val timeSinceLastSend = ChronoUnit.SECONDS.between(verification.createdAt,
-                Clock.System.now()
-            )
-            if (timeSinceLastSend < SMS_RESEND_COOLDOWN_SECONDS) {
-                val remainingTime = SMS_RESEND_COOLDOWN_SECONDS - timeSinceLastSend
+            val timeSinceLastSend = Clock.System.now() - verification.createdAt
+
+            if (timeSinceLastSend.inWholeSeconds < SMS_RESEND_COOLDOWN_SECONDS) {
+                val remainingTime = SMS_RESEND_COOLDOWN_SECONDS - timeSinceLastSend.inWholeSeconds
                 return Result.failure(SmsVerificationException("Please wait $remainingTime seconds before requesting another code"))
             }
             
@@ -185,7 +183,7 @@ class SmsVerificationService {
             
             // Generate new code
             val newCode = generateSmsCode()
-            val newExpiryTime = Clock.System.now().plus(SMS_CODE_EXPIRY_MINUTES, ChronoUnit.MINUTES)
+            val newExpiryTime = Clock.System.now().plus(SMS_CODE_EXPIRY_MINUTES, DateTimeUnit.MINUTE)
             
             verification.code = newCode
             verification.expiryTime = newExpiryTime
@@ -231,8 +229,8 @@ class SmsVerificationService {
     fun getTimeRemaining(user: User): Long? {
         val verification = _pendingVerifications[user.id] ?: return null
         
-        val remaining = ChronoUnit.SECONDS.between(Clock.System.now(), verification.expiryTime)
-        return if (remaining > 0) remaining else 0
+        val remaining = verification.expiryTime - Clock.System.now()
+        return if (remaining.inWholeSeconds > 0) remaining.inWholeSeconds else 0
     }
     
     /**
