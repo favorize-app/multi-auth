@@ -360,26 +360,19 @@ class SimpleSmsService(
         var message = template.content
         
         variables?.let { vars ->
-            vars.variables.forEach { variable ->
-                val value = when (variable) {
-                    "userId" -> vars.userId
-                    "username" -> vars.username
-                    "phoneNumber" -> vars.phoneNumber
-                    "verificationCode" -> vars.verificationCode
-                    "mfaCode" -> vars.mfaCode
-                    "alertType" -> vars.alertType?.name
-                    "alertDetails" -> vars.alertDetails
-                    "loginLocation" -> vars.loginLocation
-                    "deviceInfo" -> vars.deviceInfo
-                    "timestamp" -> vars.timestamp.toString()
-                    "supportPhone" -> vars.supportPhone
-                    "appName" -> vars.appName
-                    else -> null
-                }
-                if (value != null) {
-                    message = message.replace("{{$variable}}", value)
-                }
-            }
+            // Apply common variables
+            message = message.replace("{{userId}}", vars.userId)
+            vars.username?.let { message = message.replace("{{username}}", it) }
+            message = message.replace("{{phoneNumber}}", vars.phoneNumber)
+            vars.verificationCode?.let { message = message.replace("{{verificationCode}}", it) }
+            vars.mfaCode?.let { message = message.replace("{{mfaCode}}", it) }
+            vars.alertType?.let { message = message.replace("{{alertType}}", it.name) }
+            vars.alertDetails?.let { message = message.replace("{{alertDetails}}", it) }
+            vars.loginLocation?.let { message = message.replace("{{loginLocation}}", it) }
+            vars.deviceInfo?.let { message = message.replace("{{deviceInfo}}", it) }
+            message = message.replace("{{timestamp}}", vars.timestamp.toString())
+            vars.supportPhone?.let { message = message.replace("{{supportPhone}}", it) }
+            message = message.replace("{{appName}}", vars.appName)
         }
         
         return message
