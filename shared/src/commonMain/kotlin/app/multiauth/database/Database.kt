@@ -4,7 +4,6 @@ import app.multiauth.models.User
 import app.multiauth.models.OAuthAccount
 import app.multiauth.models.Session
 import app.multiauth.models.AuditLog
-import app.multiauth.util.Logger
 import kotlinx.coroutines.flow.Flow
 
 /**

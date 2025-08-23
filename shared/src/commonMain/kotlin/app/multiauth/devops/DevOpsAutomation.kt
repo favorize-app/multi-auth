@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.datetime.Clock
 
 /**
  * DevOps Automation System
@@ -29,7 +30,7 @@ class DevOpsAutomation(
     /**
      * Initialize DevOps automation system
      */
-    suspend fun initialize(): Boolean {
+    fun initialize(): Boolean {
         logger.info("DevOps", "Initializing DevOps automation system")
         
         return try {
@@ -84,7 +85,7 @@ class DevOpsAutomation(
                 status = if (result.status == WorkflowStatus.SUCCESS) ProvisionStatus.SUCCESS else ProvisionStatus.FAILED,
                 workflowId = workflow.id,
                 details = result.details,
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
             
         } catch (e: Exception) {
@@ -98,7 +99,7 @@ class DevOpsAutomation(
                 workflowId = "",
                 details = "Provisioning failed: ${e.message}",
                 error = e,
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
         }
     }
@@ -130,7 +131,7 @@ class DevOpsAutomation(
                 deploymentId = workflow.id,
                 status = if (result.status == WorkflowStatus.SUCCESS) DeploymentStatus.DEPLOYED else DeploymentStatus.FAILED,
                 message = result.details,
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
             
         } catch (e: Exception) {
@@ -142,7 +143,7 @@ class DevOpsAutomation(
                 status = DeploymentStatus.FAILED,
                 message = "Deployment failed: ${e.message}",
                 error = e,
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
         }
     }
@@ -175,7 +176,7 @@ class DevOpsAutomation(
                 status = if (result.status == WorkflowStatus.SUCCESS) ScalingStatus.SUCCESS else ScalingStatus.FAILED,
                 workflowId = workflow.id,
                 details = result.details,
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
             
         } catch (e: Exception) {
@@ -188,7 +189,7 @@ class DevOpsAutomation(
                 workflowId = "",
                 details = "Scaling failed: ${e.message}",
                 error = e,
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
         }
     }
@@ -218,7 +219,7 @@ class DevOpsAutomation(
                 status = if (result.status == WorkflowStatus.SUCCESS) BackupStatus.SUCCESS else BackupStatus.FAILED,
                 workflowId = workflow.id,
                 backupLocation = result.details,
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
             
         } catch (e: Exception) {
@@ -231,7 +232,7 @@ class DevOpsAutomation(
                 workflowId = "",
                 backupLocation = "",
                 error = e,
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
         }
     }
@@ -265,7 +266,7 @@ class DevOpsAutomation(
                 workflowId = workflow.id,
                 backupId = backupId,
                 details = result.details,
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
             
         } catch (e: Exception) {
@@ -279,7 +280,7 @@ class DevOpsAutomation(
                 backupId = backupId,
                 details = "Restore failed: ${e.message}",
                 error = e,
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
         }
     }
@@ -292,17 +293,17 @@ class DevOpsAutomation(
         
         return try {
             workflow.status = WorkflowStatus.RUNNING
-            workflow.startedAt = System.currentTimeMillis()
+            workflow.startedAt = Clock.System.now().toEpochMilliseconds()
             
             val results = mutableListOf<WorkflowStepResult>()
             
             workflow.steps.forEach { step ->
                 try {
                     logger.info("devops", "Executing workflow step: ${step.name}")
-                    val startTime = System.currentTimeMillis()
+                    val startTime = Clock.System.now().toEpochMilliseconds()
                     
                     val result = executeWorkflowStep(step)
-                    val duration = System.currentTimeMillis() - startTime
+                    val duration = Clock.System.now().toEpochMilliseconds() - startTime
                     
                     results.add(WorkflowStepResult(
                         stepName = step.name,
@@ -314,7 +315,7 @@ class DevOpsAutomation(
                     logger.info("DevOps", "Workflow step '${step.name}' completed successfully in ${duration}ms")
                     
                 } catch (e: Exception) {
-                    val duration = System.currentTimeMillis() - startTime
+                    val duration = Clock.System.now().toEpochMilliseconds() - startTime
                     
                     results.add(WorkflowStepResult(
                         stepName = step.name,
@@ -330,7 +331,7 @@ class DevOpsAutomation(
             }
             
             workflow.status = WorkflowStatus.SUCCESS
-            workflow.completedAt = System.currentTimeMillis()
+            workflow.completedAt = Clock.System.now().toEpochMilliseconds()
             
             // Update workflow in list
             updateWorkflow(workflow)
@@ -340,12 +341,12 @@ class DevOpsAutomation(
                 status = WorkflowStatus.SUCCESS,
                 steps = results,
                 details = "Workflow completed successfully",
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
             
         } catch (e: Exception) {
             workflow.status = WorkflowStatus.FAILED
-            workflow.completedAt = System.currentTimeMillis()
+            workflow.completedAt = Clock.System.now().toEpochMilliseconds()
             
             // Update workflow in list
             updateWorkflow(workflow)
@@ -358,7 +359,7 @@ class DevOpsAutomation(
                 steps = emptyList(),
                 details = "Workflow failed: ${e.message}",
                 error = e,
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
         }
     }
@@ -372,33 +373,33 @@ class DevOpsAutomation(
             infrastructureState = _infrastructureState.value,
             activeWorkflows = _workflows.value.filter { it.status == WorkflowStatus.RUNNING },
             completedWorkflows = _workflows.value.filter { it.status.isTerminal() },
-            lastActivity = System.currentTimeMillis()
+            lastActivity = Clock.System.now().toEpochMilliseconds()
         ))
     }
     
     // Private implementation methods
     
-    private suspend fun initializeInfrastructure() {
+    private fun initializeInfrastructure() {
         logger.debug("DevOps", "Initializing infrastructure components")
         // Initialize infrastructure management
     }
     
-    private suspend fun loadAutomationWorkflows() {
+    private fun loadAutomationWorkflows() {
         logger.debug("devops", "Loading automation workflows")
         // Load predefined automation workflows
     }
     
-    private suspend fun initializeMonitoring() {
+    private fun initializeMonitoring() {
         logger.debug("secure storage", "Initializing monitoring and alerting")
         // Initialize monitoring systems
     }
     
-    private suspend fun initializeBackupRecovery() {
+    private fun initializeBackupRecovery() {
         logger.debug("devops", "Initializing backup and recovery")
         // Initialize backup systems
     }
     
-    private suspend fun createProvisioningWorkflow(
+    private fun createProvisioningWorkflow(
         environment: String,
         config: InfrastructureConfig
     ): AutomationWorkflow {
@@ -417,7 +418,7 @@ class DevOpsAutomation(
                 WorkflowStep("Verify Deployment", "Verify infrastructure deployment")
             ),
             status = WorkflowStatus.PENDING,
-            createdAt = System.currentTimeMillis()
+            createdAt = Clock.System.now().toEpochMilliseconds()
         )
     }
     
@@ -438,7 +439,7 @@ class DevOpsAutomation(
                 WorkflowStep("Update Configuration", "Update configuration management")
             ),
             status = WorkflowStatus.PENDING,
-            createdAt = System.currentTimeMillis()
+            createdAt = Clock.System.now().toEpochMilliseconds()
         )
     }
     
@@ -459,7 +460,7 @@ class DevOpsAutomation(
                 WorkflowStep("Update Configuration", "Update configuration management")
             ),
             status = WorkflowStatus.PENDING,
-            createdAt = System.currentTimeMillis()
+            createdAt = Clock.System.now().toEpochMilliseconds()
         )
     }
     
@@ -477,7 +478,7 @@ class DevOpsAutomation(
                 WorkflowStep("Update Catalog", "Update backup catalog")
             ),
             status = WorkflowStatus.PENDING,
-            createdAt = System.currentTimeMillis()
+            createdAt = Clock.System.now().toEpochMilliseconds()
         )
     }
     
@@ -495,7 +496,7 @@ class DevOpsAutomation(
                 WorkflowStep("Update Configuration", "Update configuration management")
             ),
             status = WorkflowStatus.PENDING,
-            createdAt = System.currentTimeMillis()
+            createdAt = Clock.System.now().toEpochMilliseconds()
         )
     }
     
@@ -550,7 +551,7 @@ class DevOpsAutomation(
         _workflows.value = currentWorkflows
     }
     
-    private fun generateWorkflowId(): String = "workflow_${System.currentTimeMillis()}_${(0..9999).random()}"
+    private fun generateWorkflowId(): String = "workflow_${Clock.System.now().toEpochMilliseconds()}_${(0..9999).random()}"
 }
 
 // Data classes for DevOps automation
