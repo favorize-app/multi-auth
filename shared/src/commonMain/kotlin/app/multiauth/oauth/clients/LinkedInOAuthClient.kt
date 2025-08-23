@@ -101,7 +101,7 @@ class LinkedInOAuthClient(
                 )
             }
         } catch (e: Exception) {
-            logger.error("Exception during LinkedIn token exchange", e)
+            logger.error("linkedin", "Exception during LinkedIn token exchange", e)
             OAuthResult.Error(
                 OAuthError.TokenExchangeFailed(
                     error = "token_exchange_failed",
@@ -152,7 +152,7 @@ class LinkedInOAuthClient(
                 )
             }
         } catch (e: Exception) {
-            logger.error("Exception during LinkedIn token refresh", e)
+            logger.error("linkedin", "Exception during LinkedIn token refresh", e)
             OAuthResult.Error(
                 OAuthError.TokenRefreshFailed(
                     error = "token_refresh_failed",
@@ -218,7 +218,7 @@ class LinkedInOAuthClient(
                 )
             }
         } catch (e: Exception) {
-            logger.error("Exception during LinkedIn user info fetch", e)
+            logger.error("linkedin", "Exception during LinkedIn user info fetch", e)
             OAuthResult.Error(
                 OAuthError.UserInfoFetchFailed(
                     error = "user_info_fetch_failed",
@@ -239,7 +239,7 @@ class LinkedInOAuthClient(
             // Return true to indicate "success" since we can't actually revoke
             true
         } catch (e: Exception) {
-            logger.error("Exception during LinkedIn token revocation", e)
+            logger.error("linkedin", "Exception during LinkedIn token revocation", e)
             false
         }
     }
@@ -260,7 +260,7 @@ class LinkedInOAuthClient(
             
             isValid
         } catch (e: Exception) {
-            logger.error("Exception during LinkedIn token validation", e)
+            logger.error("linkedin", "Exception during LinkedIn token validation", e)
             false
         }
     }

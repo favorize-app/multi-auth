@@ -282,7 +282,7 @@ class RateLimiter {
                 
                 logger.debug("security", "Rate limiter cleanup completed")
             } catch (e: Exception) {
-                logger.error("Failed to cleanup rate limiter data", e)
+                logger.error("security", "Failed to cleanup rate limiter data", e)
             }
         }
     }

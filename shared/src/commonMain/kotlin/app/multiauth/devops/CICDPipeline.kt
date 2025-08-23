@@ -60,7 +60,7 @@ class CICDPipeline(
                         error = e
                     ))
                     
-                    logger.error("CI step '$stepName' failed after ${duration}ms", e)
+                    logger.error("devops", "CI step '$stepName' failed after ${duration}ms", e)
                     throw e
                 }
             }
@@ -73,7 +73,7 @@ class CICDPipeline(
             )
             
         } catch (e: Exception) {
-            logger.error("CI pipeline execution failed", e)
+            logger.error("devops", "CI pipeline execution failed", e)
             CIResult(
                 status = CIStatus.FAILED,
                 steps = emptyList(),
@@ -130,7 +130,7 @@ class CICDPipeline(
                         error = e
                     ))
                     
-                    logger.error("CD step '$stepName' failed after ${duration}ms", e)
+                    logger.error("devops", "CD step '$stepName' failed after ${duration}ms", e)
                     throw e
                 }
             }
@@ -144,7 +144,7 @@ class CICDPipeline(
             )
             
         } catch (e: Exception) {
-            logger.error("CD pipeline execution failed", e)
+            logger.error("devops", "CD pipeline execution failed", e)
             CDResult(
                 environment = environment,
                 status = CDStatus.FAILED,
@@ -237,7 +237,7 @@ class CICDPipeline(
                         error = e
                     ))
                     
-                    logger.error("Rollback step '$stepName' failed after ${duration}ms", e)
+                    logger.error("devops", "Rollback step '$stepName' failed after ${duration}ms", e)
                     throw e
                 }
             }
@@ -251,7 +251,7 @@ class CICDPipeline(
             )
             
         } catch (e: Exception) {
-            logger.error("Rollback failed", e)
+            logger.error("devops", "Rollback failed", e)
             RollbackResult(
                 environment = environment,
                 status = RollbackStatus.FAILED,

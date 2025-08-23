@@ -99,7 +99,7 @@ abstract class BaseGrpcClient : GrpcClient {
             logger.info("grpc", "Credentials set successfully")
             Result.success(Unit)
         } catch (e: Exception) {
-            logger.error("Failed to set credentials", e)
+            logger.error("grpc", "Failed to set credentials", e)
             Result.failure(e)
         }
     }
@@ -111,7 +111,7 @@ abstract class BaseGrpcClient : GrpcClient {
             logger.info("grpc", "Credentials cleared successfully")
             Result.success(Unit)
         } catch (e: Exception) {
-            logger.error("Failed to clear credentials", e)
+            logger.error("grpc", "Failed to clear credentials", e)
             Result.failure(e)
         }
     }

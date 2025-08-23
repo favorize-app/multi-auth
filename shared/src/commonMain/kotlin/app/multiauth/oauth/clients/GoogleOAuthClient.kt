@@ -105,7 +105,7 @@ class GoogleOAuthClient(
                 )
             }
         } catch (e: Exception) {
-            logger.error("Exception during token exchange", e)
+            logger.error("google", "Exception during token exchange", e)
             OAuthResult.Error(
                 OAuthError.TokenExchangeFailed(
                     error = "token_exchange_failed",
@@ -156,7 +156,7 @@ class GoogleOAuthClient(
                 )
             }
         } catch (e: Exception) {
-            logger.error("Exception during token refresh", e)
+            logger.error("google", "Exception during token refresh", e)
             OAuthResult.Error(
                 OAuthError.TokenRefreshFailed(
                     error = "token_refresh_failed",
@@ -204,7 +204,7 @@ class GoogleOAuthClient(
                 )
             }
         } catch (e: Exception) {
-            logger.error("Exception during user info fetch", e)
+            logger.error("google", "Exception during user info fetch", e)
             OAuthResult.Error(
                 OAuthError.UserInfoFetchFailed(
                     error = "user_info_fetch_failed",
@@ -234,7 +234,7 @@ class GoogleOAuthClient(
             
             success
         } catch (e: Exception) {
-            logger.error("Exception during token revocation", e)
+            logger.error("google", "Exception during token revocation", e)
             false
         }
     }
@@ -254,7 +254,7 @@ class GoogleOAuthClient(
             
             isValid
         } catch (e: Exception) {
-            logger.error("Exception during token validation", e)
+            logger.error("google", "Exception during token validation", e)
             false
         }
     }

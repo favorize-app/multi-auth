@@ -426,7 +426,7 @@ class MockSecureStorage(
             logger.debug("secure storage", "Mock storage: stored key '$key' with value length ${value.length}")
             return true
         } catch (e: Exception) {
-            logger.error("Mock storage error: failed to store key '$key'", e)
+            logger.error("secure storage", "Mock storage error: failed to store key '$key'", e)
             return false
         }
     }
@@ -442,7 +442,7 @@ class MockSecureStorage(
             logger.debug("Mock storage: retrieved key '$key', value: ${value?.let { "length ${it.length}" } ?: "null"}")
             value
         } catch (e: Exception) {
-            logger.error("Mock storage error: failed to retrieve key '$key'", e)
+            logger.error("secure storage", "Mock storage error: failed to retrieve key '$key'", e)
             null
         }
     }
@@ -458,7 +458,7 @@ class MockSecureStorage(
             logger.debug("Mock storage: removed key '$key', success: $removed")
             removed
         } catch (e: Exception) {
-            logger.error("Mock storage error: failed to remove key '$key'", e)
+            logger.error("secure storage", "Mock storage error: failed to remove key '$key'", e)
             false
         }
     }
@@ -474,7 +474,7 @@ class MockSecureStorage(
             logger.debug("secure storage", "Mock storage: contains key '$key': $contains")
             contains
         } catch (e: Exception) {
-            logger.error("Mock storage error: failed to check contains key '$key'", e)
+            logger.error("secure storage", "Mock storage error: failed to check contains key '$key'", e)
             false
         }
     }
@@ -491,7 +491,7 @@ class MockSecureStorage(
             logger.debug("secure storage", "Mock storage: cleared $size items")
             true
         } catch (e: Exception) {
-            logger.error("Mock storage error: failed to clear storage", e)
+            logger.error("secure storage", "Mock storage error: failed to clear storage", e)
             false
         }
     }
@@ -507,7 +507,7 @@ class MockSecureStorage(
             logger.debug("secure storage", "Mock storage: getAllKeys returned ${keys.size} keys")
             keys
         } catch (e: Exception) {
-            logger.error("Mock storage error: failed to get all keys", e)
+            logger.error("secure storage", "Mock storage error: failed to get all keys", e)
             emptyList()
         }
     }
@@ -523,7 +523,7 @@ class MockSecureStorage(
             logger.debug("secure storage", "Mock storage: getItemCount returned $count")
             count
         } catch (e: Exception) {
-            logger.error("Mock storage error: failed to get item count", e)
+            logger.error("secure storage", "Mock storage error: failed to get item count", e)
             0
         }
     }

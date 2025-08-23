@@ -50,7 +50,7 @@ class WebSecureStorage : SecureStorage {
             
             result
         } catch (e: Exception) {
-            logger.error("Failed to store value for key: $key", e)
+            logger.error("secure storage", "Failed to store value for key: $key", e)
             false
         }
     }
@@ -69,7 +69,7 @@ class WebSecureStorage : SecureStorage {
                 null
             }
         } catch (e: Exception) {
-            logger.error("Failed to retrieve value for key: $key", e)
+            logger.error("secure storage", "Failed to retrieve value for key: $key", e)
             null
         }
     }
@@ -87,7 +87,7 @@ class WebSecureStorage : SecureStorage {
             
             result
         } catch (e: Exception) {
-            logger.error("Exception while removing value for key: $key", e)
+            logger.error("secure storage", "Exception while removing value for key: $key", e)
             false
         }
     }
@@ -98,7 +98,7 @@ class WebSecureStorage : SecureStorage {
             logger.debug("WebSecureStorage", "Key $key exists: $exists")
             exists
         } catch (e: Exception) {
-            logger.error("Exception while checking if key exists: $key", e)
+            logger.error("secure storage", "Exception while checking if key exists: $key", e)
             false
         }
     }
@@ -116,7 +116,7 @@ class WebSecureStorage : SecureStorage {
             
             result
         } catch (e: Exception) {
-            logger.error("Exception while clearing secure storage", e)
+            logger.error("secure storage", "Exception while clearing secure storage", e)
             false
         }
     }
@@ -127,7 +127,7 @@ class WebSecureStorage : SecureStorage {
             logger.debug("WebSecureStorage", "Retrieved ${keys.size} keys from secure storage")
             emit(keys)
         } catch (e: Exception) {
-            logger.error("Exception while retrieving all keys", e)
+            logger.error("secure storage", "Exception while retrieving all keys", e)
             emit(emptySet())
         }
     }.flowOn(Dispatchers.Default)
@@ -138,7 +138,7 @@ class WebSecureStorage : SecureStorage {
             logger.debug("WebSecureStorage", "Secure storage contains $count items")
             count
         } catch (e: Exception) {
-            logger.error("Exception while getting item count", e)
+            logger.error("secure storage", "Exception while getting item count", e)
             0
         }
     }

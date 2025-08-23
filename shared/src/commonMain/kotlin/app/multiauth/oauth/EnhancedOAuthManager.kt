@@ -108,7 +108,7 @@ class EnhancedOAuthManager(
             Result.success(Unit)
             
         } catch (e: Exception) {
-            logger.error("Failed to link OAuth account", e)
+            logger.error("oauth", "Failed to link OAuth account", e)
             _oauthState.value = EnhancedOAuthState.Error(e)
             _oauthState.value = EnhancedOAuthState.Idle
             
@@ -160,7 +160,7 @@ class EnhancedOAuthManager(
             Result.success(Unit)
             
         } catch (e: Exception) {
-            logger.error("Failed to unlink OAuth account", e)
+            logger.error("oauth", "Failed to unlink OAuth account", e)
             _oauthState.value = EnhancedOAuthState.Error(e)
             _oauthState.value = EnhancedOAuthState.Idle
             
@@ -220,7 +220,7 @@ class EnhancedOAuthManager(
             Result.success(user)
             
         } catch (e: Exception) {
-            logger.error("Failed to sign in with linked OAuth account", e)
+            logger.error("oauth", "Failed to sign in with linked OAuth account", e)
             _oauthState.value = EnhancedOAuthState.Error(e)
             _oauthState.value = EnhancedOAuthState.Idle
             
@@ -280,7 +280,7 @@ class EnhancedOAuthManager(
             Result.success(Unit)
             
         } catch (e: Exception) {
-            logger.error("Failed to refresh OAuth tokens", e)
+            logger.error("oauth", "Failed to refresh OAuth tokens", e)
             _oauthState.value = EnhancedOAuthState.Error(e)
             _oauthState.value = EnhancedOAuthState.Idle
             

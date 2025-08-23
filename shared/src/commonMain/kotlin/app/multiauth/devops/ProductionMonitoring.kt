@@ -44,7 +44,7 @@ class ProductionMonitoring(
             
             logger.info("devops", "Production monitoring started successfully")
         } catch (e: Exception) {
-            logger.error("Failed to start production monitoring", e)
+            logger.error("devops", "Failed to start production monitoring", e)
             throw e
         }
     }
@@ -64,7 +64,7 @@ class ProductionMonitoring(
             
             logger.info("devops", "Production monitoring stopped successfully")
         } catch (e: Exception) {
-            logger.error("Failed to stop production monitoring", e)
+            logger.error("devops", "Failed to stop production monitoring", e)
             throw e
         }
     }
@@ -124,7 +124,7 @@ class ProductionMonitoring(
                         error = e
                     ))
                     
-                    logger.error("Health check '$checkName' failed", e)
+                    logger.error("devops", "Health check '$checkName' failed", e)
                 }
             }
             
@@ -137,7 +137,7 @@ class ProductionMonitoring(
             )
             
         } catch (e: Exception) {
-            logger.error("Health check failed", e)
+            logger.error("devops", "Health check failed", e)
             _systemHealth.value = SystemHealth.UNHEALTHY
             
             HealthCheckResult(
@@ -178,7 +178,7 @@ class ProductionMonitoring(
             newMetrics
             
         } catch (e: Exception) {
-            logger.error("Failed to collect metrics", e)
+            logger.error("devops", "Failed to collect metrics", e)
             _metrics.value
         }
     }
@@ -203,7 +203,7 @@ class ProductionMonitoring(
             }
             
         } catch (e: Exception) {
-            logger.error("Failed to create alert", e)
+            logger.error("devops", "Failed to create alert", e)
         }
     }
     
@@ -232,7 +232,7 @@ class ProductionMonitoring(
             }
             
         } catch (e: Exception) {
-            logger.error("Failed to acknowledge alert", e)
+            logger.error("devops", "Failed to acknowledge alert", e)
         }
     }
     
@@ -262,7 +262,7 @@ class ProductionMonitoring(
             }
             
         } catch (e: Exception) {
-            logger.error("Failed to resolve alert", e)
+            logger.error("devops", "Failed to resolve alert", e)
         }
     }
     
@@ -286,7 +286,7 @@ class ProductionMonitoring(
             }
             
         } catch (e: Exception) {
-            logger.error("Failed to create incident", e)
+            logger.error("devops", "Failed to create incident", e)
         }
     }
     
@@ -316,7 +316,7 @@ class ProductionMonitoring(
             }
             
         } catch (e: Exception) {
-            logger.error("Failed to update incident status", e)
+            logger.error("devops", "Failed to update incident status", e)
         }
     }
     

@@ -75,7 +75,7 @@ class TotpGenerator {
             return String.format("%0${TOTP_DIGITS}d", totp)
             
         } catch (e: Exception) {
-            logger.error("Failed to generate TOTP", e)
+            logger.error("mfa", "Failed to generate TOTP", e)
             throw IllegalArgumentException("Invalid TOTP secret or parameters", e)
         }
     }
@@ -123,7 +123,7 @@ class TotpGenerator {
             return false
             
         } catch (e: Exception) {
-            logger.error("Failed to validate TOTP", e)
+            logger.error("mfa", "Failed to validate TOTP", e)
             return false
         }
     }

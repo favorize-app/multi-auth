@@ -78,7 +78,7 @@ class BiometricManager(
             availability
             
         } catch (e: Exception) {
-            logger.error("Unexpected error checking biometric availability", e)
+            logger.error("biometrics", "Unexpected error checking biometric availability", e)
             _isBiometricAvailable.value = false
             _biometricType.value = null
             Result.failure(e)
@@ -130,7 +130,7 @@ class BiometricManager(
             }
             
         } catch (e: Exception) {
-            logger.error("Unexpected error during biometric authentication", e)
+            logger.error("biometrics", "Unexpected error during biometric authentication", e)
             _biometricState.value = BiometricState.Error(e)
             _biometricState.value = BiometricState.Idle
             Result.failure(e)
@@ -177,7 +177,7 @@ class BiometricManager(
             }
             
         } catch (e: Exception) {
-            logger.error("Unexpected error enabling biometric authentication", e)
+            logger.error("biometrics", "Unexpected error enabling biometric authentication", e)
             _biometricState.value = BiometricState.Error(e)
             _biometricState.value = BiometricState.Idle
             Result.failure(e)
@@ -219,7 +219,7 @@ class BiometricManager(
             }
             
         } catch (e: Exception) {
-            logger.error("Unexpected error disabling biometric authentication", e)
+            logger.error("biometrics", "Unexpected error disabling biometric authentication", e)
             _biometricState.value = BiometricState.Error(e)
             _biometricState.value = BiometricState.Idle
             Result.failure(e)

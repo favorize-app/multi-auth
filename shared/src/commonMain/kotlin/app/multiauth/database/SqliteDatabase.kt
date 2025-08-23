@@ -156,7 +156,7 @@ class SqliteDatabase(
             logger.info("database", "SQLite database initialized successfully")
             true
         } catch (e: Exception) {
-            logger.error("Failed to initialize SQLite database", e)
+            logger.error("db", "Failed to initialize SQLite database", e)
             false
         }
     }
@@ -168,7 +168,7 @@ class SqliteDatabase(
             isInitialized = false
             logger.info("db", "SQLite database connection closed")
         } catch (e: Exception) {
-            logger.error("Error closing database connection", e)
+            logger.error("db", "Error closing database connection", e)
         }
     }
     
@@ -194,7 +194,7 @@ class SqliteDatabase(
                 supportsFullTextSearch = false
             )
         } catch (e: Exception) {
-            logger.error("Error getting database info", e)
+            logger.error("db", "Error getting database info", e)
             DatabaseInfo(
                 name = config.name,
                 version = "0",
@@ -257,7 +257,7 @@ class SqliteDatabase(
                     null
                 }
             } catch (e: Exception) {
-                logger.error("Exception creating user: ${user.id}", e)
+                logger.error("db", "Exception creating user: ${user.id}", e)
                 null
             }
         }
@@ -307,7 +307,7 @@ class SqliteDatabase(
                     false
                 }
             } catch (e: Exception) {
-                logger.error("Exception updating user: ${user.id}", e)
+                logger.error("db", "Exception updating user: ${user.id}", e)
                 false
             }
         }
@@ -328,7 +328,7 @@ class SqliteDatabase(
                 
                 user
             } catch (e: Exception) {
-                logger.error("Exception getting user by ID: $userId", e)
+                logger.error("db", "Exception getting user by ID: $userId", e)
                 null
             }
         }
@@ -349,7 +349,7 @@ class SqliteDatabase(
                 
                 user
             } catch (e: Exception) {
-                logger.error("Exception getting user by email: $email", e)
+                logger.error("db", "Exception getting user by email: $email", e)
                 null
             }
         }
@@ -370,7 +370,7 @@ class SqliteDatabase(
                 
                 user
             } catch (e: Exception) {
-                logger.error("Exception getting user by username: $username", e)
+                logger.error("db", "Exception getting user by username: $username", e)
                 null
             }
         }
@@ -394,7 +394,7 @@ class SqliteDatabase(
             
             emit(users)
         } catch (e: Exception) {
-            logger.error("Exception getting all users", e)
+            logger.error("db", "Exception getting all users", e)
             emit(emptyList())
         }
     }.flowOn(Dispatchers.IO)
@@ -417,7 +417,7 @@ class SqliteDatabase(
                     false
                 }
             } catch (e: Exception) {
-                logger.error("Exception deleting user: $userId", e)
+                logger.error("db", "Exception deleting user: $userId", e)
                 false
             }
         }
@@ -454,7 +454,7 @@ class SqliteDatabase(
                 
                 users
             } catch (e: Exception) {
-                logger.error("Exception searching users: $query", e)
+                logger.error("db", "Exception searching users: $query", e)
                 emptyList()
             }
         }
@@ -474,7 +474,7 @@ class SqliteDatabase(
                 
                 count
             } catch (e: Exception) {
-                logger.error("Exception getting user count", e)
+                logger.error("db", "Exception getting user count", e)
                 0
             }
         }
@@ -493,7 +493,7 @@ class SqliteDatabase(
             }
             logger.debug("db", "Database tables created successfully")
         } catch (e: Exception) {
-            logger.error("Error creating database tables", e)
+            logger.error("db", "Error creating database tables", e)
             throw e
         }
     }
@@ -506,7 +506,7 @@ class SqliteDatabase(
             }
             logger.debug("db", "Database indexes created successfully")
         } catch (e: Exception) {
-            logger.error("Error creating database indexes", e)
+            logger.error("db", "Error creating database indexes", e)
             // Don't throw here as indexes are not critical for basic functionality
         }
     }
@@ -533,7 +533,7 @@ class SqliteDatabase(
                 metadata = rs.getString("metadata")?.let { json.decodeFromString(it) }
             )
         } catch (e: Exception) {
-            logger.error("Error converting result set to user", e)
+            logger.error("db", "Error converting result set to user", e)
             null
         }
     }
@@ -554,7 +554,7 @@ class SqliteDatabase(
                 metadata = rs.getString("metadata")?.let { json.decodeFromString(it) }
             )
         } catch (e: Exception) {
-            logger.error("Error converting result set to OAuth account", e)
+            logger.error("db", "Error converting result set to OAuth account", e)
             null
         }
     }
@@ -576,7 +576,7 @@ class SqliteDatabase(
                 metadata = rs.getString("metadata")?.let { json.decodeFromString(it) }
             )
         } catch (e: Exception) {
-            logger.error("Error converting result set to session", e)
+            logger.error("db", "Error converting result set to session", e)
             null
         }
     }
@@ -595,7 +595,7 @@ class SqliteDatabase(
                 metadata = rs.getString("metadata")?.let { json.decodeFromString(it) }
             )
         } catch (e: Exception) {
-            logger.error("Error converting result set to audit log", e)
+            logger.error("db", "Error converting result set to audit log", e)
             null
         }
     }
@@ -614,7 +614,7 @@ class SqliteDatabase(
                 
                 count
             } catch (e: Exception) {
-                logger.error("Exception getting session count", e)
+                logger.error("db", "Exception getting session count", e)
                 0
             }
         }
@@ -634,7 +634,7 @@ class SqliteDatabase(
                 
                 count
             } catch (e: Exception) {
-                logger.error("Exception getting audit log count", e)
+                logger.error("db", "Exception getting audit log count", e)
                 0
             }
         }
@@ -646,7 +646,7 @@ class SqliteDatabase(
             // platform-specific methods to get actual file size
             java.io.File(config.name).length()
         } catch (e: Exception) {
-            logger.error("Error getting database size", e)
+            logger.error("db", "Error getting database size", e)
             null
         }
     }
@@ -688,7 +688,7 @@ class SqliteDatabase(
                     false
                 }
             } catch (e: Exception) {
-                logger.error("Exception linking OAuth account: ${oauthAccount.id}", e)
+                logger.error("db", "Exception linking OAuth account: ${oauthAccount.id}", e)
                 false
             }
         }
@@ -715,7 +715,7 @@ class SqliteDatabase(
                     false
                 }
             } catch (e: Exception) {
-                logger.error("Exception unlinking OAuth account: $providerId/$externalUserId", e)
+                logger.error("db", "Exception unlinking OAuth account: $providerId/$externalUserId", e)
                 false
             }
         }
@@ -741,7 +741,7 @@ class SqliteDatabase(
                 
                 accounts
             } catch (e: Exception) {
-                logger.error("Exception getting OAuth accounts for user: $userId", e)
+                logger.error("db", "Exception getting OAuth accounts for user: $userId", e)
                 emptyList()
             }
         }
@@ -770,7 +770,7 @@ class SqliteDatabase(
                 
                 user
             } catch (e: Exception) {
-                logger.error("Exception getting user by OAuth account: $providerId/$externalUserId", e)
+                logger.error("db", "Exception getting user by OAuth account: $providerId/$externalUserId", e)
                 null
             }
         }
@@ -808,7 +808,7 @@ class SqliteDatabase(
                     false
                 }
             } catch (e: Exception) {
-                logger.error("Exception updating OAuth account: ${oauthAccount.id}", e)
+                logger.error("db", "Exception updating OAuth account: ${oauthAccount.id}", e)
                 false
             }
         }
@@ -852,7 +852,7 @@ class SqliteDatabase(
                     false
                 }
             } catch (e: Exception) {
-                logger.error("Exception creating session: ${session.id}", e)
+                logger.error("db", "Exception creating session: ${session.id}", e)
                 false
             }
         }
@@ -873,7 +873,7 @@ class SqliteDatabase(
                 
                 session
             } catch (e: Exception) {
-                logger.error("Exception getting session by ID: $sessionId", e)
+                logger.error("db", "Exception getting session by ID: $sessionId", e)
                 null
             }
         }
@@ -899,7 +899,7 @@ class SqliteDatabase(
                 
                 sessions
             } catch (e: Exception) {
-                logger.error("Exception getting active sessions for user: $userId", e)
+                logger.error("db", "Exception getting active sessions for user: $userId", e)
                 emptyList()
             }
         }
@@ -941,7 +941,7 @@ class SqliteDatabase(
                     false
                 }
             } catch (e: Exception) {
-                logger.error("Exception updating session: ${session.id}", e)
+                logger.error("db", "Exception updating session: ${session.id}", e)
                 false
             }
         }
@@ -965,7 +965,7 @@ class SqliteDatabase(
                     false
                 }
             } catch (e: Exception) {
-                logger.error("Exception deleting session: $sessionId", e)
+                logger.error("db", "Exception deleting session: $sessionId", e)
                 false
             }
         }
@@ -984,7 +984,7 @@ class SqliteDatabase(
                 logger.debug("db", "Cleaned up $result expired sessions")
                 result
             } catch (e: Exception) {
-                logger.error("Exception cleaning up expired sessions", e)
+                logger.error("db", "Exception cleaning up expired sessions", e)
                 0
             }
         }
@@ -1025,7 +1025,7 @@ class SqliteDatabase(
                     false
                 }
             } catch (e: Exception) {
-                logger.error("Exception creating audit log: ${auditLog.id}", e)
+                logger.error("db", "Exception creating audit log: ${auditLog.id}", e)
                 false
             }
         }
@@ -1054,7 +1054,7 @@ class SqliteDatabase(
                 
                 logs
             } catch (e: Exception) {
-                logger.error("Exception getting audit logs for user: $userId", e)
+                logger.error("db", "Exception getting audit logs for user: $userId", e)
                 emptyList()
             }
         }
@@ -1084,7 +1084,7 @@ class SqliteDatabase(
                 
                 logs
             } catch (e: Exception) {
-                logger.error("Exception getting audit logs for time range: $startTime - $endTime", e)
+                logger.error("db", "Exception getting audit logs for time range: $startTime - $endTime", e)
                 emptyList()
             }
         }
@@ -1113,7 +1113,7 @@ class SqliteDatabase(
                 
                 logs
             } catch (e: Exception) {
-                logger.error("Exception getting audit logs by event type: $eventType", e)
+                logger.error("db", "Exception getting audit logs by event type: $eventType", e)
                 emptyList()
             }
         }
@@ -1132,7 +1132,7 @@ class SqliteDatabase(
                 logger.debug("db", "Database maintenance completed successfully")
                 true
             } catch (e: Exception) {
-                logger.error("Exception performing database maintenance", e)
+                logger.error("db", "Exception performing database maintenance", e)
                 false
             }
         }
@@ -1155,7 +1155,7 @@ class SqliteDatabase(
                 logger.debug("db", "Database backed up to: $backupPath")
                 true
             } catch (e: Exception) {
-                logger.error("Exception creating database backup", e)
+                logger.error("db", "Exception creating database backup", e)
                 false
             }
         }
@@ -1184,7 +1184,7 @@ class SqliteDatabase(
                 logger.debug("db", "Database restored from: $backupPath")
                 true
             } catch (e: Exception) {
-                logger.error("Exception restoring database from backup", e)
+                logger.error("db", "Exception restoring database from backup", e)
                 false
             }
         }
@@ -1202,7 +1202,7 @@ class SqliteDatabase(
                 logger.debug("db", "Database optimization completed successfully")
                 true
             } catch (e: Exception) {
-                logger.error("Exception optimizing database", e)
+                logger.error("db", "Exception optimizing database", e)
                 false
             }
         }

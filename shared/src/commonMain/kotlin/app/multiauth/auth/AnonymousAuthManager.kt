@@ -105,7 +105,7 @@ class AnonymousAuthManager(
             Result.success(user)
             
         } catch (e: Exception) {
-            logger.error("Failed to create anonymous session", e)
+            logger.error("auth", "Failed to create anonymous session", e)
             _anonymousState.value = AnonymousAuthState.Error(e)
             _anonymousState.value = AnonymousAuthState.Idle
             Result.failure(e)
@@ -171,7 +171,7 @@ class AnonymousAuthManager(
             Result.success(permanentUser)
             
         } catch (e: Exception) {
-            logger.error("Failed to convert anonymous user", e)
+            logger.error("auth", "Failed to convert anonymous user", e)
             _anonymousState.value = AnonymousAuthState.Error(e)
             _anonymousState.value = AnonymousAuthState.Idle
             Result.failure(e)
@@ -215,7 +215,7 @@ class AnonymousAuthManager(
             Result.success(Unit)
             
         } catch (e: Exception) {
-            logger.error("Failed to extend anonymous session", e)
+            logger.error("auth", "Failed to extend anonymous session", e)
             Result.failure(e)
         }
     }
@@ -253,7 +253,7 @@ class AnonymousAuthManager(
             Result.success(Unit)
             
         } catch (e: Exception) {
-            logger.error("Failed to terminate anonymous session", e)
+            logger.error("auth", "Failed to terminate anonymous session", e)
             Result.failure(e)
         }
     }
@@ -305,7 +305,7 @@ class AnonymousAuthManager(
                     logger.info("auth", "Cleaned up ${expiredUsers.size} expired anonymous sessions")
                 }
             } catch (e: Exception) {
-                logger.error("Failed to cleanup expired sessions", e)
+                logger.error("auth", "Failed to cleanup expired sessions", e)
             }
         }
     }

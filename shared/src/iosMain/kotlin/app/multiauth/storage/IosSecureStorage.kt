@@ -89,7 +89,7 @@ class IosSecureStorage : SecureStorage {
                 }
             }
         } catch (e: Exception) {
-            logger.error("Failed to store value for key: $key", e)
+            logger.error("secure storage", "Failed to store value for key: $key", e)
             false
         }
     }
@@ -131,7 +131,7 @@ class IosSecureStorage : SecureStorage {
                 null
             }
         } catch (e: Exception) {
-            logger.error("Failed to retrieve value for key: $key", e)
+            logger.error("secure storage", "Failed to retrieve value for key: $key", e)
             null
         }
     }
@@ -159,7 +159,7 @@ class IosSecureStorage : SecureStorage {
                 false
             }
         } catch (e: Exception) {
-            logger.error("Exception while removing value for key: $key", e)
+            logger.error("secure storage", "Exception while removing value for key: $key", e)
             false
         }
     }
@@ -180,7 +180,7 @@ class IosSecureStorage : SecureStorage {
             logger.debug("secure storage", "Key $key exists: $exists")
             exists
         } catch (e: Exception) {
-            logger.error("Exception while checking if key exists: $key", e)
+            logger.error("secure storage", "Exception while checking if key exists: $key", e)
             false
         }
     }
@@ -203,7 +203,7 @@ class IosSecureStorage : SecureStorage {
                 false
             }
         } catch (e: Exception) {
-            logger.error("Exception while clearing secure storage", e)
+            logger.error("secure storage", "Exception while clearing secure storage", e)
             false
         }
     }
@@ -237,7 +237,7 @@ class IosSecureStorage : SecureStorage {
                 emit(emptySet())
             }
         } catch (e: Exception) {
-            logger.error("Exception while retrieving all keys", e)
+            logger.error("secure storage", "Exception while retrieving all keys", e)
             emit(emptySet())
         }
     }.flowOn(Dispatchers.Default)
@@ -264,7 +264,7 @@ class IosSecureStorage : SecureStorage {
                 0
             }
         } catch (e: Exception) {
-            logger.error("Exception while getting item count", e)
+            logger.error("secure storage", "Exception while getting item count", e)
             0
         }
     }

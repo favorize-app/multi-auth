@@ -5,6 +5,7 @@ import app.multiauth.oauth.OAuthConfig
 import app.multiauth.oauth.OAuthResult
 import app.multiauth.oauth.OAuthError
 import app.multiauth.oauth.OAuthUserInfo
+import app.multiauth.providers.OAuthResult
 import app.multiauth.util.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -100,7 +101,7 @@ class TwitterOAuthClient(
                 )
             }
         } catch (e: Exception) {
-            logger.error("Exception during Twitter token exchange", e)
+            logger.error("twitter", "Exception during Twitter token exchange", e)
             OAuthResult.Error(
                 OAuthError.TokenExchangeFailed(
                     error = "token_exchange_failed",
@@ -151,7 +152,7 @@ class TwitterOAuthClient(
                 )
             }
         } catch (e: Exception) {
-            logger.error("Exception during Twitter token refresh", e)
+            logger.error("twitter", "Exception during Twitter token refresh", e)
             OAuthResult.Error(
                 OAuthError.TokenRefreshFailed(
                     error = "token_refresh_failed",
@@ -200,7 +201,7 @@ class TwitterOAuthClient(
                 )
             }
         } catch (e: Exception) {
-            logger.error("Exception during Twitter user info fetch", e)
+            logger.error("twitter", "Exception during Twitter user info fetch", e)
             OAuthResult.Error(
                 OAuthError.UserInfoFetchFailed(
                     error = "user_info_fetch_failed",
@@ -221,7 +222,7 @@ class TwitterOAuthClient(
             // Return true to indicate "success" since we can't actually revoke
             true
         } catch (e: Exception) {
-            logger.error("Exception during Twitter token revocation", e)
+            logger.error("twitter", "Exception during Twitter token revocation", e)
             false
         }
     }
@@ -242,7 +243,7 @@ class TwitterOAuthClient(
             
             isValid
         } catch (e: Exception) {
-            logger.error("Exception during Twitter token validation", e)
+            logger.error("twitter", "Exception during Twitter token validation", e)
             false
         }
     }

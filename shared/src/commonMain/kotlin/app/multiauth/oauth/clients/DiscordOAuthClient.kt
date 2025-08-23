@@ -101,7 +101,7 @@ class DiscordOAuthClient(
                 )
             }
         } catch (e: Exception) {
-            logger.error("Exception during Discord token exchange", e)
+            logger.error("discord", "Exception during Discord token exchange", e)
             OAuthResult.Error(
                 OAuthError.TokenExchangeFailed(
                     error = "token_exchange_failed",
@@ -152,7 +152,7 @@ class DiscordOAuthClient(
                 )
             }
         } catch (e: Exception) {
-            logger.error("Exception during Discord token refresh", e)
+            logger.error("discord", "Exception during Discord token refresh", e)
             OAuthResult.Error(
                 OAuthError.TokenRefreshFailed(
                     error = "token_refresh_failed",
@@ -200,7 +200,7 @@ class DiscordOAuthClient(
                 )
             }
         } catch (e: Exception) {
-            logger.error("Exception during Discord user info fetch", e)
+            logger.error("discord", "Exception during Discord user info fetch", e)
             OAuthResult.Error(
                 OAuthError.UserInfoFetchFailed(
                     error = "user_info_fetch_failed",
@@ -230,7 +230,7 @@ class DiscordOAuthClient(
             
             success
         } catch (e: Exception) {
-            logger.error("Exception during Discord token revocation", e)
+            logger.error("discord", "Exception during Discord token revocation", e)
             false
         }
     }
@@ -250,7 +250,7 @@ class DiscordOAuthClient(
             
             isValid
         } catch (e: Exception) {
-            logger.error("Exception during Discord token validation", e)
+            logger.error("discord", "Exception during Discord token validation", e)
             false
         }
     }
