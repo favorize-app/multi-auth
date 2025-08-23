@@ -236,7 +236,7 @@ class SecurityAuditLogger {
             try {
                 val cutoffTime = Clock.System.now().minus(kotlinx.datetime.Duration.parse("P${RETENTION_DAYS}D"))
                 val currentEntries = _auditEntries.value
-                val filteredEntries = currentEntries.filter { it.timestamp.isAfter(cutoffTime) }
+                val filteredEntries = currentEntries.filter { it.timestamp > cutoffTime }
                 
                 if (filteredEntries.size != currentEntries.size) {
                     _auditEntries.value = filteredEntries
@@ -321,7 +321,7 @@ class SecurityAuditLogger {
         val cutoffTime = now.minus(kotlinx.datetime.Duration.parse("PT${SUSPICIOUS_ACTIVITY_WINDOW_MINUTES}M"))
         
         // Remove old activities
-        userActivities.removeAll { it.isBefore(cutoffTime) }
+        userActivities.removeAll { it < cutoffTime }
         
         // Add current activity
         userActivities.add(now)
@@ -348,7 +348,7 @@ class SecurityAuditLogger {
         val cutoffTime = now.minus(kotlinx.datetime.Duration.parse("PT${SUSPICIOUS_ACTIVITY_WINDOW_MINUTES}M"))
         
         // Remove old activities
-        ipActivities.removeAll { it.isBefore(cutoffTime) }
+        ipActivities.removeAll { it < cutoffTime }
         
         // Add current activity
         ipActivities.add(now)
@@ -390,8 +390,8 @@ class SecurityAuditLogger {
             filters.userId?.let { if (entry.userId != it) matches = false }
             filters.severity?.let { if (entry.severity != it) matches = false }
             filters.eventType?.let { if (entry.event != it) matches = false }
-            filters.startTime?.let { if (entry.timestamp.isBefore(it)) matches = false }
-            filters.endTime?.let { if (entry.timestamp.isAfter(it)) matches = false }
+            filters.startTime?.let { if (entry.timestamp < it) matches = false }
+            filters.endTime?.let { if (entry.timestamp > it) matches = false }
             
             matches
         }
@@ -435,23 +435,7 @@ class SecurityAuditLogger {
         return xml.toString()
     }
     
-    private fun exportToXml(entries: List<SecurityAuditEntry>): String {
-        val xml = StringBuilder()
-        xml.appendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
-        xml.appendLine("<auditLog>")
-        
-        entries.forEach { entry ->
-            xml.appendLine("  <entry>")
-            xml.appendLine("    <timestamp>${entry.timestamp}</timestamp>")
-            xml.appendLine("    <event>${entry.event.name}</event>")
-            xml.appendLine("    <userId>${entry.userId ?: ""}</userId>")
-            xml.appendLine("    <severity>${entry.severity.name}</severity>")
-            xml.appendLine("  </entry>")
-        }
-        
-        xml.appendLine("</auditLog>")
-        return xml.toString()
-    }
+
 }
 
 /**
@@ -474,8 +458,8 @@ data class SecurityAuditEntry(
 /**
  * Represents security metrics.
  */
-    @Serializable
-    data class SecurityMetrics(
+@Serializable
+data class SecurityMetrics(
         val successfulAuthentications: Long = 0,
         val failedAuthentications: Long = 0,
         val accountsLocked: Long = 0,
