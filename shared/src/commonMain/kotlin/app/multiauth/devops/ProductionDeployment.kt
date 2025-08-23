@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.datetime.Clock
 
 /**
  * Production Deployment System
@@ -46,7 +47,7 @@ class ProductionDeployment(
                 strategy = deploymentStrategy,
                 artifacts = artifacts,
                 status = DeploymentStatus.DEPLOYING,
-                startedAt = System.currentTimeMillis(),
+                startedAt = Clock.System.now().toEpochMilliseconds(),
                 createdBy = "System"
             )
             
@@ -89,7 +90,7 @@ class ProductionDeployment(
                 status = DeploymentStatus.FAILED,
                 message = "Deployment failed: ${e.message}",
                 error = e,
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
         }
     }
@@ -111,7 +112,7 @@ class ProductionDeployment(
                 strategy = DeploymentStrategy.RECREATE,
                 artifacts = artifacts,
                 status = DeploymentStatus.DEPLOYING,
-                startedAt = System.currentTimeMillis(),
+                startedAt = Clock.System.now().toEpochMilliseconds(),
                 createdBy = "System"
             )
             
@@ -146,7 +147,7 @@ class ProductionDeployment(
                 status = DeploymentStatus.FAILED,
                 message = "Staging deployment failed: ${e.message}",
                 error = e,
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
         }
     }
@@ -189,7 +190,7 @@ class ProductionDeployment(
                 status = RollbackStatus.FAILED,
                 message = "Rollback failed: ${e.message}",
                 error = e,
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
         }
     }
@@ -253,7 +254,7 @@ class ProductionDeployment(
                         name = validationName,
                         isValid = isValid,
                         details = result,
-                        timestamp = System.currentTimeMillis()
+                        timestamp = Clock.System.now().toEpochMilliseconds()
                     ))
                     
                 } catch (e: Exception) {
@@ -262,7 +263,7 @@ class ProductionDeployment(
                         name = validationName,
                         isValid = false,
                         details = "Validation failed: ${e.message}",
-                        timestamp = System.currentTimeMillis(),
+                        timestamp = Clock.System.now().toEpochMilliseconds(),
                         error = e
                     ))
                     
@@ -273,7 +274,7 @@ class ProductionDeployment(
             ValidationResult(
                 isValid = overallValid,
                 validations = results,
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
             
         } catch (e: Exception) {
@@ -281,7 +282,7 @@ class ProductionDeployment(
             ValidationResult(
                 isValid = false,
                 validations = emptyList(),
-                timestamp = System.currentTimeMillis(),
+                timestamp = Clock.System.now().toEpochMilliseconds(),
                 error = e
             )
         }
@@ -370,10 +371,10 @@ class ProductionDeployment(
         steps.forEach { (stepName, stepFunction) ->
             try {
                 logger.info("DevOps", "Executing deployment step: $stepName")
-                val startTime = System.currentTimeMillis()
+                val startTime = Clock.System.now().toEpochMilliseconds()
                 
                 val result = stepFunction()
-                val duration = System.currentTimeMillis() - startTime
+                val duration = Clock.System.now().toEpochMilliseconds() - startTime
                 
                 results.add(DeploymentStepResult(
                     stepName = stepName,
@@ -385,7 +386,7 @@ class ProductionDeployment(
                 logger.info("DevOps", "Deployment step '$stepName' completed successfully in ${duration}ms")
                 
             } catch (e: Exception) {
-                val duration = System.currentTimeMillis() - startTime
+                val duration = Clock.System.now().toEpochMilliseconds() - startTime
                 
                 results.add(DeploymentStepResult(
                     stepName = stepName,
@@ -405,7 +406,7 @@ class ProductionDeployment(
             status = DeploymentStatus.DEPLOYED,
             message = "Deployment completed successfully",
             steps = results,
-            timestamp = System.currentTimeMillis()
+            timestamp = Clock.System.now().toEpochMilliseconds()
         )
     }
     
@@ -424,10 +425,10 @@ class ProductionDeployment(
         steps.forEach { (stepName, stepFunction) ->
             try {
                 logger.info("DevOps", "Executing rollback step: $stepName")
-                val startTime = System.currentTimeMillis()
+                val startTime = Clock.System.now().toEpochMilliseconds()
                 
                 val result = stepFunction()
-                val duration = System.currentTimeMillis() - startTime
+                val duration = Clock.System.now().toEpochMilliseconds() - startTime
                 
                 results.add(RollbackStepResult(
                     stepName = stepName,
@@ -439,7 +440,7 @@ class ProductionDeployment(
                 logger.info("DevOps", "Rollback step '$stepName' completed successfully in ${duration}ms")
                 
             } catch (e: Exception) {
-                val duration = System.currentTimeMillis() - startTime
+                val duration = Clock.System.now().toEpochMilliseconds() - startTime
                 
                 results.add(RollbackStepResult(
                     stepName = stepName,
@@ -459,7 +460,7 @@ class ProductionDeployment(
             status = RollbackStatus.SUCCESS,
             steps = results,
             totalDuration = results.sumOf { it.duration },
-            timestamp = System.currentTimeMillis()
+            timestamp = Clock.System.now().toEpochMilliseconds()
         )
     }
     
@@ -473,7 +474,7 @@ class ProductionDeployment(
             val deployment = currentDeployments[deploymentIndex]
             val updatedDeployment = deployment.copy(
                 status = status,
-                completedAt = if (status.isTerminal()) System.currentTimeMillis() else null
+                completedAt = if (status.isTerminal()) Clock.System.now().toEpochMilliseconds() else null
             )
             
             currentDeployments[deploymentIndex] = updatedDeployment
@@ -487,7 +488,7 @@ class ProductionDeployment(
         _environmentStatus.value = currentStatus
     }
     
-    private fun generateDeploymentId(): String = "deploy_${System.currentTimeMillis()}_${(0..9999).random()}"
+    private fun generateDeploymentId(): String = "deploy_${Clock.System.now().toEpochMilliseconds()}_${(0..9999).random()}"
     
     // Deployment step implementations (simulated)
     

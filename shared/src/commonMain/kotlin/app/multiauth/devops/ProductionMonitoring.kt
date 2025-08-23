@@ -5,6 +5,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.datetime.Clock
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.hours
 
 /**
  * Production Monitoring and Alerting System
@@ -89,9 +92,9 @@ class ProductionMonitoring(
             
             checks.forEach { (checkName, checkFunction) ->
                 try {
-                    val startTime = System.currentTimeMillis()
+                    val startTime = Clock.System.now()
                     val result = checkFunction()
-                    val duration = System.currentTimeMillis() - startTime
+                    val duration = Clock.System.now() - startTime
                     
                     val healthStatus = when {
                         result.contains("OK") -> HealthStatus.HEALTHY
@@ -110,7 +113,7 @@ class ProductionMonitoring(
                         status = healthStatus,
                         details = result,
                         duration = duration,
-                        timestamp = System.currentTimeMillis()
+                        timestamp = Clock.System.now().toEpochMilliseconds()
                     ))
                     
                 } catch (e: Exception) {
@@ -133,7 +136,7 @@ class ProductionMonitoring(
             HealthCheckResult(
                 overallHealth = overallHealth,
                 checks = results,
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
             
         } catch (e: Exception) {
@@ -143,7 +146,7 @@ class ProductionMonitoring(
             HealthCheckResult(
                 overallHealth = SystemHealth.UNHEALTHY,
                 checks = emptyList(),
-                timestamp = System.currentTimeMillis(),
+                timestamp = Clock.System.now().toEpochMilliseconds(),
                 error = e
             )
         }
@@ -157,7 +160,7 @@ class ProductionMonitoring(
         
         return try {
             val newMetrics = SystemMetrics(
-                timestamp = System.currentTimeMillis(),
+                timestamp = Clock.System.now().toEpochMilliseconds(),
                 cpuUsage = collectCPUUsage(),
                 memoryUsage = collectMemoryUsage(),
                 diskUsage = collectDiskUsage(),
@@ -222,7 +225,7 @@ class ProductionMonitoring(
                 val updatedAlert = alert.copy(
                     status = AlertStatus.ACKNOWLEDGED,
                     acknowledgedBy = acknowledgedBy,
-                    acknowledgedAt = System.currentTimeMillis()
+                    acknowledgedAt = Clock.System.now().toEpochMilliseconds()
                 )
                 
                 currentAlerts[alertIndex] = updatedAlert
@@ -251,7 +254,7 @@ class ProductionMonitoring(
                 val updatedAlert = alert.copy(
                     status = AlertStatus.RESOLVED,
                     resolvedBy = resolvedBy,
-                    resolvedAt = System.currentTimeMillis(),
+                    resolvedAt = Clock.System.now().toEpochMilliseconds(),
                     resolution = resolution
                 )
                 
@@ -305,7 +308,7 @@ class ProductionMonitoring(
                 val updatedIncident = incident.copy(
                     status = status,
                     updatedBy = updatedBy,
-                    updatedAt = System.currentTimeMillis(),
+                    updatedAt = Clock.System.now().toEpochMilliseconds(),
                     notes = notes ?: incident.notes
                 )
                 
@@ -330,7 +333,7 @@ class ProductionMonitoring(
             activeIncidents = _incidents.value.filter { it.status != IncidentStatus.RESOLVED },
             currentMetrics = _metrics.value,
             uptime = calculateUptime(),
-            lastHealthCheck = System.currentTimeMillis()
+            lastHealthCheck = Clock.System.now().toEpochMilliseconds()
         ))
     }
     
@@ -478,7 +481,7 @@ class ProductionMonitoring(
                 severity = AlertSeverity.WARNING,
                 category = AlertCategory.PERFORMANCE,
                 source = "System Monitoring",
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             ))
         }
         
@@ -490,7 +493,7 @@ class ProductionMonitoring(
                 severity = AlertSeverity.HIGH,
                 category = AlertCategory.ERROR,
                 source = "System Monitoring",
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             ))
         }
     }
@@ -518,7 +521,7 @@ class ProductionMonitoring(
             category = IncidentCategory.SYSTEM,
             source = alert.source,
             status = IncidentStatus.OPEN,
-            createdAt = System.currentTimeMillis(),
+            createdAt = Clock.System.now().toEpochMilliseconds(),
             createdBy = "System",
             alerts = listOf(alert.id)
         )
@@ -528,11 +531,11 @@ class ProductionMonitoring(
     
     private fun calculateUptime(): Long {
         // Calculate system uptime
-        return System.currentTimeMillis() - (System.currentTimeMillis() - 86400000) // Simulate 24h uptime
+        return Clock.System.now() - (Clock.System.now() - 24.hours).epochSeconds // Simulate 24h uptime
     }
     
-    private fun generateAlertId(): String = "alert_${System.currentTimeMillis()}_${(0..9999).random()}"
-    private fun generateIncidentId(): String = "incident_${System.currentTimeMillis()}_${(0..9999).random()}"
+    private fun generateAlertId(): String = "alert_${Clock.System.now().toEpochMilliseconds()}_${(0..9999).random()}"
+    private fun generateIncidentId(): String = "incident_${Clock.System.now().toEpochMilliseconds()}_${(0..9999).random()}"
 }
 
 // Data classes for production monitoring
@@ -624,13 +627,13 @@ data class HealthCheckItem(
     val name: String,
     val status: HealthStatus,
     val details: String,
-    val duration: Long,
+    val duration: Duration,
     val timestamp: Long,
     val error: Exception? = null
 )
 
 data class SystemMetrics(
-    val timestamp: Long = System.currentTimeMillis(),
+    val timestamp: Long = Clock.System.now().toEpochMilliseconds(),
     val cpuUsage: Double = 0.0,
     val memoryUsage: Double = 0.0,
     val diskUsage: Double = 0.0,

@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.datetime.Clock
 
 /**
  * DevOps Manager
@@ -107,7 +108,7 @@ class DevOpsManager(
                 status = PipelineStatus.FAILED,
                 message = "Pipeline execution failed: ${e.message}",
                 error = e,
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
         }
     }
@@ -163,7 +164,7 @@ class DevOpsManager(
                 status = DeploymentStatus.FAILED,
                 message = "Deployment failed: ${e.message}",
                 error = e,
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
         }
     }
@@ -196,7 +197,7 @@ class DevOpsManager(
                 workflowId = "",
                 details = "Provisioning failed: ${e.message}",
                 error = e,
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
         }
     }
@@ -237,7 +238,7 @@ class DevOpsManager(
             monitoringStatus = productionMonitoring.getMonitoringStatus(),
             deploymentStatus = productionDeployment.deploymentStatus.value,
             automationStatus = devOpsAutomation.automationStatus.value,
-            lastUpdated = System.currentTimeMillis()
+            lastUpdated = Clock.System.now().toEpochMilliseconds()
         )
         
         emit(dashboard)
@@ -269,7 +270,7 @@ class DevOpsManager(
                 totalDuration = 0,
                 message = "Emergency rollback failed: ${e.message}",
                 error = e,
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
         }
     }
@@ -281,7 +282,7 @@ class DevOpsManager(
         logger.info("DevOps", "Starting system backup")
         
         return try {
-            val startTime = System.currentTimeMillis()
+            val startTime = Clock.System.now().toEpochMilliseconds()
             
             // Backup infrastructure
             val infrastructureBackup = devOpsAutomation.backupInfrastructure("production")
@@ -292,7 +293,7 @@ class DevOpsManager(
             // Backup configuration
             val configBackup = backupConfiguration()
             
-            val totalDuration = System.currentTimeMillis() - startTime
+            val totalDuration = Clock.System.now().toEpochMilliseconds() - startTime
             
             val success = infrastructureBackup.status == BackupStatus.SUCCESS &&
                     databaseBackup.status == BackupStatus.SUCCESS &&
@@ -310,7 +311,7 @@ class DevOpsManager(
                 databaseBackup = databaseBackup,
                 configurationBackup = configBackup,
                 totalDuration = totalDuration,
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
             
         } catch (e: Exception) {
@@ -322,7 +323,7 @@ class DevOpsManager(
                 configurationBackup = null,
                 totalDuration = 0,
                 error = e,
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
         }
     }
@@ -334,7 +335,7 @@ class DevOpsManager(
         logger.info("DevOps", "Starting system restore from backup: $backupId")
         
         return try {
-            val startTime = System.currentTimeMillis()
+            val startTime = Clock.System.now().toEpochMilliseconds()
             
             // Restore infrastructure
             val infrastructureRestore = devOpsAutomation.restoreInfrastructure("production", backupId)
@@ -345,7 +346,7 @@ class DevOpsManager(
             // Restore configuration
             val configRestore = restoreConfiguration(backupId)
             
-            val totalDuration = System.currentTimeMillis() - startTime
+            val totalDuration = Clock.System.now().toEpochMilliseconds() - startTime
             
             val success = infrastructureRestore.status == RestoreStatus.SUCCESS &&
                     databaseRestore.status == RestoreStatus.SUCCESS &&
@@ -363,7 +364,7 @@ class DevOpsManager(
                 databaseRestore = databaseRestore,
                 configurationRestore = configRestore,
                 totalDuration = totalDuration,
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
             
         } catch (e: Exception) {
@@ -375,7 +376,7 @@ class DevOpsManager(
                 configurationRestore = null,
                 totalDuration = 0,
                 error = e,
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
         }
     }
@@ -397,7 +398,7 @@ class DevOpsManager(
                 monitoringMetrics = monitoringMetrics,
                 deploymentMetrics = deploymentMetrics,
                 automationMetrics = automationMetrics,
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
             
         } catch (e: Exception) {
@@ -408,7 +409,7 @@ class DevOpsManager(
                 deploymentMetrics = null,
                 automationMetrics = null,
                 error = e,
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
         }
     }
@@ -421,9 +422,9 @@ class DevOpsManager(
         return BackupResult(
             environment = "database",
             status = BackupStatus.SUCCESS,
-            workflowId = "db_backup_${System.currentTimeMillis()}",
-            backupLocation = "s3://backups/database/${System.currentTimeMillis()}",
-            timestamp = System.currentTimeMillis()
+            workflowId = "db_backup_${Clock.System.now().toEpochMilliseconds()}",
+            backupLocation = "s3://backups/database/${Clock.System.now().toEpochMilliseconds()}",
+            timestamp = Clock.System.now().toEpochMilliseconds()
         )
     }
     
@@ -433,9 +434,9 @@ class DevOpsManager(
         return BackupResult(
             environment = "configuration",
             status = BackupStatus.SUCCESS,
-            workflowId = "config_backup_${System.currentTimeMillis()}",
-            backupLocation = "s3://backups/config/${System.currentTimeMillis()}",
-            timestamp = System.currentTimeMillis()
+            workflowId = "config_backup_${Clock.System.now().toEpochMilliseconds()}",
+            backupLocation = "s3://backups/config/${Clock.System.now().toEpochMilliseconds()}",
+            timestamp = Clock.System.now().toEpochMilliseconds()
         )
     }
     
@@ -445,10 +446,10 @@ class DevOpsManager(
         return RestoreResult(
             environment = "database",
             status = RestoreStatus.SUCCESS,
-            workflowId = "db_restore_${System.currentTimeMillis()}",
+            workflowId = "db_restore_${Clock.System.now().toEpochMilliseconds()}",
             backupId = backupId,
             details = "Database restored successfully from backup $backupId",
-            timestamp = System.currentTimeMillis()
+            timestamp = Clock.System.now().toEpochMilliseconds()
         )
     }
     
@@ -458,10 +459,10 @@ class DevOpsManager(
         return RestoreResult(
             environment = "configuration",
             status = RestoreStatus.SUCCESS,
-            workflowId = "config_restore_${System.currentTimeMillis()}",
+            workflowId = "config_restore_${Clock.System.now().toEpochMilliseconds()}",
             backupId = backupId,
             details = "Configuration restored successfully from backup $backupId",
-            timestamp = System.currentTimeMillis()
+            timestamp = Clock.System.now().toEpochMilliseconds()
         )
     }
 }
@@ -538,7 +539,7 @@ suspend fun CICDPipeline.getPipelineMetrics(): PipelineMetrics {
         successfulPipelines = 95,
         failedPipelines = 5,
         averageDuration = 300000, // 5 minutes
-        lastExecution = System.currentTimeMillis() - 3600000 // 1 hour ago
+        lastExecution = Clock.System.now().toEpochMilliseconds() - 3600000 // 1 hour ago
     )
 }
 
@@ -550,7 +551,7 @@ suspend fun ProductionMonitoring.getMetrics(): MonitoringMetrics {
         diskUsage = 23.1,
         networkUsage = 12.8,
         activeAlerts = 2,
-        lastUpdate = System.currentTimeMillis()
+        lastUpdate = Clock.System.now().toEpochMilliseconds()
     )
 }
 
@@ -561,7 +562,7 @@ suspend fun ProductionDeployment.getDeploymentMetrics(): DeploymentMetrics {
         successfulDeployments = 23,
         failedDeployments = 2,
         averageDeploymentTime = 180000, // 3 minutes
-        lastDeployment = System.currentTimeMillis() - 7200000 // 2 hours ago
+        lastDeployment = Clock.System.now().toEpochMilliseconds() - 7200000 // 2 hours ago
     )
 }
 

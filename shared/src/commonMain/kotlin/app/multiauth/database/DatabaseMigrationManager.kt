@@ -41,7 +41,6 @@ class DatabaseMigrationManager(
                     success = true,
                     fromVersion = currentVersion,
                     toVersion = CURRENT_VERSION,
-                    migrationsExecuted = emptyList(),
                     message = "Database is already up to date"
                 )
             }

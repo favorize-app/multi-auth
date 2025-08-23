@@ -3,6 +3,9 @@ package app.multiauth.devops
 import app.multiauth.util.Logger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlin.time.Duration
 
 /**
  * CI/CD Pipeline Configuration and Automation
@@ -35,11 +38,11 @@ class CICDPipeline(
             
             steps.forEach { (stepName, stepFunction) ->
                 logger.info("DevOps", "Executing CI step: $stepName")
-                val startTime = System.currentTimeMillis()
+                val startTime = Clock.System.now()
                 
                 try {
                     val result = stepFunction()
-                    val duration = System.currentTimeMillis() - startTime
+                    val duration = Clock.System.now() - startTime
                     
                     results.add(CIStepResult(
                         stepName = stepName,
@@ -50,7 +53,7 @@ class CICDPipeline(
                     
                     logger.info("DevOps", "CI step '$stepName' completed successfully in ${duration}ms")
                 } catch (e: Exception) {
-                    val duration = System.currentTimeMillis() - startTime
+                    val duration = Clock.System.now() - startTime
                     
                     results.add(CIStepResult(
                         stepName = stepName,
@@ -69,7 +72,7 @@ class CICDPipeline(
                 status = CIStatus.SUCCESS,
                 steps = results,
                 totalDuration = results.sumOf { it.duration },
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now()
             )
             
         } catch (e: Exception) {
@@ -78,7 +81,7 @@ class CICDPipeline(
                 status = CIStatus.FAILED,
                 steps = emptyList(),
                 totalDuration = 0,
-                timestamp = System.currentTimeMillis(),
+                timestamp = Clock.System.now(),
                 error = e
             )
         }
@@ -105,11 +108,11 @@ class CICDPipeline(
             
             steps.forEach { (stepName, stepFunction) ->
                 logger.info("DevOps", "Executing CD step: $stepName")
-                val startTime = System.currentTimeMillis()
+                val startTime = Clock.System.now()
                 
                 try {
                     val result = stepFunction()
-                    val duration = System.currentTimeMillis() - startTime
+                    val duration = Clock.System.now() - startTime
                     
                     results.add(CDStepResult(
                         stepName = stepName,
@@ -120,7 +123,7 @@ class CICDPipeline(
                     
                     logger.info("DevOps", "CD step '$stepName' completed successfully in ${duration}ms")
                 } catch (e: Exception) {
-                    val duration = System.currentTimeMillis() - startTime
+                    val duration = Clock.System.now() - startTime
                     
                     results.add(CDStepResult(
                         stepName = stepName,
@@ -140,7 +143,7 @@ class CICDPipeline(
                 status = CDStatus.SUCCESS,
                 steps = results,
                 totalDuration = results.sumOf { it.duration },
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
             
         } catch (e: Exception) {
@@ -150,7 +153,7 @@ class CICDPipeline(
                 status = CDStatus.FAILED,
                 steps = emptyList(),
                 totalDuration = 0,
-                timestamp = System.currentTimeMillis(),
+                timestamp = Clock.System.now().toEpochMilliseconds(),
                 error = e
             )
         }
@@ -168,7 +171,7 @@ class CICDPipeline(
                 ciResult = ciResult,
                 cdResult = null,
                 status = PipelineStatus.CI_FAILED,
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
         }
         
@@ -182,7 +185,7 @@ class CICDPipeline(
             ciResult = ciResult,
             cdResult = cdResult,
             status = pipelineStatus,
-            timestamp = System.currentTimeMillis()
+            timestamp = Clock.System.now().toEpochMilliseconds()
         )
     }
     
@@ -212,11 +215,11 @@ class CICDPipeline(
             
             rollbackSteps.forEach { (stepName, stepFunction) ->
                 logger.info("DevOps", "Executing rollback step: $stepName")
-                val startTime = System.currentTimeMillis()
+                val startTime = Clock.System.now()
                 
                 try {
                     val result = stepFunction()
-                    val duration = System.currentTimeMillis() - startTime
+                    val duration = Clock.System.now() - startTime
                     
                     results.add(RollbackStepResult(
                         stepName = stepName,
@@ -227,7 +230,7 @@ class CICDPipeline(
                     
                     logger.info("DevOps", "Rollback step '$stepName' completed successfully in ${duration}ms")
                 } catch (e: Exception) {
-                    val duration = System.currentTimeMillis() - startTime
+                    val duration = Clock.System.now() - startTime
                     
                     results.add(RollbackStepResult(
                         stepName = stepName,
@@ -247,7 +250,7 @@ class CICDPipeline(
                 status = RollbackStatus.SUCCESS,
                 steps = results,
                 totalDuration = results.sumOf { it.duration },
-                timestamp = System.currentTimeMillis()
+                timestamp = Clock.System.now().toEpochMilliseconds()
             )
             
         } catch (e: Exception) {
@@ -257,7 +260,7 @@ class CICDPipeline(
                 status = RollbackStatus.FAILED,
                 steps = emptyList(),
                 totalDuration = 0,
-                timestamp = System.currentTimeMillis(),
+                timestamp = Clock.System.now().toEpochMilliseconds(),
                 error = e
             )
         }
@@ -454,7 +457,7 @@ data class CIResult(
     val status: CIStatus,
     val steps: List<CIStepResult>,
     val totalDuration: Long,
-    val timestamp: Long,
+    val timestamp: Instant,
     val error: Exception? = null
 )
 
@@ -477,7 +480,7 @@ data class PipelineResult(
 data class CIStepResult(
     val stepName: String,
     val status: CIStepStatus,
-    val duration: Long,
+    val duration: Duration,
     val details: String,
     val error: Exception? = null
 )
@@ -485,7 +488,7 @@ data class CIStepResult(
 data class CDStepResult(
     val stepName: String,
     val status: CDStepStatus,
-    val duration: Long,
+    val duration: Duration,
     val details: String,
     val error: Exception? = null
 )
@@ -502,7 +505,7 @@ data class RollbackResult(
 data class RollbackStepResult(
     val stepName: String,
     val status: RollbackStepStatus,
-    val duration: Long,
+    val duration: Duration,
     val details: String,
     val error: Exception? = null
 )
