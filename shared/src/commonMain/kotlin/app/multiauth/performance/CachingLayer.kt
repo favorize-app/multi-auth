@@ -67,7 +67,7 @@ class CachingLayer {
         cacheType: String = CACHE_TYPE_HYBRID
     ): CachingResult {
         return try {
-            logger.debug("Setting cache key: $key with TTL: ${ttlSeconds}s")
+            logger.debug("performance", "Setting cache key: $key with TTL: ${ttlSeconds}s")
             
             val serializedValue = serializeValue(value)
             val expirationTime = if (ttlSeconds > 0) {
@@ -101,7 +101,7 @@ class CachingLayer {
             // Update statistics
             updateCacheStats(key, CacheOperation.SET)
             
-            logger.debug("Cache key set successfully: $key")
+            logger.debug("performance", "Cache key set successfully: $key")
             
             CachingResult(
                 key = key,
@@ -111,7 +111,7 @@ class CachingLayer {
             )
             
         } catch (e: Exception) {
-            logger.error("Failed to set cache key $key: ${e.message}")
+            logger.error("performance", "Failed to set cache key $key: ${e.message}")
             CachingResult(
                 key = key,
                 success = false,
@@ -131,7 +131,7 @@ class CachingLayer {
      */
     suspend fun get(key: String, cacheType: String = CACHE_TYPE_HYBRID): CachedValue? {
         return try {
-            logger.debug("Getting cache key: $key")
+            logger.debug("performance", "Getting cache key: $key")
             
             var cachedValue: CachedValue? = null
             
@@ -155,15 +155,15 @@ class CachingLayer {
                 updateCacheStats(key, CacheOperation.GET)
                 updateAccessStats(key)
                 
-                logger.debug("Cache hit for key: $key")
+                logger.debug("performance", "Cache hit for key: $key")
             } else {
-                logger.debug("Cache miss for key: $key")
+                logger.debug("performance", "Cache miss for key: $key")
             }
             
             cachedValue
             
         } catch (e: Exception) {
-            logger.error("Failed to get cache key $key: ${e.message}")
+            logger.error("performance", "Failed to get cache key $key: ${e.message}")
             null
         }
     }
@@ -177,7 +177,7 @@ class CachingLayer {
      */
     suspend fun remove(key: String, cacheType: String = CACHE_TYPE_HYBRID): CachingResult {
         return try {
-            logger.debug("Removing cache key: $key")
+            logger.debug("performance", "Removing cache key: $key")
             
             when (cacheType) {
                 CACHE_TYPE_MEMORY -> {
@@ -195,7 +195,7 @@ class CachingLayer {
             // Update statistics
             updateCacheStats(key, CacheOperation.REMOVE)
             
-            logger.debug("Cache key removed successfully: $key")
+            logger.debug("performance", "Cache key removed successfully: $key")
             
             CachingResult(
                 key = key,
@@ -205,7 +205,7 @@ class CachingLayer {
             )
             
         } catch (e: Exception) {
-            logger.error("Failed to remove cache key $key: ${e.message}")
+            logger.error("performance", "Failed to remove cache key $key: ${e.message}")
             CachingResult(
                 key = key,
                 success = false,
@@ -232,7 +232,7 @@ class CachingLayer {
                 else -> false
             }
         } catch (e: Exception) {
-            logger.error("Failed to check existence of cache key $key: ${e.message}")
+            logger.error("performance", "Failed to check existence of cache key $key: ${e.message}")
             false
         }
     }
@@ -251,7 +251,7 @@ class CachingLayer {
         cacheType: String = CACHE_TYPE_HYBRID
     ): BatchCachingResult {
         return try {
-            logger.info("Setting batch cache entries: ${entries.size} keys")
+            logger.info("performance", "Setting batch cache entries: ${entries.size} keys")
             
             val results = mutableListOf<CachingResult>()
             
@@ -275,7 +275,7 @@ class CachingLayer {
             batchResult
             
         } catch (e: Exception) {
-            logger.error("Batch cache operation failed: ${e.message}")
+            logger.error("performance", "Batch cache operation failed: ${e.message}")
             throw CachingException("Batch operation failed", e)
         }
     }
@@ -292,7 +292,7 @@ class CachingLayer {
         cacheType: String = CACHE_TYPE_HYBRID
     ): Map<String, CachedValue> {
         return try {
-            logger.debug("Getting batch cache keys: ${keys.size} keys")
+            logger.debug("performance", "Getting batch cache keys: ${keys.size} keys")
             
             val results = mutableMapOf<String, CachedValue>()
             
@@ -303,11 +303,11 @@ class CachingLayer {
                 }
             }
             
-            logger.debug("Batch cache get completed: ${results.size} values found")
+            logger.debug("performance", "Batch cache get completed: ${results.size} values found")
             results
             
         } catch (e: Exception) {
-            logger.error("Batch cache get failed: ${e.message}")
+            logger.error("performance", "Batch cache get failed: ${e.message}")
             emptyMap()
         }
     }
@@ -321,7 +321,7 @@ class CachingLayer {
      */
     suspend fun invalidate(pattern: String, cacheType: String = CACHE_TYPE_HYBRID): InvalidationResult {
         return try {
-            logger.info("Invalidating cache pattern: $pattern")
+            logger.info("performance", "Invalidating cache pattern: $pattern")
             
             val invalidatedKeys = mutableListOf<String>()
             
@@ -345,11 +345,11 @@ class CachingLayer {
                 timestamp = Instant.now()
             )
             
-            logger.info("Cache invalidation completed: ${invalidatedKeys.size} keys invalidated")
+            logger.info("performance", "Cache invalidation completed: ${invalidatedKeys.size} keys invalidated")
             result
             
         } catch (e: Exception) {
-            logger.error("Cache invalidation failed: ${e.message}")
+            logger.error("performance", "Cache invalidation failed: ${e.message}")
             throw CachingException("Invalidation failed", e)
         }
     }
@@ -379,7 +379,7 @@ class CachingLayer {
             combinedStats
             
         } catch (e: Exception) {
-            logger.error("Failed to get cache statistics: ${e.message}")
+            logger.error("performance", "Failed to get cache statistics: ${e.message}")
             CacheStatistics(
                 cacheType = cacheType,
                 totalKeys = 0L,
@@ -401,7 +401,7 @@ class CachingLayer {
      */
     suspend fun clear(cacheType: String = CACHE_TYPE_HYBRID): ClearResult {
         return try {
-            logger.warn("Clearing all cache entries for type: $cacheType")
+            logger.warn("performance", "Clearing all cache entries for type: $cacheType")
             
             var clearedKeys = 0L
             
@@ -423,11 +423,11 @@ class CachingLayer {
                 timestamp = Instant.now()
             )
             
-            logger.info("Cache clear completed: $clearedKeys keys cleared")
+            logger.info("performance", "Cache clear completed: $clearedKeys keys cleared")
             result
             
         } catch (e: Exception) {
-            logger.error("Cache clear failed: ${e.message}")
+            logger.error("performance", "Cache clear failed: ${e.message}")
             throw CachingException("Clear operation failed", e)
         }
     }
@@ -446,7 +446,7 @@ class CachingLayer {
     private suspend fun setInRedisCache(key: String, entry: CacheEntry, ttlSeconds: Int) {
         // Placeholder for Redis implementation
         // In real implementation, this would use Redis client
-        logger.debug("Setting Redis cache key: $key (placeholder)")
+        logger.debug("performance", "Setting Redis cache key: $key (placeholder)")
     }
     
     private fun getFromMemoryCache(key: String): CachedValue? {
@@ -474,7 +474,7 @@ class CachingLayer {
     
     private suspend fun getFromRedisCache(key: String): CachedValue? {
         // Placeholder for Redis implementation
-        logger.debug("Getting Redis cache key: $key (placeholder)")
+        logger.debug("performance", "Getting Redis cache key: $key (placeholder)")
         return null
     }
     
@@ -484,7 +484,7 @@ class CachingLayer {
     
     private suspend fun removeFromRedisCache(key: String) {
         // Placeholder for Redis implementation
-        logger.debug("Removing Redis cache key: $key (placeholder)")
+        logger.debug("performance", "Removing Redis cache key: $key (placeholder)")
     }
     
     private fun existsInMemoryCache(key: String): Boolean {
@@ -552,7 +552,7 @@ class CachingLayer {
             memoryCache.remove(key)
         }
         
-        logger.info("Evicted ${toEvict.size} entries using LRU policy")
+        logger.info("performance", "Evicted ${toEvict.size} entries using LRU policy")
     }
     
     private fun evictLFU() {
@@ -563,7 +563,7 @@ class CachingLayer {
             memoryCache.remove(key)
         }
         
-        logger.info("Evicted ${toEvict.size} entries using LFU policy")
+        logger.info("performance", "Evicted ${toEvict.size} entries using LFU policy")
     }
     
     private fun evictFIFO() {
@@ -574,7 +574,7 @@ class CachingLayer {
             memoryCache.remove(key)
         }
         
-        logger.info("Evicted ${toEvict.size} entries using FIFO policy")
+        logger.info("performance", "Evicted ${toEvict.size} entries using FIFO policy")
     }
     
     private fun evictExpired() {
@@ -588,7 +588,7 @@ class CachingLayer {
         }
         
         if (expiredKeys.isNotEmpty()) {
-            logger.info("Evicted ${expiredKeys.size} expired entries")
+            logger.info("performance", "Evicted ${expiredKeys.size} expired entries")
         }
     }
     
@@ -714,7 +714,7 @@ class CachingLayer {
             try {
                 evictExpired()
             } catch (e: Exception) {
-                logger.error("Cache maintenance failed: ${e.message}")
+                logger.error("performance", "Cache maintenance failed: ${e.message}")
             }
         }, 1, 1, TimeUnit.MINUTES)
         
@@ -723,14 +723,14 @@ class CachingLayer {
             try {
                 updateGlobalStatistics()
             } catch (e: Exception) {
-                logger.error("Statistics update failed: ${e.message}")
+                logger.error("performance", "Statistics update failed: ${e.message}")
             }
         }, 5, 5, TimeUnit.MINUTES)
     }
     
     private fun updateGlobalStatistics() {
         // Update global cache statistics
-        logger.debug("Updating global cache statistics")
+        logger.debug("performance", "Updating global cache statistics")
     }
 }
 

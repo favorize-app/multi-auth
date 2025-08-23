@@ -48,7 +48,7 @@ class OAuthManager(
         redirectUri: String? = null
     ): Result<User> {
         return try {
-            logger.info("Starting OAuth sign-in with provider: ${provider.name}")
+            logger.info("oath", "Starting OAuth sign-in with provider: ${provider.name}")
             
             _oauthState.value = OAuthState.Initiating
             _currentProvider.value = provider
@@ -90,7 +90,7 @@ class OAuthManager(
                         // Dispatch success event
                         eventBus.dispatch(AuthEvent.Authentication.SignInCompleted(user))
                         
-                        logger.info("OAuth sign-in completed successfully for user: ${user.displayName}")
+                        logger.info("oath", "OAuth sign-in completed successfully for user: ${user.displayName}")
                         Result.success(user)
                     }.onFailure { error ->
                         logger.error("Failed to create user session", error)
@@ -126,7 +126,7 @@ class OAuthManager(
      */
     suspend fun signOut(): Result<Unit> {
         return try {
-            logger.info("Signing out OAuth user")
+            logger.info("oath", "Signing out OAuth user")
             
             val provider = _currentProvider.value
             if (provider != null) {
@@ -139,7 +139,7 @@ class OAuthManager(
             _pkceState.value = null
             _oauthState.value = OAuthState.Idle
             
-            logger.info("OAuth sign-out completed successfully")
+            logger.info("oauth", "OAuth sign-out completed successfully")
             Result.success(Unit)
             
         } catch (e: Exception) {
@@ -155,7 +155,7 @@ class OAuthManager(
      */
     suspend fun refreshToken(): Result<Unit> {
         return try {
-            logger.info("Refreshing OAuth access token")
+            logger.info("oath", "Refreshing OAuth access token")
             
             val provider = _currentProvider.value
             if (provider != null) {
@@ -163,14 +163,14 @@ class OAuthManager(
                 val result = platformOAuth.refreshToken()
                 
                 result.onSuccess {
-                    logger.info("OAuth token refresh completed successfully")
+                    logger.info("oauth", "OAuth token refresh completed successfully")
                     Result.success(Unit)
                 }.onFailure { error ->
                     logger.error("Failed to refresh OAuth token", error)
                     Result.failure(error)
                 }
             } else {
-                logger.warn("No OAuth provider available for token refresh")
+                logger.warn("oath", "No OAuth provider available for token refresh")
                 Result.failure(IllegalStateException("No OAuth provider available"))
             }
             

@@ -33,7 +33,7 @@ class ProductionMonitoring(
      * Start monitoring the production system
      */
     suspend fun startMonitoring() {
-        logger.info("Starting production monitoring")
+        logger.info("DevOps", "Starting production monitoring")
         
         try {
             // Initialize monitoring components
@@ -42,7 +42,7 @@ class ProductionMonitoring(
             initializeAlerting()
             initializeIncidentManagement()
             
-            logger.info("Production monitoring started successfully")
+            logger.info("devops", "Production monitoring started successfully")
         } catch (e: Exception) {
             logger.error("Failed to start production monitoring", e)
             throw e
@@ -53,7 +53,7 @@ class ProductionMonitoring(
      * Stop monitoring
      */
     suspend fun stopMonitoring() {
-        logger.info("Stopping production monitoring")
+        logger.info("DevOps", "Stopping production monitoring")
         
         try {
             // Cleanup monitoring resources
@@ -62,7 +62,7 @@ class ProductionMonitoring(
             cleanupAlerting()
             cleanupIncidentManagement()
             
-            logger.info("Production monitoring stopped successfully")
+            logger.info("devops", "Production monitoring stopped successfully")
         } catch (e: Exception) {
             logger.error("Failed to stop production monitoring", e)
             throw e
@@ -73,7 +73,7 @@ class ProductionMonitoring(
      * Perform health check
      */
     suspend fun performHealthCheck(): HealthCheckResult {
-        logger.debug("Performing health check")
+        logger.debug("DevOps", "Performing health check")
         
         return try {
             val checks = listOf(
@@ -153,7 +153,7 @@ class ProductionMonitoring(
      * Collect system metrics
      */
     suspend fun collectMetrics(): SystemMetrics {
-        logger.debug("Collecting system metrics")
+        logger.debug("DevOps", "Collecting system metrics")
         
         return try {
             val newMetrics = SystemMetrics(
@@ -187,7 +187,7 @@ class ProductionMonitoring(
      * Create an alert
      */
     suspend fun createAlert(alert: Alert) {
-        logger.info("Creating alert: ${alert.title}")
+        logger.info("DevOps", "Creating alert: ${alert.title}")
         
         try {
             val currentAlerts = _alerts.value.toMutableList()
@@ -211,7 +211,7 @@ class ProductionMonitoring(
      * Acknowledge an alert
      */
     suspend fun acknowledgeAlert(alertId: String, acknowledgedBy: String) {
-        logger.info("Acknowledging alert: $alertId by $acknowledgedBy")
+        logger.info("DevOps", "Acknowledging alert: $alertId by $acknowledgedBy")
         
         try {
             val currentAlerts = _alerts.value.toMutableList()
@@ -228,7 +228,7 @@ class ProductionMonitoring(
                 currentAlerts[alertIndex] = updatedAlert
                 _alerts.value = currentAlerts
                 
-                logger.info("Alert $alertId acknowledged successfully")
+                logger.info("DevOps", "Alert $alertId acknowledged successfully")
             }
             
         } catch (e: Exception) {
@@ -240,7 +240,7 @@ class ProductionMonitoring(
      * Resolve an alert
      */
     suspend fun resolveAlert(alertId: String, resolvedBy: String, resolution: String) {
-        logger.info("Resolving alert: $alertId by $resolvedBy")
+        logger.info("DevOps", "Resolving alert: $alertId by $resolvedBy")
         
         try {
             val currentAlerts = _alerts.value.toMutableList()
@@ -258,7 +258,7 @@ class ProductionMonitoring(
                 currentAlerts[alertIndex] = updatedAlert
                 _alerts.value = currentAlerts
                 
-                logger.info("Alert $alertId resolved successfully")
+                logger.info("DevOps", "Alert $alertId resolved successfully")
             }
             
         } catch (e: Exception) {
@@ -270,7 +270,7 @@ class ProductionMonitoring(
      * Create an incident
      */
     suspend fun createIncident(incident: Incident) {
-        logger.info("Creating incident: ${incident.title}")
+        logger.info("DevOps", "Creating incident: ${incident.title}")
         
         try {
             val currentIncidents = _incidents.value.toMutableList()
@@ -294,7 +294,7 @@ class ProductionMonitoring(
      * Update incident status
      */
     suspend fun updateIncidentStatus(incidentId: String, status: IncidentStatus, updatedBy: String, notes: String? = null) {
-        logger.info("Updating incident $incidentId status to $status")
+        logger.info("DevOps", "Updating incident $incidentId status to $status")
         
         try {
             val currentIncidents = _incidents.value.toMutableList()
@@ -312,7 +312,7 @@ class ProductionMonitoring(
                 currentIncidents[incidentIndex] = updatedIncident
                 _incidents.value = currentIncidents
                 
-                logger.info("Incident $incidentId status updated successfully")
+                logger.info("DevOps", "Incident $incidentId status updated successfully")
             }
             
         } catch (e: Exception) {
@@ -338,42 +338,42 @@ class ProductionMonitoring(
     
     private suspend fun initializeHealthChecks() {
         // Initialize health check components
-        logger.debug("Initializing health checks")
+        logger.debug("DevOps", "Initializing health checks")
     }
     
     private suspend fun initializeMetricsCollection() {
         // Initialize metrics collection
-        logger.debug("Initializing metrics collection")
+        logger.debug("devops", "Initializing metrics collection")
     }
     
     private suspend fun initializeAlerting() {
         // Initialize alerting system
-        logger.debug("Initializing alerting system")
+        logger.debug("secure storage", "Initializing alerting system")
     }
     
     private suspend fun initializeIncidentManagement() {
         // Initialize incident management
-        logger.debug("Initializing incident management")
+        logger.debug("devops", "Initializing incident management")
     }
     
     private suspend fun cleanupHealthChecks() {
         // Cleanup health check resources
-        logger.debug("Cleaning up health checks")
+        logger.debug("devops", "Cleaning up health checks")
     }
     
     private suspend fun cleanupMetricsCollection() {
         // Cleanup metrics collection
-        logger.debug("Cleaning up metrics collection")
+        logger.debug("devops", "Cleaning up metrics collection")
     }
     
     private suspend fun cleanupAlerting() {
         // Cleanup alerting resources
-        logger.debug("Cleaning up alerting system")
+        logger.debug("devops", "Cleaning up alerting system")
     }
     
     private suspend fun cleanupIncidentManagement() {
         // Cleanup incident management
-        logger.debug("Cleaning up incident management")
+        logger.debug("devops", "Cleaning up incident management")
     }
     
     // Health check implementations
@@ -497,12 +497,12 @@ class ProductionMonitoring(
     
     private suspend fun sendAlertNotifications(alert: Alert) {
         // Send alert notifications via configured channels
-        logger.debug("Sending alert notification: ${alert.title}")
+        logger.debug("DevOps", "Sending alert notification: ${alert.title}")
     }
     
     private suspend fun sendIncidentNotifications(incident: Incident) {
         // Send incident notifications via configured channels
-        logger.debug("Sending incident notification: ${incident.title}")
+        logger.debug("devops", "Sending incident notification: ${incident.title}")
     }
     
     private suspend fun createIncidentFromAlert(alert: Alert) {

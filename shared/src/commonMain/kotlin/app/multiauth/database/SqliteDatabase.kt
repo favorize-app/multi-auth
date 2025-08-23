@@ -132,7 +132,7 @@ class SqliteDatabase(
     
     override suspend fun initialize(): Boolean {
         return try {
-            logger.info("Initializing SQLite database: ${config.name}")
+            logger.info("db", "Initializing SQLite database: ${config.name}")
             
             // Load SQLite JDBC driver
             Class.forName(DRIVER)
@@ -153,7 +153,7 @@ class SqliteDatabase(
             createIndexes()
             
             isInitialized = true
-            logger.info("SQLite database initialized successfully")
+            logger.info("database", "SQLite database initialized successfully")
             true
         } catch (e: Exception) {
             logger.error("Failed to initialize SQLite database", e)
@@ -166,7 +166,7 @@ class SqliteDatabase(
             connection?.close()
             connection = null
             isInitialized = false
-            logger.info("SQLite database connection closed")
+            logger.info("db", "SQLite database connection closed")
         } catch (e: Exception) {
             logger.error("Error closing database connection", e)
         }
@@ -250,10 +250,10 @@ class SqliteDatabase(
                 stmt?.close()
                 
                 if (result == 1) {
-                    logger.debug("User created successfully: ${user.id}")
+                    logger.debug("db", "User created successfully: ${user.id}")
                     user
                 } else {
-                    logger.error("Failed to create user: ${user.id}")
+                    logger.error("database", "Failed to create user: ${user.id}")
                     null
                 }
             } catch (e: Exception) {
@@ -300,10 +300,10 @@ class SqliteDatabase(
                 stmt?.close()
                 
                 if (result == 1) {
-                    logger.debug("User updated successfully: ${user.id}")
+                    logger.debug("db", "User updated successfully: ${user.id}")
                     true
                 } else {
-                    logger.error("Failed to update user: ${user.id}")
+                    logger.error("database", "Failed to update user: ${user.id}")
                     false
                 }
             } catch (e: Exception) {
@@ -410,10 +410,10 @@ class SqliteDatabase(
                 stmt?.close()
                 
                 if (result == 1) {
-                    logger.debug("User deleted successfully: $userId")
+                    logger.debug("db", "User deleted successfully: $userId")
                     true
                 } else {
-                    logger.error("Failed to delete user: $userId")
+                    logger.error("database", "Failed to delete user: $userId")
                     false
                 }
             } catch (e: Exception) {
@@ -491,7 +491,7 @@ class SqliteDatabase(
                 execute(CREATE_AUDIT_LOGS_TABLE)
                 close()
             }
-            logger.debug("Database tables created successfully")
+            logger.debug("db", "Database tables created successfully")
         } catch (e: Exception) {
             logger.error("Error creating database tables", e)
             throw e
@@ -504,7 +504,7 @@ class SqliteDatabase(
                 execute(CREATE_INDEXES)
                 close()
             }
-            logger.debug("Database indexes created successfully")
+            logger.debug("db", "Database indexes created successfully")
         } catch (e: Exception) {
             logger.error("Error creating database indexes", e)
             // Don't throw here as indexes are not critical for basic functionality
@@ -681,10 +681,10 @@ class SqliteDatabase(
                 stmt?.close()
                 
                 if (result == 1) {
-                    logger.debug("OAuth account linked successfully: ${oauthAccount.id}")
+                    logger.debug("db", "OAuth account linked successfully: ${oauthAccount.id}")
                     true
                 } else {
-                    logger.error("Failed to link OAuth account: ${oauthAccount.id}")
+                    logger.error("database", "Failed to link OAuth account: ${oauthAccount.id}")
                     false
                 }
             } catch (e: Exception) {
@@ -708,10 +708,10 @@ class SqliteDatabase(
                 stmt?.close()
                 
                 if (result == 1) {
-                    logger.debug("OAuth account unlinked successfully: $providerId/$externalUserId")
+                    logger.debug("db", "OAuth account unlinked successfully: $providerId/$externalUserId")
                     true
                 } else {
-                    logger.warn("No OAuth account found to unlink: $providerId/$externalUserId")
+                    logger.warn("database", "No OAuth account found to unlink: $providerId/$externalUserId")
                     false
                 }
             } catch (e: Exception) {
@@ -801,10 +801,10 @@ class SqliteDatabase(
                 stmt?.close()
                 
                 if (result == 1) {
-                    logger.debug("OAuth account updated successfully: ${oauthAccount.id}")
+                    logger.debug("db", "OAuth account updated successfully: ${oauthAccount.id}")
                     true
                 } else {
-                    logger.error("Failed to update OAuth account: ${oauthAccount.id}")
+                    logger.error("database", "Failed to update OAuth account: ${oauthAccount.id}")
                     false
                 }
             } catch (e: Exception) {
@@ -845,10 +845,10 @@ class SqliteDatabase(
                 stmt?.close()
                 
                 if (result == 1) {
-                    logger.debug("Session created successfully: ${session.id}")
+                    logger.debug("db", "Session created successfully: ${session.id}")
                     true
                 } else {
-                    logger.error("Failed to create session: ${session.id}")
+                    logger.error("database", "Failed to create session: ${session.id}")
                     false
                 }
             } catch (e: Exception) {
@@ -934,10 +934,10 @@ class SqliteDatabase(
                 stmt?.close()
                 
                 if (result == 1) {
-                    logger.debug("Session updated successfully: ${session.id}")
+                    logger.debug("db", "Session updated successfully: ${session.id}")
                     true
                 } else {
-                    logger.error("Failed to update session: ${session.id}")
+                    logger.error("database", "Failed to update session: ${session.id}")
                     false
                 }
             } catch (e: Exception) {
@@ -958,10 +958,10 @@ class SqliteDatabase(
                 stmt?.close()
                 
                 if (result == 1) {
-                    logger.debug("Session deleted successfully: $sessionId")
+                    logger.debug("db", "Session deleted successfully: $sessionId")
                     true
                 } else {
-                    logger.error("Failed to delete session: $sessionId")
+                    logger.error("database", "Failed to delete session: $sessionId")
                     false
                 }
             } catch (e: Exception) {
@@ -981,7 +981,7 @@ class SqliteDatabase(
                 val result = stmt?.executeUpdate()
                 stmt?.close()
                 
-                logger.debug("Cleaned up $result expired sessions")
+                logger.debug("db", "Cleaned up $result expired sessions")
                 result
             } catch (e: Exception) {
                 logger.error("Exception cleaning up expired sessions", e)
@@ -1018,10 +1018,10 @@ class SqliteDatabase(
                 stmt?.close()
                 
                 if (result == 1) {
-                    logger.debug("Audit log created successfully: ${auditLog.id}")
+                    logger.debug("db", "Audit log created successfully: ${auditLog.id}")
                     true
                 } else {
-                    logger.error("Failed to create audit log: ${auditLog.id}")
+                    logger.error("database", "Failed to create audit log: ${auditLog.id}")
                     false
                 }
             } catch (e: Exception) {
@@ -1129,7 +1129,7 @@ class SqliteDatabase(
                 // Run ANALYZE to update statistics
                 connection?.createStatement()?.execute("ANALYZE")
                 
-                logger.debug("Database maintenance completed successfully")
+                logger.debug("db", "Database maintenance completed successfully")
                 true
             } catch (e: Exception) {
                 logger.error("Exception performing database maintenance", e)
@@ -1146,13 +1146,13 @@ class SqliteDatabase(
                 val sourceFile = java.io.File(config.name)
                 
                 if (!sourceFile.exists()) {
-                    logger.error("Source database file does not exist: ${config.name}")
+                    logger.error("db", "Source database file does not exist: ${config.name}")
                     return@withContext false
                 }
                 
                 sourceFile.copyTo(backupFile, overwrite = true)
                 
-                logger.debug("Database backed up to: $backupPath")
+                logger.debug("db", "Database backed up to: $backupPath")
                 true
             } catch (e: Exception) {
                 logger.error("Exception creating database backup", e)
@@ -1168,7 +1168,7 @@ class SqliteDatabase(
                 val targetFile = java.io.File(config.name)
                 
                 if (!backupFile.exists()) {
-                    logger.error("Backup file does not exist: $backupPath")
+                    logger.error("db", "Backup file does not exist: $backupPath")
                     return@withContext false
                 }
                 
@@ -1181,7 +1181,7 @@ class SqliteDatabase(
                 // Reinitialize
                 initialize()
                 
-                logger.debug("Database restored from: $backupPath")
+                logger.debug("db", "Database restored from: $backupPath")
                 true
             } catch (e: Exception) {
                 logger.error("Exception restoring database from backup", e)
@@ -1199,7 +1199,7 @@ class SqliteDatabase(
                 // Run ANALYZE to update statistics
                 connection?.createStatement()?.execute("ANALYZE")
                 
-                logger.debug("Database optimization completed successfully")
+                logger.debug("db", "Database optimization completed successfully")
                 true
             } catch (e: Exception) {
                 logger.error("Exception optimizing database", e)

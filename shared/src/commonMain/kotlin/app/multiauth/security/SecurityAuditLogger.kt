@@ -69,7 +69,7 @@ class SecurityAuditLogger {
                 updateSecurityMetrics(event, user)
                 checkForSuspiciousActivity(user?.id, metadata["ipAddress"] as? String)
                 
-                logger.info("Security event logged: ${event.name} for user: ${user?.displayName ?: "unknown"}")
+                logger.info("security", "Security event logged: ${event.name} for user: ${user?.displayName ?: "unknown"}")
                 
             } catch (e: Exception) {
                 logger.error("Failed to log security event", e)
@@ -170,7 +170,7 @@ class SecurityAuditLogger {
         addAuditEntry(entry)
         addSuspiciousActivity(activity)
         
-        logger.warn("Suspicious activity detected: ${activity.description} for user: ${user?.displayName ?: "unknown"}")
+        logger.warn("security", "Suspicious activity detected: ${activity.description} for user: ${user?.displayName ?: "unknown"}")
     }
     
     /**
@@ -235,7 +235,7 @@ class SecurityAuditLogger {
                 
                 if (filteredEntries.size != currentEntries.size) {
                     _auditEntries.value = filteredEntries
-                    logger.info("Cleaned up ${currentEntries.size - filteredEntries.size} old audit entries")
+                    logger.info("security", "Cleaned up ${currentEntries.size - filteredEntries.size} old audit entries")
                 }
             } catch (e: Exception) {
                 logger.error("Failed to cleanup old audit entries", e)

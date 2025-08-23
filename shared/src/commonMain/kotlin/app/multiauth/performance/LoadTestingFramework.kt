@@ -48,7 +48,7 @@ class LoadTestingFramework {
      */
     suspend fun executeLoadTest(scenario: LoadTestScenario): LoadTestResult {
         return try {
-            logger.info("Starting load test: ${scenario.name}")
+            logger.info("performance", "Starting load test: ${scenario.name}")
             
             val startTime = Instant.now()
             val results = mutableListOf<TestResult>()
@@ -58,7 +58,7 @@ class LoadTestingFramework {
             
             // Execute test phases
             scenario.phases.forEach { phase ->
-                logger.info("Executing phase: ${phase.name}")
+                logger.info("performance", "Executing phase: ${phase.name}")
                 val phaseResults = executeTestPhase(phase, generators)
                 results.addAll(phaseResults)
                 
@@ -81,7 +81,7 @@ class LoadTestingFramework {
             testResults.addAll(results)
             performanceMetrics[scenario.name] = overallMetrics
             
-            logger.info("Load test completed: ${scenario.name}")
+            logger.info("performance", "Load test completed: ${scenario.name}")
             
             LoadTestResult(
                 scenarioName = scenario.name,
@@ -97,7 +97,7 @@ class LoadTestingFramework {
             )
             
         } catch (e: Exception) {
-            logger.error("Load test failed: ${e.message}")
+            logger.error("performance", "Load test failed: ${e.message}")
             throw LoadTestException("Load test execution failed", e)
         }
     }
@@ -110,7 +110,7 @@ class LoadTestingFramework {
      */
     suspend fun executeStressTest(scenario: StressTestScenario): StressTestResult {
         return try {
-            logger.info("Starting stress test: ${scenario.name}")
+            logger.info("performance", "Starting stress test: ${scenario.name}")
             
             val startTime = Instant.now()
             val results = mutableListOf<TestResult>()
@@ -119,7 +119,7 @@ class LoadTestingFramework {
             var isSystemStable = true
             
             while (isSystemStable && currentLoad <= scenario.maxLoad) {
-                logger.info("Testing with load: $currentLoad concurrent users")
+                logger.info("performance", "Testing with load: $currentLoad concurrent users")
                 
                 // Create stress test scenario
                 val stressScenario = LoadTestScenario(
@@ -170,11 +170,11 @@ class LoadTestingFramework {
                 timestamp = Instant.now()
             )
             
-            logger.info("Stress test completed. Breaking point: $breakingPoint users")
+            logger.info("performance", "Stress test completed. Breaking point: $breakingPoint users")
             result
             
         } catch (e: Exception) {
-            logger.error("Stress test failed: ${e.message}")
+            logger.error("performance", "Stress test failed: ${e.message}")
             throw LoadTestException("Stress test execution failed", e)
         }
     }
@@ -187,7 +187,7 @@ class LoadTestingFramework {
      */
     suspend fun executeSpikeTest(scenario: SpikeTestScenario): SpikeTestResult {
         return try {
-            logger.info("Starting spike test: ${scenario.name}")
+            logger.info("performance", "Starting spike test: ${scenario.name}")
             
             val startTime = Instant.now()
             
@@ -239,11 +239,11 @@ class LoadTestingFramework {
                 timestamp = Instant.now()
             )
             
-            logger.info("Spike test completed")
+            logger.info("performance", "Spike test completed")
             result
             
         } catch (e: Exception) {
-            logger.error("Spike test failed: ${e.message}")
+            logger.error("performance", "Spike test failed: ${e.message}")
             throw LoadTestException("Spike test execution failed", e)
         }
     }
@@ -256,7 +256,7 @@ class LoadTestingFramework {
      */
     suspend fun executeEnduranceTest(scenario: EnduranceTestScenario): EnduranceTestResult {
         return try {
-            logger.info("Starting endurance test: ${scenario.name}")
+            logger.info("performance", "Starting endurance test: ${scenario.name}")
             
             val startTime = Instant.now()
             val results = mutableListOf<TestResult>()
@@ -323,11 +323,11 @@ class LoadTestingFramework {
                 timestamp = Instant.now()
             )
             
-            logger.info("Endurance test completed")
+            logger.info("performance", "Endurance test completed")
             result
             
         } catch (e: Exception) {
-            logger.error("Endurance test failed: ${e.message}")
+            logger.error("performance", "Endurance test failed: ${e.message}")
             throw LoadTestException("Endurance test execution failed", e)
         }
     }

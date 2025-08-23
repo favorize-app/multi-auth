@@ -16,7 +16,7 @@ object WebStorageFactory {
      * @return WebSecureStorage instance
      */
     fun createWebStorage(): SecureStorage {
-        logger.info("Creating Web secure storage")
+        logger.info("WebStorageFactory", "Creating Web secure storage")
         return WebSecureStorage()
     }
     

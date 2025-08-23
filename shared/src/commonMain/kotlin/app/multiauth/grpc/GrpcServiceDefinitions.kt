@@ -317,7 +317,7 @@ object GrpcServiceUtils {
         errorMessage: String,
         errorCode: String
     ): AuthenticationService.AuthenticationResponse {
-        logger.error("Authentication error: $errorCode - $errorMessage")
+        logger.error("grpc", "Authentication error: $errorCode - $errorMessage")
         return AuthenticationService.AuthenticationResponse(
             success = false,
             errorMessage = errorMessage,
@@ -346,7 +346,7 @@ object GrpcServiceUtils {
         errorMessage: String,
         errorCode: String
     ): UserManagementService.UserManagementResponse {
-        logger.error("User management error: $errorCode - $errorMessage")
+        logger.error("grpc", "User management error: $errorCode - $errorMessage")
         return UserManagementService.UserManagementResponse(
             success = false,
             errorMessage = errorMessage,
@@ -383,7 +383,7 @@ object GrpcServiceUtils {
         errorMessage: String,
         errorCode: String
     ): TokenValidationService.TokenValidationResponse {
-        logger.error("Token validation error: $errorCode - $errorMessage")
+        logger.error("grpc", "Token validation error: $errorCode - $errorMessage")
         return TokenValidationService.TokenValidationResponse(
             isValid = false,
             errorMessage = errorMessage,

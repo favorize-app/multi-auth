@@ -44,7 +44,7 @@ class MfaManager(
      */
     suspend fun enableMfa(user: User, method: MfaMethod): Result<Unit> {
         return try {
-            logger.info("Enabling MFA method ${method.name} for user: ${user.displayName}")
+            logger.info("mfa", "Enabling MFA method ${method.name} for user: ${user.displayName}")
             
             _mfaState.value = MfaState.Enabling(method)
             
@@ -61,7 +61,7 @@ class MfaManager(
                 // Dispatch success event
                 eventBus.dispatch(AuthEvent.Mfa.MfaMethodEnabled(user, method))
                 
-                logger.info("MFA method ${method.name} enabled successfully for user: ${user.displayName}")
+                logger.info("mfa", "MFA method ${method.name} enabled successfully for user: ${user.displayName}")
             }.onFailure { error ->
                 logger.error("Failed to enable MFA method ${method.name}", error)
                 _mfaState.value = MfaState.Error(error)
@@ -90,7 +90,7 @@ class MfaManager(
      */
     suspend fun disableMfa(user: User, method: MfaMethod): Result<Unit> {
         return try {
-            logger.info("Disabling MFA method ${method.name} for user: ${user.displayName}")
+            logger.info("mfa", "Disabling MFA method ${method.name} for user: ${user.displayName}")
             
             _mfaState.value = MfaState.Disabling(method)
             
@@ -107,7 +107,7 @@ class MfaManager(
                 // Dispatch success event
                 eventBus.dispatch(AuthEvent.Mfa.MfaMethodDisabled(user, method))
                 
-                logger.info("MFA method ${method.name} disabled successfully for user: ${user.displayName}")
+                logger.info("mfa", "MFA method ${method.name} disabled successfully for user: ${user.displayName}")
             }.onFailure { error ->
                 logger.error("Failed to disable MFA method ${method.name}", error)
                 _mfaState.value = MfaState.Error(error)
@@ -141,7 +141,7 @@ class MfaManager(
         code: String
     ): Result<Unit> {
         return try {
-            logger.info("Verifying MFA code for method ${method.name} and user: ${user.displayName}")
+            logger.info("mfa", "Verifying MFA code for method ${method.name} and user: ${user.displayName}")
             
             _mfaState.value = MfaState.Verifying(method)
             
@@ -157,7 +157,7 @@ class MfaManager(
                 // Dispatch success event
                 eventBus.dispatch(AuthEvent.Mfa.MfaVerificationCompleted(user, method))
                 
-                logger.info("MFA verification successful for method ${method.name} and user: ${user.displayName}")
+                logger.info("mfa", "MFA verification successful for method ${method.name} and user: ${user.displayName}")
             }.onFailure { error ->
                 logger.error("MFA verification failed for method ${method.name}", error)
                 _mfaState.value = MfaState.Error(error)
@@ -185,7 +185,7 @@ class MfaManager(
      */
     suspend fun generateBackupCodes(user: User): Result<List<String>> {
         return try {
-            logger.info("Generating new backup codes for user: ${user.displayName}")
+            logger.info("mfa", "Generating new backup codes for user: ${user.displayName}")
             
             _mfaState.value = MfaState.GeneratingBackupCodes
             
@@ -197,7 +197,7 @@ class MfaManager(
             // Dispatch success event
             eventBus.dispatch(AuthEvent.Mfa.BackupCodesGenerated(user, codes))
             
-            logger.info("Backup codes generated successfully for user: ${user.displayName}")
+            logger.info("mfa", "Backup codes generated successfully for user: ${user.displayName}")
             Result.success(codes)
             
         } catch (e: Exception) {

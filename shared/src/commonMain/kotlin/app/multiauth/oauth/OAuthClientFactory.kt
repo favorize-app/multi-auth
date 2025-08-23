@@ -25,7 +25,7 @@ object OAuthClientFactory {
         config: OAuthConfig,
         httpClient: HttpClient
     ): OAuthClient {
-        logger.info("Creating OAuth client for provider: $provider")
+        logger.info("oath", "Creating OAuth client for provider: $provider")
         
         return when (provider) {
             OAuthProvider.GOOGLE -> GoogleOAuthClient(config, httpClient)

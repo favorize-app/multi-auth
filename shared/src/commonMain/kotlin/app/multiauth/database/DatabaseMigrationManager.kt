@@ -25,7 +25,7 @@ class DatabaseMigrationManager(
      * @return Migration result with details about what was executed
      */
     suspend fun migrate(): MigrationResult {
-        logger.info("Starting database migration to version $CURRENT_VERSION")
+        logger.info("db", "Starting database migration to version $CURRENT_VERSION")
         
         try {
             // Ensure migrations table exists
@@ -33,10 +33,10 @@ class DatabaseMigrationManager(
             
             // Get current version
             val currentVersion = getCurrentVersion()
-            logger.info("Current database version: $currentVersion")
+            logger.info("database", "Current database version: $currentVersion")
             
             if (currentVersion >= CURRENT_VERSION) {
-                logger.info("Database is already at version $CURRENT_VERSION")
+                logger.info("database", "Database is already at version $CURRENT_VERSION")
                 return MigrationResult(
                     success = true,
                     fromVersion = currentVersion,
@@ -52,16 +52,16 @@ class DatabaseMigrationManager(
             for (version in (currentVersion + 1)..CURRENT_VERSION) {
                 val migration = getMigration(version)
                 if (migration != null) {
-                    logger.info("Executing migration to version $version: ${migration.description}")
+                    logger.info("db", "Executing migration to version $version: ${migration.description}")
                     
                     try {
                         executeMigration(migration)
                         recordMigrationExecution(version, migration)
                         migrationsExecuted.add(migration)
                         
-                        logger.info("Successfully migrated to version $version")
+                        logger.info("db", "Successfully migrated to version $version")
                     } catch (e: Exception) {
-                        logger.error("Migration to version $version failed: ${e.message}")
+                        logger.error("database", "Migration to version $version failed: ${e.message}")
                         return MigrationResult(
                             success = false,
                             fromVersion = currentVersion,
@@ -72,11 +72,11 @@ class DatabaseMigrationManager(
                         )
                     }
                 } else {
-                    logger.warn("No migration found for version $version")
+                    logger.warn("db", "No migration found for version $version")
                 }
             }
             
-            logger.info("Database migration completed successfully")
+            logger.info("database", "Database migration completed successfully")
             return MigrationResult(
                 success = true,
                 fromVersion = currentVersion,
@@ -86,7 +86,7 @@ class DatabaseMigrationManager(
             )
             
         } catch (e: Exception) {
-            logger.error("Migration failed: ${e.message}")
+            logger.error("db", "Migration failed: ${e.message}")
             return MigrationResult(
                 success = false,
                 fromVersion = getCurrentVersion(),
@@ -105,7 +105,7 @@ class DatabaseMigrationManager(
      * @return Migration result with details about the rollback
      */
     suspend fun rollback(targetVersion: Int): MigrationResult {
-        logger.info("Rolling back database to version $targetVersion")
+        logger.info("db", "Rolling back database to version $targetVersion")
         
         try {
             val currentVersion = getCurrentVersion()
@@ -126,16 +126,16 @@ class DatabaseMigrationManager(
             for (version in currentVersion downTo (targetVersion + 1)) {
                 val rollback = getRollbackMigration(version)
                 if (rollback != null) {
-                    logger.info("Executing rollback from version $version: ${rollback.description}")
+                    logger.info("db", "Executing rollback from version $version: ${rollback.description}")
                     
                     try {
                         executeMigration(rollback)
                         recordMigrationRollback(version, rollback)
                         rollbacksExecuted.add(rollback)
                         
-                        logger.info("Successfully rolled back from version $version")
+                        logger.info("db", "Successfully rolled back from version $version")
                     } catch (e: Exception) {
-                        logger.error("Rollback from version $version failed: ${e.message}")
+                        logger.error("database", "Rollback from version $version failed: ${e.message}")
                         return MigrationResult(
                             success = false,
                             fromVersion = currentVersion,
@@ -146,11 +146,11 @@ class DatabaseMigrationManager(
                         )
                     }
                 } else {
-                    logger.warn("No rollback migration found for version $version")
+                    logger.warn("db", "No rollback migration found for version $version")
                 }
             }
             
-            logger.info("Database rollback completed successfully")
+            logger.info("database", "Database rollback completed successfully")
             return MigrationResult(
                 success = true,
                 fromVersion = currentVersion,
@@ -160,7 +160,7 @@ class DatabaseMigrationManager(
             )
             
         } catch (e: Exception) {
-            logger.error("Rollback failed: ${e.message}")
+            logger.error("db", "Rollback failed: ${e.message}")
             return MigrationResult(
                 success = false,
                 fromVersion = getCurrentVersion(),
@@ -189,7 +189,7 @@ class DatabaseMigrationManager(
                 0
             }
         } catch (e: Exception) {
-            logger.warn("Could not determine current version: ${e.message}")
+            logger.warn("db", "Could not determine current version: ${e.message}")
             0
         }
     }
@@ -214,7 +214,7 @@ class DatabaseMigrationManager(
                 )
             }
         } catch (e: Exception) {
-            logger.warn("Could not retrieve migration history: ${e.message}")
+            logger.warn("db", "Could not retrieve migration history: ${e.message}")
             emptyList()
         }
     }
@@ -317,7 +317,7 @@ class DatabaseMigrationManager(
         database.executeUpdate(migration.sql)
         
         // Log the migration
-        logger.info("Executed migration ${migration.version}: ${migration.description}")
+        logger.info("db", "Executed migration ${migration.version}: ${migration.description}")
     }
     
     /**

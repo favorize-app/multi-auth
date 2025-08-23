@@ -62,7 +62,7 @@ class RateLimiter {
      */
     fun configure(newConfig: RateLimitConfig) {
         config = newConfig
-        logger.info("Rate limiter configured with new settings: $newConfig")
+        logger.info("security", "Rate limiter configured with new settings: $newConfig")
     }
     
     /**
@@ -89,7 +89,7 @@ class RateLimiter {
     fun recordSuccessfulLogin(identifier: String) {
         recordSuccessfulAttempt(identifier, AttemptType.LOGIN, _loginAttempts)
         unlockAccount(identifier)
-        logger.info("Successful login recorded for: $identifier")
+        logger.info("security", "Successful login recorded for: $identifier")
     }
     
     /**
@@ -127,7 +127,7 @@ class RateLimiter {
      */
     fun recordPasswordResetAttempt(identifier: String) {
         recordAttempt(identifier, _passwordResetAttempts)
-        logger.info("Password reset attempt recorded for: $identifier")
+        logger.info("security", "Password reset attempt recorded for: $identifier")
     }
     
     /**
@@ -153,7 +153,7 @@ class RateLimiter {
      */
     fun recordMfaAttempt(identifier: String) {
         recordAttempt(identifier, _mfaAttempts)
-        logger.info("MFA attempt recorded for: $identifier")
+        logger.info("security", "MFA attempt recorded for: $identifier")
     }
     
     /**
@@ -179,7 +179,7 @@ class RateLimiter {
      */
     fun recordApiRequest(identifier: String) {
         recordAttempt(identifier, _apiRequests)
-        logger.debug("API request recorded for: $identifier")
+        logger.debug("security", "API request recorded for: $identifier")
     }
     
     /**
@@ -228,7 +228,7 @@ class RateLimiter {
         _failedAttempts.remove(identifier)
         _blockedEntities.value = _blockedEntities.value - identifier
         
-        logger.info("Account manually unlocked for: $identifier")
+        logger.info("security", "Account manually unlocked for: $identifier")
     }
     
     /**
@@ -280,7 +280,7 @@ class RateLimiter {
                 // Clean up expired failed attempts
                 cleanupExpiredFailedAttempts(now)
                 
-                logger.debug("Rate limiter cleanup completed")
+                logger.debug("security", "Rate limiter cleanup completed")
             } catch (e: Exception) {
                 logger.error("Failed to cleanup rate limiter data", e)
             }
@@ -383,7 +383,7 @@ class RateLimiter {
             _lockedAccounts[identifier] = lockout
             _blockedEntities.value = _blockedEntities.value + identifier
             
-            logger.warn("Account locked for: $identifier due to multiple failed attempts")
+            logger.warn("security", "Account locked for: $identifier due to multiple failed attempts")
             
             // Dispatch lockout event
             // eventBus.dispatch(AuthEvent.Security.AccountLocked(identifier, lockout))

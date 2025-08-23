@@ -65,12 +65,12 @@ class AdvancedAuditLogger {
      */
     suspend fun logAuditEvent(event: AuditEvent): LoggingResult {
         return try {
-            logger.debug("Logging audit event: ${event.id}")
+            logger.debug("security", "Logging audit event: ${event.id}")
             
             // Validate event
             val validationResult = validateAuditEvent(event)
             if (!validationResult.isValid) {
-                logger.warn("Audit event validation failed: ${validationResult.issues}")
+                logger.warn("secure storage", "Audit event validation failed: ${validationResult.issues}")
                 return LoggingResult(
                     eventId = event.id,
                     success = false,
@@ -100,7 +100,7 @@ class AdvancedAuditLogger {
             // Check compliance rules
             checkComplianceRules(enrichedEvent)
             
-            logger.info("Audit event logged successfully: ${enrichedEvent.id}")
+            logger.info("security", "Audit event logged successfully: ${enrichedEvent.id}")
             
             LoggingResult(
                 eventId = enrichedEvent.id,
@@ -110,7 +110,7 @@ class AdvancedAuditLogger {
             )
             
         } catch (e: Exception) {
-            logger.error("Failed to log audit event: ${e.message}")
+            logger.error("security", "Failed to log audit event: ${e.message}")
             LoggingResult(
                 eventId = event.id,
                 success = false,
@@ -167,7 +167,7 @@ class AdvancedAuditLogger {
             result
             
         } catch (e: Exception) {
-            logger.error("Failed to log security event: ${e.message}")
+            logger.error("security", "Failed to log security event: ${e.message}")
             LoggingResult(
                 eventId = event.id,
                 success = false,
@@ -215,7 +215,7 @@ class AdvancedAuditLogger {
             logAuditEvent(auditEvent)
             
         } catch (e: Exception) {
-            logger.error("Failed to log compliance event: ${e.message}")
+            logger.error("security", "Failed to log compliance event: ${e.message}")
             LoggingResult(
                 eventId = event.id,
                 success = false,
@@ -239,7 +239,7 @@ class AdvancedAuditLogger {
         levels: List<String>? = null
     ): AuditReport {
         return try {
-            logger.info("Generating audit report for time range: ${timeRange.start} to ${timeRange.end}")
+            logger.info("security", "Generating audit report for time range: ${timeRange.start} to ${timeRange.end}")
             
             // Filter events
             val filteredEvents = auditEvents.values.filter { event ->
@@ -271,11 +271,11 @@ class AdvancedAuditLogger {
                 timestamp = Instant.now()
             )
             
-            logger.info("Audit report generated successfully")
+            logger.info("security", "Audit report generated successfully")
             report
             
         } catch (e: Exception) {
-            logger.error("Failed to generate audit report: ${e.message}")
+            logger.error("secure storage", "Failed to generate audit report: ${e.message}")
             throw AuditException("Report generation failed", e)
         }
     }
@@ -292,7 +292,7 @@ class AdvancedAuditLogger {
         callback: (SecurityAlert) -> Unit
     ): MonitoringResult {
         return try {
-            logger.info("Setting up real-time monitoring for pattern: ${pattern.name}")
+            logger.info("security", "Setting up real-time monitoring for pattern: ${pattern.name}")
             
             // Register pattern
             correlationEngine.registerPattern(pattern)
@@ -303,7 +303,7 @@ class AdvancedAuditLogger {
             // Register callback
             correlationEngine.registerCallback(pattern.name, callback)
             
-            logger.info("Real-time monitoring setup successfully")
+            logger.info("security", "Real-time monitoring setup successfully")
             
             MonitoringResult(
                 patternName = pattern.name,
@@ -313,7 +313,7 @@ class AdvancedAuditLogger {
             )
             
         } catch (e: Exception) {
-            logger.error("Failed to setup real-time monitoring: ${e.message}")
+            logger.error("security", "Failed to setup real-time monitoring: ${e.message}")
             MonitoringResult(
                 patternName = pattern.name,
                 success = false,
@@ -330,7 +330,7 @@ class AdvancedAuditLogger {
      */
     suspend fun performIntegrityCheck(): IntegrityCheckResult {
         return try {
-            logger.info("Performing audit trail integrity check")
+            logger.info("security", "Performing audit trail integrity check")
             
             val issues = mutableListOf<String>()
             val recommendations = mutableListOf<String>()
@@ -368,11 +368,11 @@ class AdvancedAuditLogger {
                 timestamp = Instant.now()
             )
             
-            logger.info("Integrity check completed: ${if (result.isIntegrityMaintained) "PASSED" else "FAILED"}")
+            logger.info("security", "Integrity check completed: ${if (result.isIntegrityMaintained) "PASSED" else "FAILED"}")
             result
             
         } catch (e: Exception) {
-            logger.error("Integrity check failed: ${e.message}")
+            logger.error("secure storage", "Integrity check failed: ${e.message}")
             IntegrityCheckResult(
                 isIntegrityMaintained = false,
                 issues = listOf("Integrity check failed: ${e.message}"),
@@ -394,7 +394,7 @@ class AdvancedAuditLogger {
         format: ExportFormat
     ): ExportResult {
         return try {
-            logger.info("Exporting audit data in $format format")
+            logger.info("security", "Exporting audit data in $format format")
             
             val events = auditEvents.values.filter { event ->
                 event.timestamp.isAfter(timeRange.start) &&
@@ -416,11 +416,11 @@ class AdvancedAuditLogger {
                 timestamp = Instant.now()
             )
             
-            logger.info("Audit data exported successfully: ${result.exportId}")
+            logger.info("security", "Audit data exported successfully: ${result.exportId}")
             result
             
         } catch (e: Exception) {
-            logger.error("Audit data export failed: ${e.message}")
+            logger.error("secure storage", "Audit data export failed: ${e.message}")
             throw AuditException("Export failed", e)
         }
     }
@@ -485,7 +485,7 @@ class AdvancedAuditLogger {
     private fun checkComplianceRules(event: AuditEvent) {
         complianceRules.forEach { (ruleName, rule) ->
             if (rule.matches(event)) {
-                logger.warn("Compliance rule violation: $ruleName")
+                logger.warn("security", "Compliance rule violation: $ruleName")
                 // Trigger compliance action
             }
         }
@@ -515,7 +515,7 @@ class AdvancedAuditLogger {
         )
         
         realTimeAlerts.add(alert)
-        logger.warn("Security alert generated: ${alert.id}")
+        logger.warn("security", "Security alert generated: ${alert.id}")
     }
     
     private fun generateAlert(event: AuditEvent, threshold: AlertThreshold) {
@@ -533,7 +533,7 @@ class AdvancedAuditLogger {
         )
         
         realTimeAlerts.add(alert)
-        logger.warn("Threshold alert generated: ${alert.id}")
+        logger.warn("security", "Threshold alert generated: ${alert.id}")
     }
     
     private fun matchesAlertPattern(event: AuditEvent, pattern: String): Boolean {

@@ -51,7 +51,7 @@ class LinkedInOAuthClient(
         }
         
         val authUrl = "$AUTH_URL$params"
-        logger.debug("Generated LinkedIn OAuth authorization URL: $authUrl")
+        logger.debug("oath", "Generated LinkedIn OAuth authorization URL: $authUrl")
         return authUrl
     }
     
@@ -60,7 +60,7 @@ class LinkedInOAuthClient(
         codeVerifier: String
     ): OAuthResult {
         return try {
-            logger.debug("Exchanging authorization code for LinkedIn tokens")
+            logger.debug("oath", "Exchanging authorization code for LinkedIn tokens")
             
             val tokenRequest = LinkedInTokenRequest(
                 clientId = config.clientId,
@@ -80,7 +80,7 @@ class LinkedInOAuthClient(
             
             if (response.status.isSuccess()) {
                 val tokenResponse = json.decodeFromString<LinkedInTokenResponse>(response.bodyAsText())
-                logger.debug("Successfully exchanged code for LinkedIn tokens")
+                logger.debug("oath", "Successfully exchanged code for LinkedIn tokens")
                 
                 OAuthResult.Success(
                     accessToken = tokenResponse.accessToken,
@@ -91,7 +91,7 @@ class LinkedInOAuthClient(
                 )
             } else {
                 val errorResponse = json.decodeFromString<LinkedInErrorResponse>(response.bodyAsText())
-                logger.error("Failed to exchange code for LinkedIn tokens: ${errorResponse.error}")
+                logger.error("oath", "Failed to exchange code for LinkedIn tokens: ${errorResponse.error}")
                 
                 OAuthResult.Error(
                     OAuthError.TokenExchangeFailed(
@@ -113,7 +113,7 @@ class LinkedInOAuthClient(
     
     override suspend fun refreshAccessToken(refreshToken: String): OAuthResult {
         return try {
-            logger.debug("Refreshing LinkedIn access token")
+            logger.debug("oath", "Refreshing LinkedIn access token")
             
             val refreshRequest = LinkedInRefreshRequest(
                 clientId = config.clientId,
@@ -131,7 +131,7 @@ class LinkedInOAuthClient(
             
             if (response.status.isSuccess()) {
                 val tokenResponse = json.decodeFromString<LinkedInTokenResponse>(response.bodyAsText())
-                logger.debug("Successfully refreshed LinkedIn access token")
+                logger.debug("oath", "Successfully refreshed LinkedIn access token")
                 
                 OAuthResult.Success(
                     accessToken = tokenResponse.accessToken,
@@ -142,7 +142,7 @@ class LinkedInOAuthClient(
                 )
             } else {
                 val errorResponse = json.decodeFromString<LinkedInErrorResponse>(response.bodyAsText())
-                logger.error("Failed to refresh LinkedIn access token: ${errorResponse.error}")
+                logger.error("oath", "Failed to refresh LinkedIn access token: ${errorResponse.error}")
                 
                 OAuthResult.Error(
                     OAuthError.TokenRefreshFailed(
@@ -164,7 +164,7 @@ class LinkedInOAuthClient(
     
     override suspend fun getUserInfo(accessToken: String): OAuthResult {
         return try {
-            logger.debug("Fetching LinkedIn user info")
+            logger.debug("oath", "Fetching LinkedIn user info")
             
             // Fetch user profile
             val userResponse = withContext(Dispatchers.IO) {
@@ -192,7 +192,7 @@ class LinkedInOAuthClient(
                     null
                 }
                 
-                logger.debug("Successfully fetched LinkedIn user info: ${userInfo.localizedFirstName}")
+                logger.debug("oath", "Successfully fetched LinkedIn user info: ${userInfo.localizedFirstName}")
                 
                 OAuthResult.Success(
                     userInfo = OAuthUserInfo(
@@ -208,7 +208,7 @@ class LinkedInOAuthClient(
                 )
             } else {
                 val errorResponse = json.decodeFromString<LinkedInErrorResponse>(userResponse.bodyAsText())
-                logger.error("Failed to fetch LinkedIn user info: ${errorResponse.error}")
+                logger.error("oath", "Failed to fetch LinkedIn user info: ${errorResponse.error}")
                 
                 OAuthResult.Error(
                     OAuthError.UserInfoFetchFailed(
@@ -230,11 +230,11 @@ class LinkedInOAuthClient(
     
     override suspend fun revokeToken(token: String): Boolean {
         return try {
-            logger.debug("Revoking LinkedIn OAuth token")
+            logger.debug("oath", "Revoking LinkedIn OAuth token")
             
             // LinkedIn doesn't have a standard token revocation endpoint
             // The token will expire naturally based on the expires_in value
-            logger.warn("LinkedIn OAuth does not support token revocation. Token will expire naturally.")
+            logger.warn("linkedin", "LinkedIn OAuth does not support token revocation. Token will expire naturally.")
             
             // Return true to indicate "success" since we can't actually revoke
             true
@@ -246,7 +246,7 @@ class LinkedInOAuthClient(
     
     override suspend fun validateToken(accessToken: String): Boolean {
         return try {
-            logger.debug("Validating LinkedIn OAuth token")
+            logger.debug("oath", "Validating LinkedIn OAuth token")
             
             val response = withContext(Dispatchers.IO) {
                 httpClient.get(USER_INFO_URL) {
@@ -256,7 +256,7 @@ class LinkedInOAuthClient(
             }
             
             val isValid = response.status.isSuccess()
-            logger.debug("LinkedIn OAuth token validation result: $isValid")
+            logger.debug("oath", "LinkedIn OAuth token validation result: $isValid")
             
             isValid
         } catch (e: Exception) {

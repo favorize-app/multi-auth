@@ -50,13 +50,13 @@ class ComplianceFramework {
      */
     suspend fun recordDataProcessing(record: DataProcessingRecord): ComplianceResult {
         return try {
-            logger.debug("Recording data processing activity: ${record.id}")
+            logger.debug("security", "Recording data processing activity: ${record.id}")
             
             // Validate compliance requirements
             val validationResult = validateDataProcessing(record)
             
             if (!validationResult.isCompliant) {
-                logger.warn("Data processing non-compliant: ${validationResult.issues}")
+                logger.warn("secure storage", "Data processing non-compliant: ${validationResult.issues}")
                 return ComplianceResult(
                     isCompliant = false,
                     issues = validationResult.issues,
@@ -83,7 +83,7 @@ class ComplianceFramework {
             )
             complianceEvents.add(complianceEvent)
             
-            logger.info("Data processing recorded successfully for compliance")
+            logger.info("security", "Data processing recorded successfully for compliance")
             
             ComplianceResult(
                 isCompliant = true,
@@ -93,7 +93,7 @@ class ComplianceFramework {
             )
             
         } catch (e: Exception) {
-            logger.error("Failed to record data processing: ${e.message}")
+            logger.error("security", "Failed to record data processing: ${e.message}")
             ComplianceResult(
                 isCompliant = false,
                 issues = listOf("Recording failed: ${e.message}"),
@@ -111,13 +111,13 @@ class ComplianceFramework {
      */
     suspend fun recordConsent(consent: ConsentRecord): ComplianceResult {
         return try {
-            logger.debug("Recording user consent: ${consent.id}")
+            logger.debug("security", "Recording user consent: ${consent.id}")
             
             // Validate consent requirements
             val validationResult = validateConsent(consent)
             
             if (!validationResult.isCompliant) {
-                logger.warn("Consent non-compliant: ${validationResult.issues}")
+                logger.warn("secure storage", "Consent non-compliant: ${validationResult.issues}")
                 return ComplianceResult(
                     isCompliant = false,
                     issues = validationResult.issues,
@@ -144,7 +144,7 @@ class ComplianceFramework {
             )
             complianceEvents.add(complianceEvent)
             
-            logger.info("User consent recorded successfully for compliance")
+            logger.info("security", "User consent recorded successfully for compliance")
             
             ComplianceResult(
                 isCompliant = true,
@@ -154,7 +154,7 @@ class ComplianceFramework {
             )
             
         } catch (e: Exception) {
-            logger.error("Failed to record consent: ${e.message}")
+            logger.error("security", "Failed to record consent: ${e.message}")
             ComplianceResult(
                 isCompliant = false,
                 issues = listOf("Recording failed: ${e.message}"),
@@ -172,7 +172,7 @@ class ComplianceFramework {
      */
     suspend fun processDataSubjectAccessRequest(request: DSARRequest): DSARResult {
         return try {
-            logger.info("Processing DSAR request: ${request.id}")
+            logger.info("security", "Processing DSAR request: ${request.id}")
             
             // Validate request
             if (request.userId.isBlank()) {
@@ -209,7 +209,7 @@ class ComplianceFramework {
             )
             complianceEvents.add(complianceEvent)
             
-            logger.info("DSAR processed successfully")
+            logger.info("security", "DSAR processed successfully")
             
             DSARResult(
                 requestId = request.id,
@@ -220,7 +220,7 @@ class ComplianceFramework {
             )
             
         } catch (e: Exception) {
-            logger.error("DSAR processing failed: ${e.message}")
+            logger.error("security", "DSAR processing failed: ${e.message}")
             DSARResult(
                 requestId = request.id,
                 status = DSARStatus.FAILED,
@@ -262,11 +262,11 @@ class ComplianceFramework {
                 timestamp = Instant.now()
             )
             
-            logger.info("Compliance report generated successfully")
+            logger.info("security", "Compliance report generated successfully")
             report
             
         } catch (e: Exception) {
-            logger.error("Failed to generate compliance report: ${e.message}")
+            logger.error("secure storage", "Failed to generate compliance report: ${e.message}")
             throw ComplianceException("Report generation failed", e)
         }
     }
@@ -303,7 +303,7 @@ class ComplianceFramework {
             )
             
         } catch (e: Exception) {
-            logger.error("Retention compliance check failed: ${e.message}")
+            logger.error("security", "Retention compliance check failed: ${e.message}")
             RetentionComplianceResult(
                 userId = userId,
                 isCompliant = false,

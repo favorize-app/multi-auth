@@ -216,7 +216,7 @@ class EnhancedOAuthManager(
             // Dispatch success event
             eventBus.dispatch(AuthEvent.OAuth.SignInWithLinkedAccount(user, provider, linkedAccount))
             
-            logger.info("Sign in with linked OAuth account successful for user: ${user.displayName}")
+            logger.info("oath", "Sign in with linked OAuth account successful for user: ${user.displayName}")
             Result.success(user)
             
         } catch (e: Exception) {

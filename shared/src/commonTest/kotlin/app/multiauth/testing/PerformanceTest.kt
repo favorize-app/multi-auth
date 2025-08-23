@@ -7,6 +7,7 @@ import app.multiauth.models.User
 import app.multiauth.security.RateLimiter
 import app.multiauth.security.SecurityAuditLogger
 import app.multiauth.security.SecurityEvent
+import app.multiauth.util.Logger
 import kotlinx.coroutines.test.runTest
 import kotlin.test.*
 
@@ -44,10 +45,10 @@ class PerformanceTest {
         val totalTimeMs = (endTime - startTime) / 1_000_000.0
         val averageTimeMs = totalTimeMs / BENCHMARK_ITERATIONS
         
-        println("TOTP Generation Performance:")
-        println("  Total time: ${String.format("%.2f", totalTimeMs)}ms")
-        println("  Average time: ${String.format("%.4f", averageTimeMs)}ms")
-        println("  Operations per second: ${String.format("%.0f", BENCHMARK_ITERATIONS / (totalTimeMs / 1000))}")
+        Logger.info("PerformanceTest", "TOTP Generation Performance:")
+        Logger.info("PerformanceTest", "  Total time: ${String.format("%.2f", totalTimeMs)}ms")
+        Logger.info("PerformanceTest", "  Average time: ${String.format("%.4f", averageTimeMs)}ms")
+        Logger.info("PerformanceTest", "  Operations per second: ${String.format("%.0f", BENCHMARK_ITERATIONS / (totalTimeMs / 1000))}")
         
         // Assertions
         assertTrue(averageTimeMs < CRITICAL_OPERATION_THRESHOLD_MS, 
@@ -78,11 +79,11 @@ class PerformanceTest {
         val totalTimeMs = (endTime - startTime) / 1_000_000.0
         val averageTimeMs = totalTimeMs / BENCHMARK_ITERATIONS
         
-        println("TOTP Validation Performance:")
-        println("  Total time: ${String.format("%.2f", totalTimeMs)}ms")
-        println("  Average time: ${String.format("%.4f", averageTimeMs)}ms")
-        println("  Operations per second: ${String.format("%.0f", BENCHMARK_ITERATIONS / (totalTimeMs / 1000))}")
-        
+        Logger.info("PerformanceTest", "TOTP Validation Performance:")
+        Logger.info("PerformanceTest", "  Total time: ${String.format("%.2f", totalTimeMs)}ms")
+        Logger.info("PerformanceTest", "  Average time: ${String.format("%.4f", averageTimeMs)}ms")
+        Logger.info("PerformanceTest", "  Operations per second: ${String.format("%.0f", BENCHMARK_ITERATIONS / (totalTimeMs / 1000))}")
+
         // Assertions
         assertTrue(averageTimeMs < CRITICAL_OPERATION_THRESHOLD_MS,
             "TOTP validation should be fast: ${String.format("%.4f", averageTimeMs)}ms")
@@ -109,11 +110,11 @@ class PerformanceTest {
         val totalTimeMs = (endTime - startTime) / 1_000_000.0
         val averageTimeMs = totalTimeMs / BENCHMARK_ITERATIONS
         
-        println("Rate Limiter Performance:")
-        println("  Total time: ${String.format("%.2f", totalTimeMs)}ms")
-        println("  Average time: ${String.format("%.4f", averageTimeMs)}ms")
-        println("  Operations per second: ${String.format("%.0f", BENCHMARK_ITERATIONS / (totalTimeMs / 1000))}")
-        
+        Logger.info("PerformanceTest", "Rate Limiter Performance:")
+        Logger.info("PerformanceTest", "  Total time: ${String.format("%.2f", totalTimeMs)}ms")
+        Logger.info("PerformanceTest", "  Average time: ${String.format("%.4f", averageTimeMs)}ms")
+        Logger.info("PerformanceTest", "  Operations per second: ${String.format("%.0f", BENCHMARK_ITERATIONS / (totalTimeMs / 1000))}")
+
         // Assertions
         assertTrue(averageTimeMs < CRITICAL_OPERATION_THRESHOLD_MS,
             "Rate limiter checks should be fast: ${String.format("%.4f", averageTimeMs)}ms")
@@ -140,11 +141,11 @@ class PerformanceTest {
         val totalTimeMs = (endTime - startTime) / 1_000_000.0
         val averageTimeMs = totalTimeMs / BENCHMARK_ITERATIONS
         
-        println("Security Audit Logging Performance:")
-        println("  Total time: ${String.format("%.2f", totalTimeMs)}ms")
-        println("  Average time: ${String.format("%.4f", averageTimeMs)}ms")
-        println("  Operations per second: ${String.format("%.0f", BENCHMARK_ITERATIONS / (totalTimeMs / 1000))}")
-        
+        Logger.info("PerformanceTest", "Security Audit Logging Performance:")
+        Logger.info("PerformanceTest", "  Total time: ${String.format("%.2f", totalTimeMs)}ms")
+        Logger.info("PerformanceTest", "  Average time: ${String.format("%.4f", averageTimeMs)}ms")
+        Logger.info("PerformanceTest", "  Operations per second: ${String.format("%.0f", BENCHMARK_ITERATIONS / (totalTimeMs / 1000))}")
+
         // Assertions
         assertTrue(averageTimeMs < PERFORMANCE_THRESHOLD_MS,
             "Security audit logging should be reasonably fast: ${String.format("%.4f", averageTimeMs)}ms")
@@ -171,11 +172,11 @@ class PerformanceTest {
         val totalTimeMs = (endTime - startTime) / 1_000_000.0
         val averageTimeMs = totalTimeMs / (BENCHMARK_ITERATIONS / 10)
         
-        println("MFA Manager Performance:")
-        println("  Total time: ${String.format("%.2f", totalTimeMs)}ms")
-        println("  Average time: ${String.format("%.4f", averageTimeMs)}ms")
-        println("  Operations per second: ${String.format("%.0f", (BENCHMARK_ITERATIONS / 10) / (totalTimeMs / 1000))}")
-        
+        Logger.info("PerformanceTest", "MFA Manager Performance:")
+        Logger.info("PerformanceTest", "  Total time: ${String.format("%.2f", totalTimeMs)}ms")
+        Logger.info("PerformanceTest", "  Average time: ${String.format("%.4f", averageTimeMs)}ms")
+        Logger.info("PerformanceTest", "  Operations per second: ${String.format("%.0f", (BENCHMARK_ITERATIONS / 10) / (totalTimeMs / 1000))}")
+
         // Assertions
         assertTrue(averageTimeMs < PERFORMANCE_THRESHOLD_MS,
             "MFA operations should be reasonably fast: ${String.format("%.4f", averageTimeMs)}ms")
@@ -207,13 +208,13 @@ class PerformanceTest {
         val totalOperations = concurrentOperations * 10
         val averageTimeMs = totalTimeMs / totalOperations
         
-        println("Concurrent Operations Performance:")
-        println("  Concurrent operations: $concurrentOperations")
-        println("  Total operations: $totalOperations")
-        println("  Total time: ${String.format("%.2f", totalTimeMs)}ms")
-        println("  Average time: ${String.format("%.4f", averageTimeMs)}ms")
-        println("  Operations per second: ${String.format("%.0f", totalOperations / (totalTimeMs / 1000))}")
-        
+        Logger.info("PerformanceTest", "Concurrent Operations Performance:")
+        Logger.info("PerformanceTest", "  Concurrent operations: $concurrentOperations")
+        Logger.info("PerformanceTest", "  Total operations: $totalOperations")
+        Logger.info("PerformanceTest", "  Total time: ${String.format("%.2f", totalTimeMs)}ms")
+        Logger.info("PerformanceTest", "  Average time: ${String.format("%.4f", averageTimeMs)}ms")
+        Logger.info("PerformanceTest", "  Operations per second: ${String.format("%.0f", totalOperations / (totalTimeMs / 1000))}")
+
         // Assertions
         assertTrue(averageTimeMs < PERFORMANCE_THRESHOLD_MS,
             "Concurrent operations should be reasonably fast: ${String.format("%.4f", averageTimeMs)}ms")
@@ -238,12 +239,12 @@ class PerformanceTest {
         val memoryAfter = runtime.totalMemory() - runtime.freeMemory()
         val memoryUsed = memoryAfter - memoryBefore
         
-        println("Memory Usage Test:")
-        println("  Memory before: ${String.format("%.2f", memoryBefore / 1024.0 / 1024.0)}MB")
-        println("  Memory after: ${String.format("%.2f", memoryAfter / 1024.0 / 1024.0)}MB")
-        println("  Memory used: ${String.format("%.2f", memoryUsed / 1024.0 / 1024.0)}MB")
-        println("  Total TOTPs generated: ${totps.flatten().size}")
-        
+        Logger.info("PerformanceTest", "Memory Usage Test:")
+        Logger.info("PerformanceTest", "  Memory before: ${String.format("%.2f", memoryBefore / 1024.0 / 1024.0)}MB")
+        Logger.info("PerformanceTest", "  Memory after: ${String.format("%.2f", memoryAfter / 1024.0 / 1024.0)}MB")
+        Logger.info("PerformanceTest", "  Memory used: ${String.format("%.2f", memoryUsed / 1024.0 / 1024.0)}MB")
+        Logger.info("PerformanceTest", "  Total TOTPs generated: ${totps.flatten().size}")
+
         // Assertions
         assertTrue(memoryUsed < 100 * 1024 * 1024, // Less than 100MB
             "Memory usage should be reasonable: ${String.format("%.2f", memoryUsed / 1024.0 / 1024.0)}MB")
@@ -277,12 +278,12 @@ class PerformanceTest {
         val totalTimeMs = (endTime - startTime) / 1_000_000.0
         val averageTimeMs = totalTimeMs / sustainedOperations
         
-        println("Sustained Load Performance:")
-        println("  Total operations: $sustainedOperations")
-        println("  Total time: ${String.format("%.2f", totalTimeMs)}ms")
-        println("  Average time: ${String.format("%.4f", averageTimeMs)}ms")
-        println("  Operations per second: ${String.format("%.0f", sustainedOperations / (totalTimeMs / 1000))}")
-        
+        Logger.info("PerformanceTest", "Sustained Load Performance:")
+        Logger.info("PerformanceTest", "  Total operations: $sustainedOperations")
+        Logger.info("PerformanceTest", "  Total time: ${String.format("%.2f", totalTimeMs)}ms")
+        Logger.info("PerformanceTest", "  Average time: ${String.format("%.4f", averageTimeMs)}ms")
+        Logger.info("PerformanceTest", "  Operations per second: ${String.format("%.0f", sustainedOperations / (totalTimeMs / 1000))}")
+
         // Assertions
         assertTrue(averageTimeMs < PERFORMANCE_THRESHOLD_MS,
             "Performance should remain consistent under sustained load: ${String.format("%.4f", averageTimeMs)}ms")
@@ -308,7 +309,7 @@ class PerformanceTest {
             val totalTimeMs = (endTime - startTime) / 1_000_000.0
             val averageTimeMs = totalTimeMs / iterations
             
-            println("Performance Test Run ${testRun + 1}: ${String.format("%.4f", averageTimeMs)}ms")
+            Logger.debug("PerformanceTest", "Performance Test Run ${testRun + 1}: ${String.format("%.4f", averageTimeMs)}ms")
             averageTimeMs
         }
         
@@ -318,13 +319,13 @@ class PerformanceTest {
         val variance = performanceResults.map { (it - avgTime) * (it - avgTime) }.average()
         val standardDeviation = kotlin.math.sqrt(variance)
         
-        println("Performance Regression Analysis:")
-        println("  Min time: ${String.format("%.4f", minTime)}ms")
-        println("  Max time: ${String.format("%.4f", maxTime)}ms")
-        println("  Average time: ${String.format("%.4f", avgTime)}ms")
-        println("  Standard deviation: ${String.format("%.4f", standardDeviation)}ms")
-        println("  Coefficient of variation: ${String.format("%.2f", (standardDeviation / avgTime) * 100)}%")
-        
+        Logger.info("PerformanceTest", "Performance Regression Analysis:")
+        Logger.info("PerformanceTest", "  Min time: ${String.format("%.4f", minTime)}ms")
+        Logger.info("PerformanceTest", "  Max time: ${String.format("%.4f", maxTime)}ms")
+        Logger.info("PerformanceTest", "  Average time: ${String.format("%.4f", avgTime)}ms")
+        Logger.info("PerformanceTest", "  Standard deviation: ${String.format("%.4f", standardDeviation)}ms")
+        Logger.info("PerformanceTest", "  Coefficient of variation: ${String.format("%.2f", (standardDeviation / avgTime) * 100)}%")
+
         // Assertions
         assertTrue(maxTime - minTime < avgTime * 0.5, // Max variation should be less than 50% of average
             "Performance should be consistent across runs")

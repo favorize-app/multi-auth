@@ -67,7 +67,7 @@ class ScalabilityFeatures {
      */
     suspend fun registerService(serviceInfo: ServiceInfo): ServiceRegistrationResult {
         return try {
-            logger.info("Registering service: ${serviceInfo.name}")
+            logger.info("performance", "Registering service: ${serviceInfo.name}")
             
             // Register with service registry
             val registration = serviceRegistry.register(serviceInfo)
@@ -78,7 +78,7 @@ class ScalabilityFeatures {
             // Start health monitoring
             healthMonitor.startMonitoring(serviceInfo.id)
             
-            logger.info("Service registered successfully: ${serviceInfo.name}")
+            logger.info("performance", "Service registered successfully: ${serviceInfo.name}")
             
             ServiceRegistrationResult(
                 serviceId = serviceInfo.id,
@@ -88,7 +88,7 @@ class ScalabilityFeatures {
             )
             
         } catch (e: Exception) {
-            logger.error("Service registration failed: ${e.message}")
+            logger.error("performance", "Service registration failed: ${e.message}")
             ServiceRegistrationResult(
                 serviceId = serviceInfo.id,
                 success = false,
@@ -106,7 +106,7 @@ class ScalabilityFeatures {
      */
     suspend fun unregisterService(serviceId: String): ServiceUnregistrationResult {
         return try {
-            logger.info("Unregistering service: $serviceId")
+            logger.info("performance", "Unregistering service: $serviceId")
             
             // Remove from load balancer
             loadBalancer.removeService(serviceId)
@@ -117,7 +117,7 @@ class ScalabilityFeatures {
             // Unregister from service registry
             val unregistration = serviceRegistry.unregister(serviceId)
             
-            logger.info("Service unregistered successfully: $serviceId")
+            logger.info("performance", "Service unregistered successfully: $serviceId")
             
             ServiceUnregistrationResult(
                 serviceId = serviceId,
@@ -127,7 +127,7 @@ class ScalabilityFeatures {
             )
             
         } catch (e: Exception) {
-            logger.error("Service unregistration failed: ${e.message}")
+            logger.error("performance", "Service unregistration failed: ${e.message}")
             ServiceUnregistrationResult(
                 serviceId = serviceId,
                 success = false,
@@ -146,7 +146,7 @@ class ScalabilityFeatures {
      */
     suspend fun routeRequest(request: ServiceRequest, algorithm: String = LB_ALGORITHM_ROUND_ROBIN): RoutingResult {
         return try {
-            logger.debug("Routing request: ${request.id}")
+            logger.debug("performance", "Routing request: ${request.id}")
             
             // Check circuit breaker status
             if (circuitBreaker.isOpen()) {
@@ -166,7 +166,7 @@ class ScalabilityFeatures {
                 // Track performance
                 performanceTracker.trackRequest(request, route)
                 
-                logger.debug("Request routed successfully to: ${route.serviceId}")
+                logger.debug("performance", "Request routed successfully to: ${route.serviceId}")
                 
                 RoutingResult(
                     requestId = request.id,
@@ -175,7 +175,7 @@ class ScalabilityFeatures {
                     timestamp = Instant.now()
                 )
             } else {
-                logger.warn("No available service for request: ${request.id}")
+                logger.warn("performance", "No available service for request: ${request.id}")
                 
                 RoutingResult(
                     requestId = request.id,
@@ -186,7 +186,7 @@ class ScalabilityFeatures {
             }
             
         } catch (e: Exception) {
-            logger.error("Request routing failed: ${e.message}")
+            logger.error("performance", "Request routing failed: ${e.message}")
             
             // Update circuit breaker
             circuitBreaker.recordFailure()
@@ -208,7 +208,7 @@ class ScalabilityFeatures {
      */
     suspend fun scaleSystem(strategy: String = SCALING_STRATEGY_AUTO): ScalingResult {
         return try {
-            logger.info("Starting system scaling with strategy: $strategy")
+            logger.info("performance", "Starting system scaling with strategy: $strategy")
             
             val startTime = Instant.now()
             
@@ -234,11 +234,11 @@ class ScalabilityFeatures {
                     timestamp = Instant.now()
                 )
                 
-                logger.info("System scaling completed: ${executionResult.newInstances} new instances")
+                logger.info("performance", "System scaling completed: ${executionResult.newInstances} new instances")
                 result
                 
             } else {
-                logger.info("No scaling action required")
+                logger.info("performance", "No scaling action required")
                 
                 ScalingResult(
                     strategy = strategy,
@@ -252,7 +252,7 @@ class ScalabilityFeatures {
             }
             
         } catch (e: Exception) {
-            logger.error("System scaling failed: ${e.message}")
+            logger.error("performance", "System scaling failed: ${e.message}")
             throw ScalabilityException("System scaling failed", e)
         }
     }
@@ -264,7 +264,7 @@ class ScalabilityFeatures {
      */
     suspend fun getScalabilityStatus(): ScalabilityStatusReport {
         return try {
-            logger.info("Generating scalability status report")
+            logger.info("performance", "Generating scalability status report")
             
             val serviceStatus = serviceRegistry.getServiceStatus()
             val loadBalancerStatus = loadBalancer.getStatus()
@@ -283,11 +283,11 @@ class ScalabilityFeatures {
                 timestamp = Instant.now()
             )
             
-            logger.info("Scalability status report generated successfully")
+            logger.info("performance", "Scalability status report generated successfully")
             report
             
         } catch (e: Exception) {
-            logger.error("Failed to generate scalability status report: ${e.message}")
+            logger.error("performance", "Failed to generate scalability status report: ${e.message}")
             throw ScalabilityException("Status report generation failed", e)
         }
     }
@@ -300,11 +300,11 @@ class ScalabilityFeatures {
      */
     suspend fun configureLoadBalancer(config: LoadBalancerConfig): ConfigurationResult {
         return try {
-            logger.info("Configuring load balancer")
+            logger.info("performance", "Configuring load balancer")
             
             loadBalancer.configure(config)
             
-            logger.info("Load balancer configured successfully")
+            logger.info("performance", "Load balancer configured successfully")
             
             ConfigurationResult(
                 component = "LoadBalancer",
@@ -313,7 +313,7 @@ class ScalabilityFeatures {
             )
             
         } catch (e: Exception) {
-            logger.error("Load balancer configuration failed: ${e.message}")
+            logger.error("performance", "Load balancer configuration failed: ${e.message}")
             
             ConfigurationResult(
                 component = "LoadBalancer",
@@ -332,11 +332,11 @@ class ScalabilityFeatures {
      */
     suspend fun configureAutoScaling(config: AutoScalingConfig): ConfigurationResult {
         return try {
-            logger.info("Configuring auto-scaling")
+            logger.info("performance", "Configuring auto-scaling")
             
             scalingManager.configure(config)
             
-            logger.info("Auto-scaling configured successfully")
+            logger.info("performance", "Auto-scaling configured successfully")
             
             ConfigurationResult(
                 component = "AutoScaling",
@@ -345,7 +345,7 @@ class ScalabilityFeatures {
             )
             
         } catch (e: Exception) {
-            logger.error("Auto-scaling configuration failed: ${e.message}")
+            logger.error("performance", "Auto-scaling configuration failed: ${e.message}")
             
             ConfigurationResult(
                 component = "AutoScaling",
@@ -363,7 +363,7 @@ class ScalabilityFeatures {
      */
     suspend fun performHealthCheck(): HealthCheckResult {
         return try {
-            logger.info("Performing health check on all services")
+            logger.info("performance", "Performing health check on all services")
             
             val startTime = Instant.now()
             val healthResults = mutableListOf<ServiceHealthResult>()
@@ -394,7 +394,7 @@ class ScalabilityFeatures {
             result
             
         } catch (e: Exception) {
-            logger.error("Health check failed: ${e.message}")
+            logger.error("performance", "Health check failed: ${e.message}")
             throw ScalabilityException("Health check failed", e)
         }
     }
@@ -408,11 +408,11 @@ class ScalabilityFeatures {
      */
     suspend fun configureCircuitBreaker(enabled: Boolean, config: CircuitBreakerConfig): CircuitBreakerResult {
         return try {
-            logger.info("Configuring circuit breaker: enabled=$enabled")
+            logger.info("performance", "Configuring circuit breaker: enabled=$enabled")
             
             circuitBreaker.configure(enabled, config)
             
-            logger.info("Circuit breaker configured successfully")
+            logger.info("performance", "Circuit breaker configured successfully")
             
             CircuitBreakerResult(
                 enabled = enabled,
@@ -421,7 +421,7 @@ class ScalabilityFeatures {
             )
             
         } catch (e: Exception) {
-            logger.error("Circuit breaker configuration failed: ${e.message}")
+            logger.error("performance", "Circuit breaker configuration failed: ${e.message}")
             
             CircuitBreakerResult(
                 enabled = enabled,
@@ -440,7 +440,7 @@ class ScalabilityFeatures {
             try {
                 healthMonitor.performPeriodicHealthCheck()
             } catch (e: Exception) {
-                logger.error("Periodic health check failed: ${e.message}")
+                logger.error("performance", "Periodic health check failed: ${e.message}")
             }
         }, 30, 30, TimeUnit.SECONDS)
         
@@ -449,7 +449,7 @@ class ScalabilityFeatures {
             try {
                 performanceTracker.updateMetrics()
             } catch (e: Exception) {
-                logger.error("Performance metrics update failed: ${e.message}")
+                logger.error("performance", "Performance metrics update failed: ${e.message}")
             }
         }, 60, 60, TimeUnit.SECONDS)
         
@@ -458,7 +458,7 @@ class ScalabilityFeatures {
             try {
                 evaluateAutoScaling()
             } catch (e: Exception) {
-                logger.error("Auto-scaling evaluation failed: ${e.message}")
+                logger.error("performance", "Auto-scaling evaluation failed: ${e.message}")
             }
         }, 300, 300, TimeUnit.SECONDS) // Every 5 minutes
     }
@@ -468,7 +468,7 @@ class ScalabilityFeatures {
         
         // Check if scaling is needed
         if (shouldScale(metrics)) {
-            logger.info("Auto-scaling triggered by performance metrics")
+            logger.info("performance", "Auto-scaling triggered by performance metrics")
             scaleSystem(SCALING_STRATEGY_AUTO)
         }
     }

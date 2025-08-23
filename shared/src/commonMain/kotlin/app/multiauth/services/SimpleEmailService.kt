@@ -21,12 +21,12 @@ class SimpleEmailService(
     
     override suspend fun initialize(): Boolean {
         return try {
-            logger.info("Initializing Simple Email Service")
+            logger.info("SimpleEmailService", "Initializing Simple Email Service")
             isInitialized = true
-            logger.info("Simple Email Service initialized successfully")
+            logger.info("SimpleEmailService", "Simple Email Service initialized successfully")
             true
         } catch (e: Exception) {
-            logger.error("Failed to initialize Simple Email Service: ${e.message}")
+            logger.error("SimpleEmailService", "Failed to initialize Simple Email Service: ${e.message}")
             false
         }
     }
@@ -219,7 +219,7 @@ class SimpleEmailService(
             )
             deliveryStatuses[emailId] = deliveryStatus
             
-            logger.info("Email sent successfully: $emailId to $to")
+            logger.info("services", "Email sent successfully: $emailId to $to")
             
             EmailSendResult(
                 success = true,
@@ -228,7 +228,7 @@ class SimpleEmailService(
             )
             
         } catch (e: Exception) {
-            logger.error("Failed to send email: ${e.message}")
+            logger.error("services", "Failed to send email: ${e.message}")
             
             val deliveryStatus = EmailDeliveryStatus(
                 emailId = emailId,
@@ -338,7 +338,7 @@ class SimpleEmailService(
     }
     
     private fun logEmailToConsole(email: QueuedEmail) {
-        logger.info("""
+        logger.info("services", """
             ===== EMAIL SENT =====
             ID: ${email.id}
             To: ${email.to}
@@ -369,10 +369,10 @@ class SimpleEmailService(
             )
             
             emailFile.writeText(json.encodeToString(EmailFileData.serializer(), emailData))
-            logger.debug("Email saved to file: ${emailFile.absolutePath}")
+            logger.debug("services", "Email saved to file: ${emailFile.absolutePath}")
             
         } catch (e: Exception) {
-            logger.error("Failed to save email to file: ${e.message}")
+            logger.error("services", "Failed to save email to file: ${e.message}")
         }
     }
     

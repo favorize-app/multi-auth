@@ -20,7 +20,7 @@ object AndroidStorageFactory {
      */
     fun initialize(context: Context) {
         applicationContext = context.applicationContext
-        logger.info("Android storage factory initialized with context: ${context.packageName}")
+        logger.info("storage", "Android storage factory initialized with context: ${context.packageName}")
     }
     
     /**
@@ -34,7 +34,7 @@ object AndroidStorageFactory {
             "AndroidStorageFactory not initialized. Call initialize() first."
         )
         
-        logger.info("Creating Android secure storage with context: ${context.packageName}")
+        logger.info("storage", "Creating Android secure storage with context: ${context.packageName}")
         return AndroidSecureStorage(context)
     }
     

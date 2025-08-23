@@ -65,7 +65,7 @@ class PerformanceOptimization {
      */
     suspend fun analyzePerformanceOptimization(strategy: String = OPTIMIZATION_STRATEGY_BALANCED): OptimizationAnalysisResult {
         return try {
-            logger.info("Starting performance optimization analysis with strategy: $strategy")
+            logger.info("performance", "Starting performance optimization analysis with strategy: $strategy")
             
             val startTime = Instant.now()
             
@@ -93,11 +93,11 @@ class PerformanceOptimization {
                 timestamp = Instant.now()
             )
             
-            logger.info("Performance optimization analysis completed in ${analysisTime}ms")
+            logger.info("performance", "Performance optimization analysis completed in ${analysisTime}ms")
             result
             
         } catch (e: Exception) {
-            logger.error("Performance optimization analysis failed: ${e.message}")
+            logger.error("performance", "Performance optimization analysis failed: ${e.message}")
             throw PerformanceOptimizationException("Analysis failed", e)
         }
     }
@@ -110,7 +110,7 @@ class PerformanceOptimization {
      */
     suspend fun applyOptimizations(analysis: OptimizationAnalysisResult): OptimizationApplicationResult {
         return try {
-            logger.info("Applying performance optimizations")
+            logger.info("performance", "Applying performance optimizations")
             
             val startTime = Instant.now()
             val appliedOptimizations = mutableListOf<AppliedOptimization>()
@@ -140,7 +140,7 @@ class PerformanceOptimization {
                         )
                     }
                 } catch (e: Exception) {
-                    logger.error("Failed to apply optimization: ${e.message}")
+                    logger.error("performance", "Failed to apply optimization: ${e.message}")
                     failedOptimizations.add(
                         FailedOptimization(
                             recommendation = recommendation,
@@ -168,7 +168,7 @@ class PerformanceOptimization {
             result
             
         } catch (e: Exception) {
-            logger.error("Failed to apply optimizations: ${e.message}")
+            logger.error("performance", "Failed to apply optimizations: ${e.message}")
             throw PerformanceOptimizationException("Optimization application failed", e)
         }
     }
@@ -181,7 +181,7 @@ class PerformanceOptimization {
      */
     suspend fun optimizeMemoryUsage(targetMemoryUsage: Double = 70.0): MemoryOptimizationResult {
         return try {
-            logger.info("Starting memory usage optimization to target: ${targetMemoryUsage}%")
+            logger.info("performance", "Starting memory usage optimization to target: ${targetMemoryUsage}%")
             
             val startTime = Instant.now()
             val initialMemoryUsage = getCurrentMemoryUsage()
@@ -207,11 +207,11 @@ class PerformanceOptimization {
                 timestamp = Instant.now()
             )
             
-            logger.info("Memory optimization completed: ${improvement}% improvement")
+            logger.info("performance", "Memory optimization completed: ${improvement}% improvement")
             result
             
         } catch (e: Exception) {
-            logger.error("Memory optimization failed: ${e.message}")
+            logger.error("performance", "Memory optimization failed: ${e.message}")
             throw PerformanceOptimizationException("Memory optimization failed", e)
         }
     }
@@ -224,7 +224,7 @@ class PerformanceOptimization {
      */
     suspend fun optimizeDatabasePerformance(targetResponseTime: Long = 100L): DatabaseOptimizationResult {
         return try {
-            logger.info("Starting database performance optimization to target: ${targetResponseTime}ms")
+            logger.info("performance", "Starting database performance optimization to target: ${targetResponseTime}ms")
             
             val startTime = Instant.now()
             val initialResponseTime = getCurrentDatabaseResponseTime()
@@ -250,11 +250,11 @@ class PerformanceOptimization {
                 timestamp = Instant.now()
             )
             
-            logger.info("Database optimization completed: ${improvement}ms improvement")
+            logger.info("performance", "Database optimization completed: ${improvement}ms improvement")
             result
             
         } catch (e: Exception) {
-            logger.error("Database optimization failed: ${e.message}")
+            logger.error("performance", "Database optimization failed: ${e.message}")
             throw PerformanceOptimizationException("Database optimization failed", e)
         }
     }
@@ -267,7 +267,7 @@ class PerformanceOptimization {
      */
     suspend fun optimizeCaching(targetHitRatio: Double = 0.9): CacheOptimizationResult {
         return try {
-            logger.info("Starting cache optimization to target hit ratio: ${targetHitRatio}")
+            logger.info("performance", "Starting cache optimization to target hit ratio: ${targetHitRatio}")
             
             val startTime = Instant.now()
             val initialHitRatio = getCurrentCacheHitRatio()
@@ -293,11 +293,11 @@ class PerformanceOptimization {
                 timestamp = Instant.now()
             )
             
-            logger.info("Cache optimization completed: ${improvement * 100}% improvement")
+            logger.info("performance", "Cache optimization completed: ${improvement * 100}% improvement")
             result
             
         } catch (e: Exception) {
-            logger.error("Cache optimization failed: ${e.message}")
+            logger.error("performance", "Cache optimization failed: ${e.message}")
             throw PerformanceOptimizationException("Cache optimization failed", e)
         }
     }
@@ -310,7 +310,7 @@ class PerformanceOptimization {
      */
     suspend fun profilePerformance(profilingDuration: Long = 60L): PerformanceProfilingResult {
         return try {
-            logger.info("Starting performance profiling for ${profilingDuration} seconds")
+            logger.info("performance", "Starting performance profiling for ${profilingDuration} seconds")
             
             val startTime = Instant.now()
             
@@ -336,11 +336,11 @@ class PerformanceOptimization {
                 timestamp = Instant.now()
             )
             
-            logger.info("Performance profiling completed")
+            logger.info("performance", "Performance profiling completed")
             result
             
         } catch (e: Exception) {
-            logger.error("Performance profiling failed: ${e.message}")
+            logger.error("performance", "Performance profiling failed: ${e.message}")
             throw PerformanceOptimizationException("Performance profiling failed", e)
         }
     }
@@ -352,7 +352,7 @@ class PerformanceOptimization {
      */
     suspend fun getOptimizationStatus(): OptimizationStatusReport {
         return try {
-            logger.info("Generating optimization status report")
+            logger.info("performance", "Generating optimization status report")
             
             val currentMetrics = collectCurrentPerformanceMetrics()
             val appliedOptimizations = optimizationManager.getAppliedOptimizations()
@@ -379,11 +379,11 @@ class PerformanceOptimization {
                 timestamp = Instant.now()
             )
             
-            logger.info("Optimization status report generated successfully")
+            logger.info("performance", "Optimization status report generated successfully")
             report
             
         } catch (e: Exception) {
-            logger.error("Failed to generate optimization status report: ${e.message}")
+            logger.error("performance", "Failed to generate optimization status report: ${e.message}")
             throw PerformanceOptimizationException("Status report generation failed", e)
         }
     }
@@ -396,7 +396,7 @@ class PerformanceOptimization {
             try {
                 monitorPerformanceMetrics()
             } catch (e: Exception) {
-                logger.error("Performance monitoring failed: ${e.message}")
+                logger.error("performance", "Performance monitoring failed: ${e.message}")
             }
         }, 0, 30000, TimeUnit.MILLISECONDS) // Every 30 seconds
         
@@ -405,7 +405,7 @@ class PerformanceOptimization {
             try {
                 evaluateOptimizationOpportunities()
             } catch (e: Exception) {
-                logger.error("Optimization evaluation failed: ${e.message}")
+                logger.error("performance", "Optimization evaluation failed: ${e.message}")
             }
         }, 300000, 300000, TimeUnit.MILLISECONDS) // Every 5 minutes
     }
@@ -426,11 +426,11 @@ class PerformanceOptimization {
         val currentMetrics = collectCurrentPerformanceMetrics()
         
         if (shouldOptimize(currentMetrics)) {
-            logger.info("Performance optimization opportunity detected")
+            logger.info("performance", "Performance optimization opportunity detected")
             val analysis = analyzePerformanceOptimization(OPTIMIZATION_STRATEGY_BALANCED)
             
             if (analysis.recommendations.isNotEmpty()) {
-                logger.info("Applying automatic optimizations")
+                logger.info("performance", "Applying automatic optimizations")
                 applyOptimizations(analysis)
             }
         }
@@ -573,7 +573,7 @@ class PerformanceOptimization {
     
     private suspend fun applyOptimization(recommendation: OptimizationRecommendation): OptimizationResult {
         return try {
-            logger.info("Applying optimization: ${recommendation.type}")
+            logger.info("performance", "Applying optimization: ${recommendation.type}")
             
             val startTime = Instant.now()
             
@@ -594,7 +594,7 @@ class PerformanceOptimization {
             result
             
         } catch (e: Exception) {
-            logger.error("Failed to apply optimization: ${e.message}")
+            logger.error("performance", "Failed to apply optimization: ${e.message}")
             OptimizationResult(false, e.message)
         }
     }

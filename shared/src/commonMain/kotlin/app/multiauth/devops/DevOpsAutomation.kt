@@ -30,7 +30,7 @@ class DevOpsAutomation(
      * Initialize DevOps automation system
      */
     suspend fun initialize(): Boolean {
-        logger.info("Initializing DevOps automation system")
+        logger.info("DevOps", "Initializing DevOps automation system")
         
         return try {
             // Initialize infrastructure components
@@ -45,7 +45,7 @@ class DevOpsAutomation(
             // Initialize backup and recovery
             initializeBackupRecovery()
             
-            logger.info("DevOps automation system initialized successfully")
+            logger.info("devops", "DevOps automation system initialized successfully")
             true
             
         } catch (e: Exception) {
@@ -61,7 +61,7 @@ class DevOpsAutomation(
         environment: String,
         config: InfrastructureConfig
     ): ProvisionResult {
-        logger.info("Starting infrastructure provisioning for environment: $environment")
+        logger.info("DevOps", "Starting infrastructure provisioning for environment: $environment")
         
         return try {
             _automationStatus.value = AutomationStatus.PROVISIONING
@@ -71,10 +71,10 @@ class DevOpsAutomation(
             
             if (result.status == WorkflowStatus.SUCCESS) {
                 _infrastructureState.value = InfrastructureState.PROVISIONED
-                logger.info("Infrastructure provisioning completed successfully for environment: $environment")
+                logger.info("DevOps", "Infrastructure provisioning completed successfully for environment: $environment")
             } else {
                 _infrastructureState.value = InfrastructureState.FAILED
-                logger.error("Infrastructure provisioning failed for environment: $environment")
+                logger.error("devops", "Infrastructure provisioning failed for environment: $environment")
             }
             
             _automationStatus.value = AutomationStatus.IDLE
@@ -110,7 +110,7 @@ class DevOpsAutomation(
         environment: String,
         changes: List<InfrastructureChange>
     ): DeploymentResult {
-        logger.info("Starting infrastructure deployment for environment: $environment")
+        logger.info("DevOps", "Starting infrastructure deployment for environment: $environment")
         
         return try {
             _automationStatus.value = AutomationStatus.DEPLOYING
@@ -119,9 +119,9 @@ class DevOpsAutomation(
             val result = executeWorkflow(workflow)
             
             if (result.status == WorkflowStatus.SUCCESS) {
-                logger.info("Infrastructure deployment completed successfully for environment: $environment")
+                logger.info("DevOps", "Infrastructure deployment completed successfully for environment: $environment")
             } else {
-                logger.error("Infrastructure deployment failed for environment: $environment")
+                logger.error("devops", "Infrastructure deployment failed for environment: $environment")
             }
             
             _automationStatus.value = AutomationStatus.IDLE
@@ -154,7 +154,7 @@ class DevOpsAutomation(
         environment: String,
         scalingConfig: ScalingConfig
     ): ScalingResult {
-        logger.info("Starting infrastructure scaling for environment: $environment")
+        logger.info("DevOps", "Starting infrastructure scaling for environment: $environment")
         
         return try {
             _automationStatus.value = AutomationStatus.SCALING
@@ -163,9 +163,9 @@ class DevOpsAutomation(
             val result = executeWorkflow(workflow)
             
             if (result.status == WorkflowStatus.SUCCESS) {
-                logger.info("Infrastructure scaling completed successfully for environment: $environment")
+                logger.info("DevOps", "Infrastructure scaling completed successfully for environment: $environment")
             } else {
-                logger.error("Infrastructure scaling failed for environment: $environment")
+                logger.error("devops", "Infrastructure scaling failed for environment: $environment")
             }
             
             _automationStatus.value = AutomationStatus.IDLE
@@ -197,7 +197,7 @@ class DevOpsAutomation(
      * Backup infrastructure
      */
     suspend fun backupInfrastructure(environment: String): BackupResult {
-        logger.info("Starting infrastructure backup for environment: $environment")
+        logger.info("DevOps", "Starting infrastructure backup for environment: $environment")
         
         return try {
             _automationStatus.value = AutomationStatus.BACKING_UP
@@ -206,9 +206,9 @@ class DevOpsAutomation(
             val result = executeWorkflow(workflow)
             
             if (result.status == WorkflowStatus.SUCCESS) {
-                logger.info("Infrastructure backup completed successfully for environment: $environment")
+                logger.info("devops", "Infrastructure backup completed successfully for environment: $environment")
             } else {
-                logger.error("Infrastructure backup failed for environment: $environment")
+                logger.error("secure storage", "Infrastructure backup failed for environment: $environment")
             }
             
             _automationStatus.value = AutomationStatus.IDLE
@@ -243,7 +243,7 @@ class DevOpsAutomation(
         environment: String,
         backupId: String
     ): RestoreResult {
-        logger.info("Starting infrastructure restore for environment: $environment from backup: $backupId")
+        logger.info("DevOps", "Starting infrastructure restore for environment: $environment from backup: $backupId")
         
         return try {
             _automationStatus.value = AutomationStatus.RESTORING
@@ -252,9 +252,9 @@ class DevOpsAutomation(
             val result = executeWorkflow(workflow)
             
             if (result.status == WorkflowStatus.SUCCESS) {
-                logger.info("Infrastructure restore completed successfully for environment: $environment")
+                logger.info("DevOps", "Infrastructure restore completed successfully for environment: $environment")
             } else {
-                logger.error("Infrastructure restore failed for environment: $environment")
+                logger.error("devops", "Infrastructure restore failed for environment: $environment")
             }
             
             _automationStatus.value = AutomationStatus.IDLE
@@ -288,7 +288,7 @@ class DevOpsAutomation(
      * Execute automation workflow
      */
     suspend fun executeWorkflow(workflow: AutomationWorkflow): WorkflowResult {
-        logger.info("Executing automation workflow: ${workflow.name}")
+        logger.info("DevOps", "Executing automation workflow: ${workflow.name}")
         
         return try {
             workflow.status = WorkflowStatus.RUNNING
@@ -298,7 +298,7 @@ class DevOpsAutomation(
             
             workflow.steps.forEach { step ->
                 try {
-                    logger.info("Executing workflow step: ${step.name}")
+                    logger.info("devops", "Executing workflow step: ${step.name}")
                     val startTime = System.currentTimeMillis()
                     
                     val result = executeWorkflowStep(step)
@@ -311,7 +311,7 @@ class DevOpsAutomation(
                         details = result
                     ))
                     
-                    logger.info("Workflow step '${step.name}' completed successfully in ${duration}ms")
+                    logger.info("DevOps", "Workflow step '${step.name}' completed successfully in ${duration}ms")
                     
                 } catch (e: Exception) {
                     val duration = System.currentTimeMillis() - startTime
@@ -379,22 +379,22 @@ class DevOpsAutomation(
     // Private implementation methods
     
     private suspend fun initializeInfrastructure() {
-        logger.debug("Initializing infrastructure components")
+        logger.debug("DevOps", "Initializing infrastructure components")
         // Initialize infrastructure management
     }
     
     private suspend fun loadAutomationWorkflows() {
-        logger.debug("Loading automation workflows")
+        logger.debug("devops", "Loading automation workflows")
         // Load predefined automation workflows
     }
     
     private suspend fun initializeMonitoring() {
-        logger.debug("Initializing monitoring and alerting")
+        logger.debug("secure storage", "Initializing monitoring and alerting")
         // Initialize monitoring systems
     }
     
     private suspend fun initializeBackupRecovery() {
-        logger.debug("Initializing backup and recovery")
+        logger.debug("devops", "Initializing backup and recovery")
         // Initialize backup systems
     }
     

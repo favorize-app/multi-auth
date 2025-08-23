@@ -417,13 +417,13 @@ class MockSecureStorage(
     
     override suspend fun store(key: String, value: String): Boolean {
         if (shouldFail) {
-            logger.error("Mock storage failure: store operation failed")
+            logger.error("secure storage", "Mock storage failure: store operation failed")
             return false
         }
         
         try {
             storage[key] = value
-            logger.debug("Mock storage: stored key '$key' with value length ${value.length}")
+            logger.debug("secure storage", "Mock storage: stored key '$key' with value length ${value.length}")
             return true
         } catch (e: Exception) {
             logger.error("Mock storage error: failed to store key '$key'", e)
@@ -433,7 +433,7 @@ class MockSecureStorage(
     
     override suspend fun retrieve(key: String): String? {
         if (shouldFail) {
-            logger.error("Mock storage failure: retrieve operation failed")
+            logger.error("secure storage", "Mock storage failure: retrieve operation failed")
             return null
         }
         
@@ -449,7 +449,7 @@ class MockSecureStorage(
     
     override suspend fun remove(key: String): Boolean {
         if (shouldFail) {
-            logger.error("Mock storage failure: remove operation failed")
+            logger.error("secure storage", "Mock storage failure: remove operation failed")
             return false
         }
         
@@ -465,13 +465,13 @@ class MockSecureStorage(
     
     override suspend fun contains(key: String): Boolean {
         if (shouldFail) {
-            logger.error("Mock storage failure: contains operation failed")
+            logger.error("secure storage", "Mock storage failure: contains operation failed")
             return false
         }
         
         return try {
             val contains = storage.containsKey(key)
-            logger.debug("Mock storage: contains key '$key': $contains")
+            logger.debug("secure storage", "Mock storage: contains key '$key': $contains")
             contains
         } catch (e: Exception) {
             logger.error("Mock storage error: failed to check contains key '$key'", e)
@@ -481,14 +481,14 @@ class MockSecureStorage(
     
     override suspend fun clear(): Boolean {
         if (shouldFail) {
-            logger.error("Mock storage failure: clear operation failed")
+            logger.error("secure storage", "Mock storage failure: clear operation failed")
             return false
         }
         
         return try {
             val size = storage.size
             storage.clear()
-            logger.debug("Mock storage: cleared $size items")
+            logger.debug("secure storage", "Mock storage: cleared $size items")
             true
         } catch (e: Exception) {
             logger.error("Mock storage error: failed to clear storage", e)
@@ -498,13 +498,13 @@ class MockSecureStorage(
     
     override suspend fun getAllKeys(): List<String> {
         if (shouldFail) {
-            logger.error("Mock storage failure: getAllKeys operation failed")
+            logger.error("secure storage", "Mock storage failure: getAllKeys operation failed")
             return emptyList()
         }
         
         return try {
             val keys = storage.keys.toList()
-            logger.debug("Mock storage: getAllKeys returned ${keys.size} keys")
+            logger.debug("secure storage", "Mock storage: getAllKeys returned ${keys.size} keys")
             keys
         } catch (e: Exception) {
             logger.error("Mock storage error: failed to get all keys", e)
@@ -514,13 +514,13 @@ class MockSecureStorage(
     
     override suspend fun getItemCount(): Int {
         if (shouldFail) {
-            logger.error("Mock storage failure: getItemCount operation failed")
+            logger.error("secure storage", "Mock storage failure: getItemCount operation failed")
             return 0
         }
         
         return try {
             val count = storage.size
-            logger.debug("Mock storage: getItemCount returned $count")
+            logger.debug("secure storage", "Mock storage: getItemCount returned $count")
             count
         } catch (e: Exception) {
             logger.error("Mock storage error: failed to get item count", e)

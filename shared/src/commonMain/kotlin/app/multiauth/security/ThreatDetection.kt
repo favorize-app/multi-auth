@@ -46,7 +46,7 @@ class ThreatDetection {
      */
     suspend fun analyzeSecurityEvent(event: SecurityEvent): ThreatAnalysisResult {
         return try {
-            logger.debug("Analyzing security event: ${event.id}")
+            logger.debug("security", "Analyzing security event: ${event.id}")
             
             // Add event to tracking
             securityEvents.add(event)
@@ -83,11 +83,11 @@ class ThreatDetection {
                 timestamp = Instant.now()
             )
             
-            logger.info("Threat analysis completed for event ${event.id}: $threatLevel")
+            logger.info("security", "Threat analysis completed for event ${event.id}: $threatLevel")
             result
             
         } catch (e: Exception) {
-            logger.error("Threat analysis failed for event ${event.id}: ${e.message}")
+            logger.error("secure storage", "Threat analysis failed for event ${event.id}: ${e.message}")
             ThreatAnalysisResult(
                 eventId = event.id,
                 threatLevel = THREAT_LEVEL_HIGH, // Default to high if analysis fails
@@ -137,7 +137,7 @@ class ThreatDetection {
             anomalies.addAll(rateAnomalies)
             
         } catch (e: Exception) {
-            logger.error("Anomaly detection failed: ${e.message}")
+            logger.error("security", "Anomaly detection failed: ${e.message}")
         }
         
         return anomalies
@@ -408,7 +408,7 @@ class ThreatDetection {
             }
             
         } catch (e: Exception) {
-            logger.error("Threat pattern detection failed: ${e.message}")
+            logger.error("security", "Threat pattern detection failed: ${e.message}")
         }
         
         return patterns
@@ -649,7 +649,7 @@ class ThreatDetection {
     ): AutomatedAction? {
         return when (threatLevel) {
             THREAT_LEVEL_CRITICAL -> {
-                logger.warn("Taking critical threat action for event ${event.id}")
+                logger.warn("security", "Taking critical threat action for event ${event.id}")
                 AutomatedAction(
                     type = ActionType.ACCOUNT_LOCKOUT,
                     description = "Account locked due to critical threat",
@@ -658,7 +658,7 @@ class ThreatDetection {
                 )
             }
             THREAT_LEVEL_HIGH -> {
-                logger.info("Taking high threat action for event ${event.id}")
+                logger.info("security", "Taking high threat action for event ${event.id}")
                 AutomatedAction(
                     type = ActionType.ADDITIONAL_VERIFICATION,
                     description = "Additional verification required",
@@ -667,7 +667,7 @@ class ThreatDetection {
                 )
             }
             THREAT_LEVEL_MEDIUM -> {
-                logger.info("Taking medium threat action for event ${event.id}")
+                logger.info("security", "Taking medium threat action for event ${event.id}")
                 AutomatedAction(
                     type = ActionType.MONITORING_ENHANCED,
                     description = "Enhanced monitoring enabled",

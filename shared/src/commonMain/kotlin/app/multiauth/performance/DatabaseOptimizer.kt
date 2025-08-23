@@ -72,7 +72,7 @@ class DatabaseOptimizer {
             val cachedResult = queryCache[cacheKey]
             
             if (cachedResult != null && !cachedResult.isExpired()) {
-                logger.debug("Query cache hit for: $cacheKey")
+                logger.debug("performance", "Query cache hit for: $cacheKey")
                 updateQueryStats(query, QueryOperation.CACHE_HIT, 0)
                 return QueryExecutionResult(
                     query = query,
@@ -107,7 +107,7 @@ class DatabaseOptimizer {
                 updateQueryStats(query, QueryOperation.EXECUTION, executionTime)
                 updatePerformanceMetrics(executionTime)
                 
-                logger.debug("Query executed successfully in ${executionTime}ms")
+                logger.debug("performance", "Query executed successfully in ${executionTime}ms")
                 
                 QueryExecutionResult(
                     query = query,
@@ -123,7 +123,7 @@ class DatabaseOptimizer {
             }
             
         } catch (e: Exception) {
-            logger.error("Query execution failed: ${e.message}")
+            logger.error("performance", "Query execution failed: ${e.message}")
             updateQueryStats(query, QueryOperation.ERROR, 0)
             
             QueryExecutionResult(
@@ -150,14 +150,14 @@ class DatabaseOptimizer {
         batchSize: Int = 100
     ): BatchExecutionResult {
         return try {
-            logger.info("Executing batch queries: ${queries.size} queries")
+            logger.info("performance", "Executing batch queries: ${queries.size} queries")
             
             val startTime = Instant.now()
             val results = mutableListOf<QueryExecutionResult>()
             val batches = queries.chunked(batchSize)
             
             batches.forEachIndexed { batchIndex, batchQueries ->
-                logger.debug("Executing batch ${batchIndex + 1}/${batches.size}")
+                logger.debug("performance", "Executing batch ${batchIndex + 1}/${batches.size}")
                 
                 val batchResults = batchQueries.map { query ->
                     executeOptimizedQuery(query)
@@ -186,7 +186,7 @@ class DatabaseOptimizer {
             batchResult
             
         } catch (e: Exception) {
-            logger.error("Batch execution failed: ${e.message}")
+            logger.error("performance", "Batch execution failed: ${e.message}")
             throw DatabaseOptimizationException("Batch execution failed", e)
         }
     }
@@ -199,7 +199,7 @@ class DatabaseOptimizer {
      */
     suspend fun analyzeQuery(query: String): QueryAnalysisResult {
         return try {
-            logger.info("Analyzing query performance: $query")
+            logger.info("performance", "Analyzing query performance: $query")
             
             // Parse query structure
             val queryStructure = queryPlanner.parseQuery(query)
@@ -227,11 +227,11 @@ class DatabaseOptimizer {
                 timestamp = Instant.now()
             )
             
-            logger.info("Query analysis completed")
+            logger.info("performance", "Query analysis completed")
             analysis
             
         } catch (e: Exception) {
-            logger.error("Query analysis failed: ${e.message}")
+            logger.error("performance", "Query analysis failed: ${e.message}")
             throw DatabaseOptimizationException("Query analysis failed", e)
         }
     }
@@ -244,7 +244,7 @@ class DatabaseOptimizer {
      */
     suspend fun optimizeIndexes(optimizationStrategy: IndexOptimizationStrategy): IndexOptimizationResult {
         return try {
-            logger.info("Starting index optimization with strategy: ${optimizationStrategy.name}")
+            logger.info("performance", "Starting index optimization with strategy: ${optimizationStrategy.name}")
             
             val startTime = Instant.now()
             val recommendations = mutableListOf<IndexRecommendation>()
@@ -280,11 +280,11 @@ class DatabaseOptimizer {
                 timestamp = Instant.now()
             )
             
-            logger.info("Index optimization completed: ${recommendations.size} recommendations")
+            logger.info("performance", "Index optimization completed: ${recommendations.size} recommendations")
             result
             
         } catch (e: Exception) {
-            logger.error("Index optimization failed: ${e.message}")
+            logger.error("performance", "Index optimization failed: ${e.message}")
             throw DatabaseOptimizationException("Index optimization failed", e)
         }
     }
@@ -296,7 +296,7 @@ class DatabaseOptimizer {
      */
     suspend fun getPerformanceReport(): DatabasePerformanceReport {
         return try {
-            logger.info("Generating database performance report")
+            logger.info("performance", "Generating database performance report")
             
             val connectionMetrics = connectionPool.getMetrics()
             val queryMetrics = calculateQueryMetrics()
@@ -313,11 +313,11 @@ class DatabaseOptimizer {
                 timestamp = Instant.now()
             )
             
-            logger.info("Performance report generated successfully")
+            logger.info("performance", "Performance report generated successfully")
             report
             
         } catch (e: Exception) {
-            logger.error("Failed to generate performance report: ${e.message}")
+            logger.error("performance", "Failed to generate performance report: ${e.message}")
             throw DatabaseOptimizationException("Performance report generation failed", e)
         }
     }
@@ -329,7 +329,7 @@ class DatabaseOptimizer {
      */
     suspend fun optimizeConnectionPool(): ConnectionPoolOptimizationResult {
         return try {
-            logger.info("Optimizing connection pool settings")
+            logger.info("performance", "Optimizing connection pool settings")
             
             val currentMetrics = connectionPool.getMetrics()
             val recommendations = mutableListOf<ConnectionPoolRecommendation>()
@@ -372,11 +372,11 @@ class DatabaseOptimizer {
                 timestamp = Instant.now()
             )
             
-            logger.info("Connection pool optimization completed: ${result.applied} recommendations applied")
+            logger.info("performance", "Connection pool optimization completed: ${result.applied} recommendations applied")
             result
             
         } catch (e: Exception) {
-            logger.error("Connection pool optimization failed: ${e.message}")
+            logger.error("performance", "Connection pool optimization failed: ${e.message}")
             throw DatabaseOptimizationException("Connection pool optimization failed", e)
         }
     }
@@ -711,19 +711,19 @@ class DatabaseOptimizer {
     
     private suspend fun dropIndex(indexName: String): Boolean {
         // Placeholder for index drop operation
-        logger.info("Dropping index: $indexName (placeholder)")
+        logger.info("performance", "Dropping index: $indexName (placeholder)")
         return true
     }
     
     private suspend fun createIndex(indexName: String): Boolean {
         // Placeholder for index creation operation
-        logger.info("Creating index: $indexName (placeholder)")
+        logger.info("performance", "Creating index: $indexName (placeholder)")
         return true
     }
     
     private suspend fun rebuildIndex(indexName: String): Boolean {
         // Placeholder for index rebuild operation
-        logger.info("Rebuilding index: $indexName (placeholder)")
+        logger.info("performance", "Rebuilding index: $indexName (placeholder)")
         return true
     }
     
@@ -754,7 +754,7 @@ class DatabaseOptimizer {
             try {
                 updatePerformanceMetrics()
             } catch (e: Exception) {
-                logger.error("Performance monitoring failed: ${e.message}")
+                logger.error("performance", "Performance monitoring failed: ${e.message}")
             }
         }, 1, 1, TimeUnit.MINUTES)
         
@@ -763,14 +763,14 @@ class DatabaseOptimizer {
             try {
                 cleanupExpiredCache()
             } catch (e: Exception) {
-                logger.error("Cache cleanup failed: ${e.message}")
+                logger.error("performance", "Cache cleanup failed: ${e.message}")
             }
         }, 5, 5, TimeUnit.MINUTES)
     }
     
     private fun updatePerformanceMetrics() {
         // Update global performance metrics
-        logger.debug("Updating performance metrics")
+        logger.debug("performance", "Updating performance metrics")
     }
     
     private fun cleanupExpiredCache() {
@@ -783,7 +783,7 @@ class DatabaseOptimizer {
         }
         
         if (expiredKeys.isNotEmpty()) {
-            logger.debug("Cleaned up ${expiredKeys.size} expired cache entries")
+            logger.debug("performance", "Cleaned up ${expiredKeys.size} expired cache entries")
         }
     }
 }

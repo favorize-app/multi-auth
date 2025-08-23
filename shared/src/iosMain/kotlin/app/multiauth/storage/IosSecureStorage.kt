@@ -36,7 +36,7 @@ class IosSecureStorage : SecureStorage {
     
     override suspend fun store(key: String, value: String): Boolean {
         return try {
-            logger.debug("Storing encrypted value for key: $key")
+            logger.debug("secure storage", "Storing encrypted value for key: $key")
             
             val encryptedValue = encryptValue(value)
             val accountName = "$ACCOUNT_PREFIX$key"
@@ -64,7 +64,7 @@ class IosSecureStorage : SecureStorage {
                 
                 val updateStatus = SecItemUpdate(updateQuery, updateAttributes)
                 if (updateStatus == errSecSuccess) {
-                    logger.debug("Successfully updated encrypted value for key: $key")
+                    logger.debug("secure storage", "Successfully updated encrypted value for key: $key")
                     true
                 } else {
                     logger.error("Failed to update keychain item for key: $key, status: $updateStatus")
@@ -81,7 +81,7 @@ class IosSecureStorage : SecureStorage {
                 
                 val addStatus = SecItemAdd(addQuery, null)
                 if (addStatus == errSecSuccess) {
-                    logger.debug("Successfully stored encrypted value for key: $key")
+                    logger.debug("secure storage", "Successfully stored encrypted value for key: $key")
                     true
                 } else {
                     logger.error("Failed to add keychain item for key: $key, status: $addStatus")
@@ -96,7 +96,7 @@ class IosSecureStorage : SecureStorage {
     
     override suspend fun retrieve(key: String): String? {
         return try {
-            logger.debug("Retrieving encrypted value for key: $key")
+            logger.debug("secure storage", "Retrieving encrypted value for key: $key")
             
             val accountName = "$ACCOUNT_PREFIX$key"
             val query = NSMutableDictionary().apply {
@@ -117,14 +117,14 @@ class IosSecureStorage : SecureStorage {
                 if (data != null) {
                     val encryptedValue = data.string
                     val decryptedValue = decryptValue(encryptedValue)
-                    logger.debug("Successfully retrieved value for key: $key")
+                    logger.debug("secure storage", "Successfully retrieved value for key: $key")
                     decryptedValue
                 } else {
-                    logger.warn("No data found for key: $key")
+                    logger.warn("secure storage", "No data found for key: $key")
                     null
                 }
             } else if (status == errSecItemNotFound) {
-                logger.debug("No value found for key: $key")
+                logger.debug("secure storage", "No value found for key: $key")
                 null
             } else {
                 logger.error("Failed to retrieve keychain item for key: $key, status: $status")
@@ -138,7 +138,7 @@ class IosSecureStorage : SecureStorage {
     
     override suspend fun remove(key: String): Boolean {
         return try {
-            logger.debug("Removing value for key: $key")
+            logger.debug("secure storage", "Removing value for key: $key")
             
             val accountName = "$ACCOUNT_PREFIX$key"
             val query = NSMutableDictionary().apply {
@@ -149,10 +149,10 @@ class IosSecureStorage : SecureStorage {
             
             val status = SecItemDelete(query)
             if (status == errSecSuccess) {
-                logger.debug("Successfully removed value for key: $key")
+                logger.debug("secure storage", "Successfully removed value for key: $key")
                 true
             } else if (status == errSecItemNotFound) {
-                logger.debug("Key not found for removal: $key")
+                logger.debug("secure storage", "Key not found for removal: $key")
                 true
             } else {
                 logger.error("Failed to remove keychain item for key: $key, status: $status")
@@ -177,7 +177,7 @@ class IosSecureStorage : SecureStorage {
             val status = SecItemCopyMatching(query, null)
             val exists = status == errSecSuccess
             
-            logger.debug("Key $key exists: $exists")
+            logger.debug("secure storage", "Key $key exists: $exists")
             exists
         } catch (e: Exception) {
             logger.error("Exception while checking if key exists: $key", e)
@@ -187,7 +187,7 @@ class IosSecureStorage : SecureStorage {
     
     override suspend fun clear(): Boolean {
         return try {
-            logger.debug("Clearing all secure storage")
+            logger.debug("secure storage", "Clearing all secure storage")
             
             val query = NSMutableDictionary().apply {
                 setObject(kSecClassGenericPassword, forKey = kSecClass)
@@ -196,7 +196,7 @@ class IosSecureStorage : SecureStorage {
             
             val status = SecItemDelete(query)
             if (status == errSecSuccess) {
-                logger.debug("Successfully cleared all secure storage")
+                logger.debug("secure storage", "Successfully cleared all secure storage")
                 true
             } else {
                 logger.warn("Failed to clear secure storage, status: $status")
@@ -230,7 +230,7 @@ class IosSecureStorage : SecureStorage {
                         keys.add(account.removePrefix(ACCOUNT_PREFIX))
                     }
                 }
-                logger.debug("Retrieved ${keys.size} keys from secure storage")
+                logger.debug("secure storage", "Retrieved ${keys.size} keys from secure storage")
                 emit(keys)
             } else {
                 logger.warn("Failed to retrieve all keys, status: $status")
@@ -257,7 +257,7 @@ class IosSecureStorage : SecureStorage {
             
             if (status == errSecSuccess) {
                 val count = result.count
-                logger.debug("Secure storage contains $count items")
+                logger.debug("secure storage", "Secure storage contains $count items")
                 count
             } else {
                 logger.warn("Failed to get item count, status: $status")

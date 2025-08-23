@@ -53,14 +53,14 @@ class AndroidSecureStorage(
     
     override suspend fun store(key: String, value: String): Boolean {
         return try {
-            logger.debug("Storing encrypted value for key: $key")
+            logger.debug("secure storage", "Storing encrypted value for key: $key")
             
             val encryptedValue = encryptValue(value)
             sharedPreferences.edit()
                 .putString(key, encryptedValue)
                 .apply()
             
-            logger.debug("Successfully stored encrypted value for key: $key")
+            logger.debug("secure storage", "Successfully stored encrypted value for key: $key")
             true
         } catch (e: Exception) {
             logger.error("Failed to store value for key: $key", e)
@@ -70,16 +70,16 @@ class AndroidSecureStorage(
     
     override suspend fun retrieve(key: String): String? {
         return try {
-            logger.debug("Retrieving encrypted value for key: $key")
+            logger.debug("secure storage", "Retrieving encrypted value for key: $key")
             
             val encryptedValue = sharedPreferences.getString(key, null)
             if (encryptedValue == null) {
-                logger.debug("No value found for key: $key")
+                logger.debug("secure storage", "No value found for key: $key")
                 return null
             }
             
             val decryptedValue = decryptValue(encryptedValue)
-            logger.debug("Successfully retrieved value for key: $key")
+            logger.debug("secure storage", "Successfully retrieved value for key: $key")
             decryptedValue
         } catch (e: Exception) {
             logger.error("Failed to retrieve value for key: $key", e)
@@ -89,16 +89,16 @@ class AndroidSecureStorage(
     
     override suspend fun remove(key: String): Boolean {
         return try {
-            logger.debug("Removing value for key: $key")
+            logger.debug("secure storage", "Removing value for key: $key")
             
             val removed = sharedPreferences.edit()
                 .remove(key)
                 .commit()
             
             if (removed) {
-                logger.debug("Successfully removed value for key: $key")
+                logger.debug("secure storage", "Successfully removed value for key: $key")
             } else {
-                logger.warn("Failed to remove value for key: $key")
+                logger.warn("secure storage", "Failed to remove value for key: $key")
             }
             
             removed
@@ -111,7 +111,7 @@ class AndroidSecureStorage(
     override suspend fun contains(key: String): Boolean {
         return try {
             val exists = sharedPreferences.contains(key)
-            logger.debug("Key $key exists: $exists")
+            logger.debug("secure storage", "Key $key exists: $exists")
             exists
         } catch (e: Exception) {
             logger.error("Exception while checking if key exists: $key", e)
@@ -121,16 +121,16 @@ class AndroidSecureStorage(
     
     override suspend fun clear(): Boolean {
         return try {
-            logger.debug("Clearing all secure storage")
+            logger.debug("secure storage", "Clearing all secure storage")
             
             val cleared = sharedPreferences.edit()
                 .clear()
                 .commit()
             
             if (cleared) {
-                logger.debug("Successfully cleared all secure storage")
+                logger.debug("secure storage", "Successfully cleared all secure storage")
             } else {
-                logger.warn("Failed to clear secure storage")
+                logger.warn("secure storage", "Failed to clear secure storage")
             }
             
             cleared
@@ -143,7 +143,7 @@ class AndroidSecureStorage(
     override fun getAllKeys(): Flow<Set<String>> = flow {
         try {
             val allKeys = sharedPreferences.all.keys
-            logger.debug("Retrieved ${allKeys.size} keys from secure storage")
+            logger.debug("secure storage", "Retrieved ${allKeys.size} keys from secure storage")
             emit(allKeys)
         } catch (e: Exception) {
             logger.error("Exception while retrieving all keys", e)
@@ -154,7 +154,7 @@ class AndroidSecureStorage(
     override suspend fun getItemCount(): Int {
         return try {
             val count = sharedPreferences.all.size
-            logger.debug("Secure storage contains $count items")
+            logger.debug("secure storage", "Secure storage contains $count items")
             count
         } catch (e: Exception) {
             logger.error("Exception while getting item count", e)

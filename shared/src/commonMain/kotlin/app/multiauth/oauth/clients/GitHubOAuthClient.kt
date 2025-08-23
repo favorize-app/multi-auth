@@ -51,7 +51,7 @@ class GitHubOAuthClient(
         }
         
         val authUrl = "$AUTH_URL$params"
-        logger.debug("Generated GitHub OAuth authorization URL: $authUrl")
+        logger.debug("oath", "Generated GitHub OAuth authorization URL: $authUrl")
         return authUrl
     }
     
@@ -60,7 +60,7 @@ class GitHubOAuthClient(
         codeVerifier: String
     ): OAuthResult {
         return try {
-            logger.debug("Exchanging authorization code for GitHub tokens")
+            logger.debug("oath", "Exchanging authorization code for GitHub tokens")
             
             val tokenRequest = GitHubTokenRequest(
                 clientId = config.clientId,
@@ -80,7 +80,7 @@ class GitHubOAuthClient(
             
             if (response.status.isSuccess()) {
                 val tokenResponse = json.decodeFromString<GitHubTokenResponse>(response.bodyAsText())
-                logger.debug("Successfully exchanged code for GitHub tokens")
+                logger.debug("oath", "Successfully exchanged code for GitHub tokens")
                 
                 OAuthResult.Success(
                     accessToken = tokenResponse.accessToken,
@@ -91,7 +91,7 @@ class GitHubOAuthClient(
                 )
             } else {
                 val errorResponse = json.decodeFromString<GitHubErrorResponse>(response.bodyAsText())
-                logger.error("Failed to exchange code for GitHub tokens: ${errorResponse.error}")
+                logger.error("oath", "Failed to exchange code for GitHub tokens: ${errorResponse.error}")
                 
                 OAuthResult.Error(
                     OAuthError.TokenExchangeFailed(
@@ -113,11 +113,11 @@ class GitHubOAuthClient(
     
     override suspend fun refreshAccessToken(refreshToken: String): OAuthResult {
         return try {
-            logger.debug("Refreshing GitHub access token")
+            logger.debug("oath", "Refreshing GitHub access token")
             
             // Note: GitHub doesn't support refresh tokens in the standard OAuth flow
             // This method will return an error indicating refresh is not supported
-            logger.warn("GitHub OAuth does not support refresh tokens in standard flow")
+            logger.warn("github", "GitHub OAuth does not support refresh tokens in standard flow")
             
             OAuthResult.Error(
                 OAuthError.TokenRefreshFailed(
@@ -138,7 +138,7 @@ class GitHubOAuthClient(
     
     override suspend fun getUserInfo(accessToken: String): OAuthResult {
         return try {
-            logger.debug("Fetching GitHub user info")
+            logger.debug("oath", "Fetching GitHub user info")
             
             // Fetch user profile
             val userResponse = withContext(Dispatchers.IO) {
@@ -166,7 +166,7 @@ class GitHubOAuthClient(
                     userInfo.email
                 }
                 
-                logger.debug("Successfully fetched GitHub user info: ${userInfo.login}")
+                logger.debug("oath", "Successfully fetched GitHub user info: ${userInfo.login}")
                 
                 OAuthResult.Success(
                     userInfo = OAuthUserInfo(
@@ -182,7 +182,7 @@ class GitHubOAuthClient(
                 )
             } else {
                 val errorResponse = json.decodeFromString<GitHubErrorResponse>(userResponse.bodyAsText())
-                logger.error("Failed to fetch GitHub user info: ${errorResponse.message}")
+                logger.error("oath", "Failed to fetch GitHub user info: ${errorResponse.message}")
                 
                 OAuthResult.Error(
                     OAuthError.UserInfoFetchFailed(
@@ -204,11 +204,11 @@ class GitHubOAuthClient(
     
     override suspend fun revokeToken(token: String): Boolean {
         return try {
-            logger.debug("Revoking GitHub OAuth token")
+            logger.debug("oath", "Revoking GitHub OAuth token")
             
             // Note: GitHub doesn't have a standard token revocation endpoint
             // The token will expire naturally based on the expires_in value
-            logger.warn("GitHub OAuth does not support token revocation. Token will expire naturally.")
+            logger.warn("github", "GitHub OAuth does not support token revocation. Token will expire naturally.")
             
             // Return true to indicate "success" since we can't actually revoke
             true
@@ -220,7 +220,7 @@ class GitHubOAuthClient(
     
     override suspend fun validateToken(accessToken: String): Boolean {
         return try {
-            logger.debug("Validating GitHub OAuth token")
+            logger.debug("oath", "Validating GitHub OAuth token")
             
             val response = withContext(Dispatchers.IO) {
                 httpClient.get(USER_INFO_URL) {
@@ -230,7 +230,7 @@ class GitHubOAuthClient(
             }
             
             val isValid = response.status.isSuccess()
-            logger.debug("GitHub OAuth token validation result: $isValid")
+            logger.debug("oath", "GitHub OAuth token validation result: $isValid")
             
             isValid
         } catch (e: Exception) {

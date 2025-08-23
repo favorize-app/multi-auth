@@ -64,11 +64,11 @@ class EnhancedEncryption {
                 associatedData = associatedData
             )
             
-            logger.debug("Data encrypted successfully with AES-256-GCM")
+            logger.debug("security", "Data encrypted successfully with AES-256-GCM")
             result
             
         } catch (e: Exception) {
-            logger.error("AES-256 encryption failed: ${e.message}")
+            logger.error("secure storage", "AES-256 encryption failed: ${e.message}")
             throw EncryptionException("AES-256 encryption failed", e)
         }
     }
@@ -96,11 +96,11 @@ class EnhancedEncryption {
                 encryptedResult.associatedData
             )
             
-            logger.debug("Data decrypted successfully with AES-256-GCM")
+            logger.debug("security", "Data decrypted successfully with AES-256-GCM")
             decryptedData
             
         } catch (e: Exception) {
-            logger.error("AES-256 decryption failed: ${e.message}")
+            logger.error("secure storage", "AES-256 decryption failed: ${e.message}")
             throw EncryptionException("AES-256 decryption failed", e)
         }
     }
@@ -113,7 +113,7 @@ class EnhancedEncryption {
     fun generateAES256Key(): ByteArray {
         val key = ByteArray(AES_256_KEY_SIZE)
         secureRandom.nextBytes(key)
-        logger.debug("Generated new AES-256 key")
+        logger.debug("security", "Generated new AES-256 key")
         return key
     }
     
@@ -146,11 +146,11 @@ class EnhancedEncryption {
             // In a real implementation, this would use javax.crypto.SecretKeyFactory
             val derivedKey = simulatePBKDF2Derivation(password, salt, iterations, AES_256_KEY_SIZE)
             
-            logger.debug("Key derived from password using PBKDF2")
+            logger.debug("security", "Key derived from password using PBKDF2")
             derivedKey
             
         } catch (e: Exception) {
-            logger.error("Key derivation failed: ${e.message}")
+            logger.error("secure storage", "Key derivation failed: ${e.message}")
             throw EncryptionException("Key derivation failed", e)
         }
     }

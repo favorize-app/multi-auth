@@ -74,12 +74,12 @@ class PerformanceMonitoring {
      */
     suspend fun recordMetric(metric: PerformanceMetric): MetricRecordingResult {
         return try {
-            logger.debug("Recording metric: ${metric.name}")
+            logger.debug("performance", "Recording metric: ${metric.name}")
             
             // Validate metric
             val validationResult = validateMetric(metric)
             if (!validationResult.isValid) {
-                logger.warn("Metric validation failed: ${validationResult.issues}")
+                logger.warn("performance", "Metric validation failed: ${validationResult.issues}")
                 return MetricRecordingResult(
                     metricId = metric.id,
                     success = false,
@@ -97,7 +97,7 @@ class PerformanceMonitoring {
             // Update performance analysis
             performanceAnalyzer.updateAnalysis(metric)
             
-            logger.debug("Metric recorded successfully: ${metric.name}")
+            logger.debug("performance", "Metric recorded successfully: ${metric.name}")
             
             MetricRecordingResult(
                 metricId = metric.id,
@@ -106,7 +106,7 @@ class PerformanceMonitoring {
             )
             
         } catch (e: Exception) {
-            logger.error("Failed to record metric: ${e.message}")
+            logger.error("performance", "Failed to record metric: ${e.message}")
             MetricRecordingResult(
                 metricId = metric.id,
                 success = false,
@@ -178,7 +178,7 @@ class PerformanceMonitoring {
             )
             
         } catch (e: Exception) {
-            logger.error("Failed to record request performance: ${e.message}")
+            logger.error("performance", "Failed to record request performance: ${e.message}")
             RequestPerformanceResult(
                 requestId = requestId,
                 duration = 0,
@@ -197,7 +197,7 @@ class PerformanceMonitoring {
      */
     suspend fun recordError(error: ErrorEvent): ErrorRecordingResult {
         return try {
-            logger.debug("Recording error: ${error.type}")
+            logger.debug("performance", "Recording error: ${error.type}")
             
             // Record error
             errorTracker.recordError(error)
@@ -241,7 +241,7 @@ class PerformanceMonitoring {
             )
             
         } catch (e: Exception) {
-            logger.error("Failed to record error: ${e.message}")
+            logger.error("performance", "Failed to record error: ${e.message}")
             ErrorRecordingResult(
                 errorId = error.id,
                 recorded = false,
@@ -331,7 +331,7 @@ class PerformanceMonitoring {
             )
             
         } catch (e: Exception) {
-            logger.error("Failed to record resource usage: ${e.message}")
+            logger.error("performance", "Failed to record resource usage: ${e.message}")
             ResourceUsageResult(
                 resourceType = resourceType,
                 utilization = 0.0,
@@ -350,7 +350,7 @@ class PerformanceMonitoring {
      */
     suspend fun getCurrentMetrics(metricNames: List<String>? = null): CurrentMetricsResult {
         return try {
-            logger.debug("Retrieving current metrics")
+            logger.debug("performance", "Retrieving current metrics")
             
             val metrics = if (metricNames != null) {
                 metricsCollector.getMetrics(metricNames)
@@ -367,7 +367,7 @@ class PerformanceMonitoring {
             )
             
         } catch (e: Exception) {
-            logger.error("Failed to retrieve current metrics: ${e.message}")
+            logger.error("performance", "Failed to retrieve current metrics: ${e.message}")
             throw PerformanceMonitoringException("Failed to retrieve metrics", e)
         }
     }
@@ -384,7 +384,7 @@ class PerformanceMonitoring {
         aggregation: Long = DEFAULT_AGGREGATION_INTERVAL
     ): HistoricalMetricsResult {
         return try {
-            logger.debug("Retrieving historical metrics for range: ${timeRange.start} to ${timeRange.end}")
+            logger.debug("performance", "Retrieving historical metrics for range: ${timeRange.start} to ${timeRange.end}")
             
             val metrics = metricsCollector.getMetricsInRange(timeRange)
             val aggregatedMetrics = aggregateMetrics(metrics, aggregation)
@@ -398,7 +398,7 @@ class PerformanceMonitoring {
             )
             
         } catch (e: Exception) {
-            logger.error("Failed to retrieve historical metrics: ${e.message}")
+            logger.error("performance", "Failed to retrieve historical metrics: ${e.message}")
             throw PerformanceMonitoringException("Failed to retrieve historical metrics", e)
         }
     }
@@ -410,7 +410,7 @@ class PerformanceMonitoring {
      */
     suspend fun getPerformanceStatus(): PerformanceStatusReport {
         return try {
-            logger.info("Generating performance status report")
+            logger.info("performance", "Generating performance status report")
             
             val currentMetrics = getCurrentMetrics()
             val alerts = alertManager.getActiveAlerts()
@@ -443,11 +443,11 @@ class PerformanceMonitoring {
                 timestamp = Instant.now()
             )
             
-            logger.info("Performance status report generated successfully")
+            logger.info("performance", "Performance status report generated successfully")
             report
             
         } catch (e: Exception) {
-            logger.error("Failed to generate performance status report: ${e.message}")
+            logger.error("performance", "Failed to generate performance status report: ${e.message}")
             throw PerformanceMonitoringException("Status report generation failed", e)
         }
     }
@@ -460,7 +460,7 @@ class PerformanceMonitoring {
      */
     suspend fun configureMonitoring(config: MonitoringConfig): ConfigurationResult {
         return try {
-            logger.info("Configuring performance monitoring")
+            logger.info("performance", "Configuring performance monitoring")
             
             monitoringConfig.updateFrom(config)
             
@@ -469,7 +469,7 @@ class PerformanceMonitoring {
             alertManager.configure(config.alertConfig)
             performanceAnalyzer.configure(config.analysisConfig)
             
-            logger.info("Performance monitoring configured successfully")
+            logger.info("performance", "Performance monitoring configured successfully")
             
             ConfigurationResult(
                 component = "PerformanceMonitoring",
@@ -478,7 +478,7 @@ class PerformanceMonitoring {
             )
             
         } catch (e: Exception) {
-            logger.error("Performance monitoring configuration failed: ${e.message}")
+            logger.error("performance", "Performance monitoring configuration failed: ${e.message}")
             
             ConfigurationResult(
                 component = "PerformanceMonitoring",
@@ -496,12 +496,12 @@ class PerformanceMonitoring {
      */
     suspend fun cleanupOldMetrics(): CleanupResult {
         return try {
-            logger.info("Cleaning up old metrics")
+            logger.info("performance", "Cleaning up old metrics")
             
             val cutoffTime = Instant.now().minus(monitoringConfig.retentionPeriod, ChronoUnit.MILLIS)
             val removedCount = metricsCollector.removeMetricsBefore(cutoffTime)
             
-            logger.info("Cleaned up $removedCount old metrics")
+            logger.info("performance", "Cleaned up $removedCount old metrics")
             
             CleanupResult(
                 removedCount = removedCount,
@@ -510,7 +510,7 @@ class PerformanceMonitoring {
             )
             
         } catch (e: Exception) {
-            logger.error("Metrics cleanup failed: ${e.message}")
+            logger.error("performance", "Metrics cleanup failed: ${e.message}")
             throw PerformanceMonitoringException("Metrics cleanup failed", e)
         }
     }
@@ -523,7 +523,7 @@ class PerformanceMonitoring {
             try {
                 collectSystemMetrics()
             } catch (e: Exception) {
-                logger.error("System metrics collection failed: ${e.message}")
+                logger.error("performance", "System metrics collection failed: ${e.message}")
             }
         }, 0, monitoringConfig.samplingInterval, TimeUnit.MILLISECONDS)
         
@@ -532,7 +532,7 @@ class PerformanceMonitoring {
             try {
                 aggregateMetrics()
             } catch (e: Exception) {
-                logger.error("Metrics aggregation failed: ${e.message}")
+                logger.error("performance", "Metrics aggregation failed: ${e.message}")
             }
         }, 0, monitoringConfig.aggregationInterval, TimeUnit.MILLISECONDS)
         
@@ -541,7 +541,7 @@ class PerformanceMonitoring {
             try {
                 cleanupOldMetrics()
             } catch (e: Exception) {
-                logger.error("Metrics cleanup failed: ${e.message}")
+                logger.error("performance", "Metrics cleanup failed: ${e.message}")
             }
         }, 3600000, 3600000, TimeUnit.MILLISECONDS) // Every hour
     }

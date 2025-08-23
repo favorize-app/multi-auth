@@ -51,14 +51,14 @@ class DesktopSecureStorage : SecureStorage {
     
     override suspend fun store(key: String, value: String): Boolean {
         return try {
-            logger.debug("Storing encrypted value for key: $key")
-            
+            logger.debug("DesktopSecureStorage", "Storing encrypted value for key: $key")
+
             val encryptedValue = encryptValue(value)
             val filePath = storageDirectory.resolve("$key.enc")
             
             Files.write(filePath, encryptedValue.toByteArray(Charsets.UTF_8))
             
-            logger.debug("Successfully stored encrypted value for key: $key")
+            logger.debug("DesktopSecureStorage", "Successfully stored encrypted value for key: $key")
             true
         } catch (e: Exception) {
             logger.error("Failed to store value for key: $key", e)
@@ -68,11 +68,11 @@ class DesktopSecureStorage : SecureStorage {
     
     override suspend fun retrieve(key: String): String? {
         return try {
-            logger.debug("Retrieving encrypted value for key: $key")
-            
+            logger.debug("DesktopSecureStorage", "Retrieving encrypted value for key: $key")
+
             val filePath = storageDirectory.resolve("$key.enc")
             if (!Files.exists(filePath)) {
-                logger.debug("No value found for key: $key")
+                logger.debug("DesktopSecureStorage", "No value found for key: $key")
                 return null
             }
             
@@ -80,7 +80,7 @@ class DesktopSecureStorage : SecureStorage {
             val encryptedValue = String(encryptedBytes, Charsets.UTF_8)
             val decryptedValue = decryptValue(encryptedValue)
             
-            logger.debug("Successfully retrieved value for key: $key")
+            logger.debug("DesktopSecureStorage", "Successfully retrieved value for key: $key")
             decryptedValue
         } catch (e: Exception) {
             logger.error("Failed to retrieve value for key: $key", e)
@@ -90,19 +90,19 @@ class DesktopSecureStorage : SecureStorage {
     
     override suspend fun remove(key: String): Boolean {
         return try {
-            logger.debug("Removing value for key: $key")
-            
+            logger.debug("DesktopSecureStorage", "Removing value for key: $key")
+
             val filePath = storageDirectory.resolve("$key.enc")
             if (Files.exists(filePath)) {
                 val removed = Files.deleteIfExists(filePath)
                 if (removed) {
-                    logger.debug("Successfully removed value for key: $key")
+                    logger.debug("DesktopSecureStorage", "Successfully removed value for key: $key")
                 } else {
-                    logger.warn("Failed to remove file for key: $key")
+                    logger.warn("DesktopSecureStorage", "Failed to remove file for key: $key")
                 }
                 removed
             } else {
-                logger.debug("Key not found for removal: $key")
+                logger.debug("DesktopSecureStorage", "Key not found for removal: $key")
                 true
             }
         } catch (e: Exception) {
@@ -115,7 +115,7 @@ class DesktopSecureStorage : SecureStorage {
         return try {
             val filePath = storageDirectory.resolve("$key.enc")
             val exists = Files.exists(filePath)
-            logger.debug("Key $key exists: $exists")
+            logger.debug("DesktopSecureStorage", "Key $key exists: $exists")
             exists
         } catch (e: Exception) {
             logger.error("Exception while checking if key exists: $key", e)
@@ -125,8 +125,8 @@ class DesktopSecureStorage : SecureStorage {
     
     override suspend fun clear(): Boolean {
         return try {
-            logger.debug("Clearing all secure storage")
-            
+            logger.debug("DesktopSecureStorage", "Clearing all secure storage")
+
             val files = Files.list(storageDirectory)
                 .filter { it.toString().endsWith(".enc") }
                 .toList()
@@ -138,7 +138,7 @@ class DesktopSecureStorage : SecureStorage {
                 }
             }
             
-            logger.debug("Successfully cleared $deletedCount files from secure storage")
+            logger.debug("DesktopSecureStorage", "Successfully cleared $deletedCount files from secure storage")
             true
         } catch (e: Exception) {
             logger.error("Exception while clearing secure storage", e)
@@ -159,7 +159,7 @@ class DesktopSecureStorage : SecureStorage {
                 keys.add(key)
             }
             
-            logger.debug("Retrieved ${keys.size} keys from secure storage")
+            logger.debug("DesktopSecureStorage", "Retrieved ${keys.size} keys from secure storage")
             emit(keys)
         } catch (e: Exception) {
             logger.error("Exception while retrieving all keys", e)
@@ -174,7 +174,7 @@ class DesktopSecureStorage : SecureStorage {
                 .count()
                 .toInt()
             
-            logger.debug("Secure storage contains $count items")
+            logger.debug("DesktopSecureStorage", "Secure storage contains $count items")
             count
         } catch (e: Exception) {
             logger.error("Exception while getting item count", e)
@@ -191,10 +191,10 @@ class DesktopSecureStorage : SecureStorage {
             
             if (keyStoreFile.exists()) {
                 keyStore.load(keyStoreFile.inputStream(), getKeyStorePassword())
-                logger.debug("Loaded existing keystore from: ${keyStoreFile.absolutePath}")
+                logger.debug("DesktopSecureStorage", "Loaded existing keystore from: ${keyStoreFile.absolutePath}")
             } else {
                 keyStore.load(null, getKeyStorePassword())
-                logger.debug("Created new keystore")
+                logger.debug("DesktopSecureStorage", "Created new keystore")
             }
             
             keyStore
@@ -214,7 +214,7 @@ class DesktopSecureStorage : SecureStorage {
             
             if (!Files.exists(storagePath)) {
                 Files.createDirectories(storagePath)
-                logger.debug("Created storage directory: $storagePath")
+                logger.debug("DesktopSecureStorage", "Created storage directory: $storagePath")
             }
             
             storagePath
@@ -222,7 +222,7 @@ class DesktopSecureStorage : SecureStorage {
             logger.error("Failed to create storage directory", e)
             // Fallback to temp directory
             val tempPath = Files.createTempDirectory("multiauth_secure_storage")
-            logger.debug("Using temporary storage directory: $tempPath")
+            logger.debug("DesktopSecureStorage", "Using temporary storage directory: $tempPath")
             tempPath
         }
     }
@@ -244,7 +244,7 @@ class DesktopSecureStorage : SecureStorage {
             // Try to get existing key from keystore
             keyStore.getKey(KEY_ALIAS, getKeyStorePassword()) as? SecretKey
         } catch (e: Exception) {
-            logger.debug("No existing key found, generating new one", e)
+            logger.debug("DesktopSecureStorage", "No existing key found, generating new one", e)
             generateNewSecretKey()
         } ?: generateNewSecretKey()
     }
@@ -262,10 +262,10 @@ class DesktopSecureStorage : SecureStorage {
             // Save the keystore
             keyStore.store(keyStoreFile.outputStream(), getKeyStorePassword())
             
-            logger.debug("Generated and stored new secret key")
+            logger.debug("DesktopSecureStorage", "Generated and stored new secret key")
             key
         } catch (e: Exception) {
-            logger.warn("Failed to generate keystore-backed key, using software key", e)
+            logger.warn("DesktopSecureStorage", "Failed to generate keystore-backed key, using software key", e)
             generateSoftwareSecretKey()
         }
     }
@@ -349,7 +349,7 @@ class DesktopSecureStorage : SecureStorage {
         return try {
             val backupFile = backupPath.resolve("multiauth_keystore_backup.jks")
             keyStore.store(backupFile.toFile().outputStream(), getKeyStorePassword())
-            logger.info("Keystore exported to: $backupFile")
+            logger.info("secure storage", "Keystore exported to: $backupFile")
             true
         } catch (e: Exception) {
             logger.error("Failed to export keystore", e)
@@ -364,7 +364,7 @@ class DesktopSecureStorage : SecureStorage {
         return try {
             val backupFile = backupPath.resolve("multiauth_keystore_backup.jks")
             if (!Files.exists(backupFile)) {
-                logger.error("Backup file not found: $backupFile")
+                logger.error("secure storage", "Backup file not found: $backupFile")
                 return false
             }
             
@@ -380,10 +380,10 @@ class DesktopSecureStorage : SecureStorage {
                 val keyStoreFile = getKeyStoreFile()
                 keyStore.store(keyStoreFile.outputStream(), getKeyStorePassword())
                 
-                logger.info("Keystore imported successfully from: $backupFile")
+                logger.info("secure storage", "Keystore imported successfully from: $backupFile")
                 true
             } else {
-                logger.error("No key found in backup keystore")
+                logger.error("secure storage", "No key found in backup keystore")
                 false
             }
         } catch (e: Exception) {

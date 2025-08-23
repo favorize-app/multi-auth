@@ -33,7 +33,7 @@ object BiometricFactory {
      * This will be implemented in the Android-specific source set.
      */
     private fun createAndroidBiometric(): PlatformBiometric {
-        logger.info("Creating Android biometric provider")
+        logger.info("biometrics", "Creating Android biometric provider")
         // This will be implemented in androidMain
         throw UnsupportedOperationException("Android biometric not implemented in common module")
     }
@@ -43,7 +43,7 @@ object BiometricFactory {
      * This will be implemented in the iOS-specific source set.
      */
     private fun createIOSBiometric(): PlatformBiometric {
-        logger.info("Creating iOS biometric provider")
+        logger.info("biometrics", "Creating iOS biometric provider")
         // This will be implemented in iosMain
         throw UnsupportedOperationException("iOS biometric not implemented in common module")
     }
@@ -53,7 +53,7 @@ object BiometricFactory {
      * This will be implemented in the JavaScript-specific source set.
      */
     private fun createWebBiometric(): PlatformBiometric {
-        logger.info("Creating Web biometric provider")
+        logger.info("biometrics", "Creating Web biometric provider")
         // This will be implemented in jsMain
         throw UnsupportedOperationException("Web biometric not implemented in common module")
     }
@@ -63,7 +63,7 @@ object BiometricFactory {
      * This will be implemented in the JVM-specific source set.
      */
     private fun createDesktopBiometric(): PlatformBiometric {
-        logger.info("Creating Desktop biometric provider")
+        logger.info("biometrics", "Creating Desktop biometric provider")
         // This will be implemented in jvmMain
         throw UnsupportedOperationException("Desktop biometric not implemented in common module")
     }
@@ -74,7 +74,7 @@ object BiometricFactory {
      * @return A MockBiometricProvider instance
      */
     fun createMockBiometricProvider(): PlatformBiometric {
-        logger.info("Creating mock biometric provider for testing")
+        logger.info("biometrics", "Creating mock biometric provider for testing")
         return MockBiometricProvider()
     }
     
@@ -128,7 +128,7 @@ class MockBiometricProvider : PlatformBiometric {
     
     override suspend fun checkAvailability(): Result<BiometricAvailability> {
         return try {
-            logger.debug("Mock biometric: checking availability")
+            logger.debug("biometrics", "Mock biometric: checking availability")
             
             // Mock biometric is always available for testing
             val availability = BiometricAvailability(
@@ -139,7 +139,7 @@ class MockBiometricProvider : PlatformBiometric {
                 )
             )
             
-            logger.debug("Mock biometric: availability check successful")
+            logger.debug("biometrics", "Mock biometric: availability check successful")
             Result.success(availability)
             
         } catch (e: Exception) {
@@ -153,10 +153,10 @@ class MockBiometricProvider : PlatformBiometric {
         cancelMessage: String
     ): Result<app.multiauth.models.User> {
         return try {
-            logger.debug("Mock biometric: starting authentication")
+            logger.debug("biometrics", "Mock biometric: starting authentication")
             
             if (!isEnabled) {
-                logger.warn("Mock biometric: authentication not enabled")
+                logger.warn("biometrics", "Mock biometric: authentication not enabled")
                 return Result.failure(IllegalStateException("Biometric authentication not enabled"))
             }
             
@@ -173,7 +173,7 @@ class MockBiometricProvider : PlatformBiometric {
                 lastSignInAt = System.currentTimeMillis()
             )
             
-            logger.debug("Mock biometric: authentication successful for user: ${user.displayName}")
+            logger.debug("biometrics", "Mock biometric: authentication successful for user: ${user.displayName}")
             Result.success(user)
             
         } catch (e: Exception) {
@@ -184,12 +184,12 @@ class MockBiometricProvider : PlatformBiometric {
     
     override suspend fun enableBiometric(user: app.multiauth.models.User): Result<Unit> {
         return try {
-            logger.debug("Mock biometric: enabling for user: ${user.displayName}")
+            logger.debug("biometrics", "Mock biometric: enabling for user: ${user.displayName}")
             
             isEnabled = true
             mockUser = user
             
-            logger.debug("Mock biometric: enabled successfully")
+            logger.debug("biometrics", "Mock biometric: enabled successfully")
             Result.success(Unit)
             
         } catch (e: Exception) {
@@ -200,12 +200,12 @@ class MockBiometricProvider : PlatformBiometric {
     
     override suspend fun disableBiometric(user: app.multiauth.models.User): Result<Unit> {
         return try {
-            logger.debug("Mock biometric: disabling for user: ${user.displayName}")
+            logger.debug("biometrics", "Mock biometric: disabling for user: ${user.displayName}")
             
             isEnabled = false
             mockUser = null
             
-            logger.debug("Mock biometric: disabled successfully")
+            logger.debug("biometrics", "Mock biometric: disabled successfully")
             Result.success(Unit)
             
         } catch (e: Exception) {
