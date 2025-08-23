@@ -3,6 +3,7 @@ package app.multiauth.biometric
 import app.multiauth.platform.Platform
 import app.multiauth.platform.PlatformUtils
 import app.multiauth.util.Logger
+import kotlinx.datetime.Clock
 
 /**
  * Factory for creating platform-specific biometric implementations.
@@ -122,7 +123,7 @@ object BiometricFactory {
  */
 class MockBiometricProvider : PlatformBiometric {
     
-    private val logger = app.multiauth.util.Logger.getLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     private var isEnabled = false
     private var mockUser: app.multiauth.models.User? = null
     
@@ -169,8 +170,8 @@ class MockBiometricProvider : PlatformBiometric {
                 email = "mock@example.com",
                 displayName = "Mock User",
                 isEmailVerified = true,
-                createdAt = System.currentTimeMillis(),
-                lastSignInAt = System.currentTimeMillis()
+                createdAt = Clock.System.now(),
+                lastSignInAt = Clock.System.now()
             )
             
             logger.debug("biometrics", "Mock biometric: authentication successful for user: ${user.displayName}")

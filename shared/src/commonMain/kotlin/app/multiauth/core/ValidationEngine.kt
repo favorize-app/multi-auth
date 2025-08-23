@@ -1,17 +1,13 @@
 package app.multiauth.core
 
 import app.multiauth.events.*
-import app.multiauth.models.*
 import app.multiauth.util.Logger
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
-import kotlinx.datetime.minus
-import kotlinx.datetime.DateTimeUnit
 
 /**
  * Handles validation of tokens, permissions, and authentication state.

@@ -11,9 +11,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
-import kotlinx.datetime.minus
-import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.Duration
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Manages user sessions, tokens, and authentication state persistence.
@@ -236,7 +235,7 @@ class SessionManager private constructor(
         val timeUntilRefresh = session.expiresAt - Clock.System.now()
         val refreshDelay = timeUntilRefresh - REFRESH_BUFFER_TIME
         
-        if (refreshDelay > 0) {
+        if (refreshDelay.isPositive()) {
             refreshJob = scope.launch {
                 delay(refreshDelay.inWholeMilliseconds)
                 
@@ -260,7 +259,7 @@ class SessionManager private constructor(
      */
     private fun createMockTokens(userId: String): TokenPair {
         val now = Clock.System.now()
-        val expiresAt = now.plus(Duration.parse("30m")) // 30 minutes
+        val expiresAt = now + 30.minutes // 30 minutes
         
         return TokenPair(
             accessToken = "access_token_${userId}_${now.toEpochMilliseconds()}",
@@ -270,8 +269,8 @@ class SessionManager private constructor(
     }
     
     companion object {
-        private const val SESSION_CHECK_INTERVAL = 30_000L // 30 seconds
-        private val REFRESH_BUFFER_TIME = Duration.parse("5m") // 5 minutes
+        private const val SESSION_CHECK_INTERVAL = 30.seconds // 30 seconds
+        private val REFRESH_BUFFER_TIME = 5.minutes // 5 minutes
         
         private var INSTANCE: SessionManager? = null
         

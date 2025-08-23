@@ -11,8 +11,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.time.Instant
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import java.util.UUID
+import kotlin.time.Duration.Companion.hours
 
 /**
  * Manager for anonymous authentication.
@@ -72,8 +74,8 @@ class AnonymousAuthManager(
                 id = anonymousId,
                 sessionId = sessionId,
                 deviceId = deviceId,
-                createdAt = Instant.now(),
-                expiresAt = Instant.now().plus(ANONYMOUS_SESSION_DURATION_HOURS, java.time.temporal.ChronoUnit.HOURS),
+                createdAt = Clock.System.now(),
+                expiresAt = (Clock.System.now() + ANONYMOUS_SESSION_DURATION_HOURS.hours),
                 metadata = metadata,
                 isActive = true
             )
@@ -148,7 +150,7 @@ class AnonymousAuthManager(
                 displayName = displayName,
                 isEmailVerified = false,
                 createdAt = anonymousUser.createdAt,
-                updatedAt = Instant.now(),
+                updatedAt = Clock.System.now(),
                 isAnonymous = false,
                 anonymousSessionId = null
             )
@@ -199,8 +201,8 @@ class AnonymousAuthManager(
             
             // Extend session
             val updatedAnonymousUser = anonymousUserData.copy(
-                expiresAt = anonymousUserData.expiresAt.plus(additionalHours, java.time.temporal.ChronoUnit.HOURS),
-                updatedAt = Instant.now()
+                expiresAt = anonymousUserData.expiresAt + additionalHours.hours,
+                updatedAt = Clock.System.now()
             )
             
             _anonymousUsers.value = _anonymousUsers.value + (anonymousUser.id to updatedAnonymousUser)
@@ -238,7 +240,7 @@ class AnonymousAuthManager(
             // Mark session as inactive
             val updatedAnonymousUser = anonymousUserData.copy(
                 isActive = false,
-                terminatedAt = Instant.now()
+                terminatedAt = Clock.System.now()
             )
             
             _anonymousUsers.value = _anonymousUsers.value + (anonymousUser.id to updatedAnonymousUser)
@@ -266,14 +268,14 @@ class AnonymousAuthManager(
     fun getAnonymousUserStats(): AnonymousUserStats {
         val currentUsers = _anonymousUsers.value
         val activeUsers = currentUsers.values.count { it.isActive }
-        val expiredUsers = currentUsers.values.count { it.expiresAt.isBefore(Instant.now()) }
+        val expiredUsers = currentUsers.values.count { it.expiresAt < Clock.System.now() }
         val convertedUsers = _conversionMetrics.value.accountsConverted
         
         return AnonymousUserStats(
             totalUsers = currentUsers.size,
             activeUsers = activeUsers,
             expiredUsers = expiredUsers,
-            convertedUsers = convertedUsers,
+            convertedUsers = convertedUsers.toInt(),
             conversionRate = if (currentUsers.isNotEmpty()) {
                 convertedUsers.toDouble() / currentUsers.size
             } else 0.0
@@ -286,10 +288,10 @@ class AnonymousAuthManager(
     fun cleanupExpiredSessions() {
         scope.launch {
             try {
-                val now = Instant.now()
+                val now = Clock.System.now()
                 val currentUsers = _anonymousUsers.value
                 val expiredUsers = currentUsers.filter { (_, user) ->
-                    user.expiresAt.isBefore(now) && user.isActive
+                    user.expiresAt < now && user.isActive
                 }
                 
                 if (expiredUsers.isNotEmpty()) {
@@ -392,7 +394,7 @@ data class AnonymousConversionMetrics(
     val accountsConverted: Long = 0,
     val sessionsExtended: Long = 0,
     val sessionsTerminated: Long = 0,
-    val lastUpdated: Instant = Instant.now()
+    val lastUpdated: Instant = Clock.System.now()
 )
 
 /**
