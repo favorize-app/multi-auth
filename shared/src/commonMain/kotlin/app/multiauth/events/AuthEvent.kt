@@ -146,6 +146,30 @@ sealed class AuthEvent {
     }
     
     /**
+     * Events related to OpenID Connect authentication.
+     */
+    sealed class OIDC : AuthEvent() {
+        data class OIDCAuthorizationRequested(val authRequest: OIDCAuthRequest) : OIDC()
+        data class OIDCSignInCompleted(val user: User, val authResult: OIDCAuthResult) : OIDC()
+        data class OIDCSignInFailed(val error: AuthError) : OIDC()
+        
+        data class OIDCTokenRefreshed(val tokenResponse: OIDCTokenResponse) : OIDC()
+        data class OIDCTokenRefreshFailed(val error: AuthError) : OIDC()
+        
+        object OIDCSessionEnded : OIDC()
+        data class OIDCSessionEndFailed(val error: AuthError) : OIDC()
+        
+        data class OIDCUserInfoRetrieved(val userInfo: OIDCUserInfo) : OIDC()
+        data class OIDCUserInfoRetrievalFailed(val error: AuthError) : OIDC()
+        
+        data class OIDCConfigurationRetrieved(val configuration: OIDCConfiguration) : OIDC()
+        data class OIDCConfigurationFailed(val error: AuthError) : OIDC()
+        
+        data class OIDCIDTokenValidated(val idToken: OIDCIDToken) : OIDC()
+        data class OIDCIDTokenValidationFailed(val error: AuthError) : OIDC()
+    }
+    
+    /**
      * Events related to state changes.
      */
     sealed class State : AuthEvent() {

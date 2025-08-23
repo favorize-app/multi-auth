@@ -10,9 +10,9 @@
 
 ### **Core Authentication**
 - **Multi-Platform Support**: Android, iOS, Web, and Desktop
-- **Multiple Authentication Methods**: Email/Password, Phone/SMS, OAuth (6 fully implemented + 9 placeholders), Biometric, MFA, Anonymous
+- **Multiple Authentication Methods**: Email/Password, Phone/SMS, OAuth (6 fully implemented + 9 placeholders), **OpenID Connect (OIDC)**, Biometric, MFA, Anonymous
 - **Event-Driven Architecture**: Decoupled event handling for better testability
-- **Pluggable Providers**: Easy to swap email, SMS, and OAuth providers
+- **Pluggable Providers**: Easy to swap email, SMS, OAuth, and OIDC providers
 - **Secure Token Management**: JWT-based authentication with refresh tokens
 
 ### **Advanced Security Features**
@@ -41,8 +41,9 @@ The Multi-Auth system follows a comprehensive, enterprise-grade architecture wit
 
 ### **Core Architecture**
 - **Event System**: Central event bus for all authentication operations
-- **Provider Interfaces**: Pluggable interfaces for email, SMS, and OAuth services
+- **Provider Interfaces**: Pluggable interfaces for email, SMS, OAuth, and OIDC services
 - **Authentication Engine**: Core authentication logic and state management
+- **OIDC Manager**: OpenID Connect authentication flows with enhanced security
 - **Secure Storage**: Platform-specific secure storage for tokens and sensitive data
 - **UI Components**: Compose Multiplatform components for authentication flows
 
@@ -217,6 +218,7 @@ The Multi-Auth system includes extensive documentation covering all aspects:
 - **`docs/TESTING_GUIDE.md`** - Complete testing framework documentation
 - **`docs/API_REFERENCE.md`** - Comprehensive API documentation
 - **`docs/USER_GUIDE.md`** - Step-by-step usage instructions
+- **`docs/OIDC_DOCUMENTATION.md`** - Complete OpenID Connect guide
 
 #### **Implementation Guides**
 - **Core Architecture** - Event-driven architecture and authentication engine
@@ -241,6 +243,38 @@ result.onSuccess { user ->
     println("Signed in as: ${user.displayName}")
 }.onFailure { error ->
     println("Sign in failed: ${error.message}")
+}
+```
+
+### OpenID Connect (OIDC) Authentication
+
+```kotlin
+// Create OIDC manager
+val oidcManager = OIDCManager()
+
+// Create Google OIDC provider
+val googleProvider = OIDCProviderFactory.createProvider(OIDCProvider.GOOGLE)
+
+// Configure the provider
+val config = OIDCProviderConfig(
+    provider = OIDCProvider.GOOGLE,
+    clientId = "your_google_client_id",
+    clientSecret = "your_google_client_secret",
+    redirectUris = listOf("com.yourapp://oauth/callback"),
+    scopes = listOf("openid", "profile", "email")
+)
+
+// Start OIDC sign-in
+val result = oidcManager.signInWithOIDC(
+    provider = googleProvider,
+    config = config,
+    redirectUri = "com.yourapp://oauth/callback"
+)
+
+result.onSuccess { user ->
+    println("OIDC sign-in initiated for: ${user.displayName}")
+}.onFailure { error ->
+    println("OIDC sign-in failed: ${error.message}")
 }
 ```
 
@@ -269,6 +303,24 @@ result.onSuccess { sessionId ->
 ```
 
 ## Provider Configuration
+
+### OIDC Provider
+
+```kotlin
+// Configure Google OIDC provider
+val googleProvider = OIDCProviderFactory.createProvider(OIDCProvider.GOOGLE)
+
+val oidcConfig = OIDCProviderConfig(
+    provider = OIDCProvider.GOOGLE,
+    clientId = "your_google_client_id",
+    clientSecret = "your_google_client_secret",
+    redirectUris = listOf("com.yourapp://oauth/callback"),
+    scopes = listOf("openid", "profile", "email")
+)
+
+// Use with OIDC manager
+val oidcManager = OIDCManager()
+```
 
 ### Email Provider
 
@@ -335,6 +387,22 @@ EventBus.getInstance().subscribe<AuthEvent.Authentication> { event, metadata ->
         else -> { /* Handle other events */ }
     }
 }
+
+// Subscribe to OIDC events
+EventBus.getInstance().subscribe<AuthEvent.OIDC> { event, metadata ->
+    when (event) {
+        is AuthEvent.OIDC.OIDCAuthorizationRequested -> {
+            println("OIDC authorization requested")
+        }
+        is AuthEvent.OIDC.OIDCSignInCompleted -> {
+            println("OIDC sign-in completed: ${event.user.displayName}")
+        }
+        is AuthEvent.OIDC.OIDCSignInFailed -> {
+            println("OIDC sign-in failed: ${event.error.message}")
+        }
+        else -> { /* Handle other events */ }
+    }
+}
 ```
 
 ## Security Features
@@ -345,6 +413,7 @@ EventBus.getInstance().subscribe<AuthEvent.Authentication> { event, metadata ->
 - **Input Validation**: Comprehensive validation for all inputs
 - **Rate Limiting**: Protection against brute force attacks
 - **OAuth Security**: PKCE flow for mobile apps
+- **OIDC Security**: Enhanced security with nonce validation, ID token verification, and standardized claims
 
 ## Testing
 
