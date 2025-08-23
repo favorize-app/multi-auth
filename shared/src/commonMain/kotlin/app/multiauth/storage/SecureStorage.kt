@@ -81,7 +81,7 @@ abstract class BaseSecureStorage : SecureStorage {
     
     protected fun validateKey(key: String): Boolean {
         if (key.isBlank()) {
-            logger.error("Storage key cannot be blank")
+            logger.error("BaseSecureStorage", "Storage key cannot be blank")
             return false
         }
         return true
@@ -89,7 +89,7 @@ abstract class BaseSecureStorage : SecureStorage {
     
     protected fun validateValue(value: String): Boolean {
         if (value.isBlank()) {
-            logger.error("Storage value cannot be blank")
+            logger.error("BaseSecureStorage", "Storage value cannot be blank")
             return false
         }
         return true
