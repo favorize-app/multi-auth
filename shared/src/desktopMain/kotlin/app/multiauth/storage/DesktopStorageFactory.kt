@@ -18,7 +18,7 @@ object DesktopStorageFactory {
      * @return DesktopSecureStorage instance
      */
     fun createDesktopStorage(): SecureStorage {
-        logger.info("Creating Desktop secure storage")
+        logger.info("DesktopStorageFactory", "Creating Desktop secure storage")
         return DesktopSecureStorage()
     }
     
@@ -131,7 +131,7 @@ object DesktopStorageFactory {
             val path = getDefaultStoragePath()
             if (!path.toFile().exists()) {
                 path.toFile().mkdirs()
-                logger.info("Created default storage directory: $path")
+                logger.info("DesktopStorageFactory", "Created default storage directory: $path")
             }
             true
         } catch (e: Exception) {

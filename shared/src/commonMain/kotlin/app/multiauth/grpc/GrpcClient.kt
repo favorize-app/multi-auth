@@ -96,7 +96,7 @@ abstract class BaseGrpcClient : GrpcClient {
         return try {
             currentAccessToken = accessToken
             currentRefreshToken = refreshToken
-            logger.info("Credentials set successfully")
+            logger.info("grpc", "Credentials set successfully")
             Result.success(Unit)
         } catch (e: Exception) {
             logger.error("Failed to set credentials", e)
@@ -108,7 +108,7 @@ abstract class BaseGrpcClient : GrpcClient {
         return try {
             currentAccessToken = null
             currentRefreshToken = null
-            logger.info("Credentials cleared successfully")
+            logger.info("grpc", "Credentials cleared successfully")
             Result.success(Unit)
         } catch (e: Exception) {
             logger.error("Failed to clear credentials", e)
@@ -118,7 +118,7 @@ abstract class BaseGrpcClient : GrpcClient {
     
     protected fun validateConnection(): Boolean {
         if (!isConnectedToServer) {
-            logger.warn("gRPC client not connected to server")
+            logger.warn("grpc", "gRPC client not connected to server")
             return false
         }
         return true

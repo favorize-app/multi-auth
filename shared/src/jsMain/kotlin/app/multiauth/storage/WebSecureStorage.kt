@@ -37,15 +37,15 @@ class WebSecureStorage : SecureStorage {
     
     override suspend fun store(key: String, value: String): Boolean {
         return try {
-            logger.debug("Storing encrypted value for key: $key")
-            
+            logger.debug("WebSecureStorage", "Storing encrypted value for key: $key")
+
             val encryptedValue = encryptValue(value)
             val result = storeInIndexedDB(key, encryptedValue)
             
             if (result) {
-                logger.debug("Successfully stored encrypted value for key: $key")
+                logger.debug("WebSecureStorage", "Successfully stored encrypted value for key: $key")
             } else {
-                logger.error("Failed to store value in IndexedDB for key: $key")
+                logger.error("WebSecureStorage", "Failed to store value in IndexedDB for key: $key")
             }
             
             result
@@ -57,15 +57,15 @@ class WebSecureStorage : SecureStorage {
     
     override suspend fun retrieve(key: String): String? {
         return try {
-            logger.debug("Retrieving encrypted value for key: $key")
-            
+            logger.debug("WebSecureStorage", "Retrieving encrypted value for key: $key")
+
             val encryptedValue = retrieveFromIndexedDB(key)
             if (encryptedValue != null) {
                 val decryptedValue = decryptValue(encryptedValue)
-                logger.debug("Successfully retrieved value for key: $key")
+                logger.debug("WebSecureStorage", "Successfully retrieved value for key: $key")
                 decryptedValue
             } else {
-                logger.debug("No value found for key: $key")
+                logger.debug("WebSecureStorage", "No value found for key: $key")
                 null
             }
         } catch (e: Exception) {
@@ -76,13 +76,13 @@ class WebSecureStorage : SecureStorage {
     
     override suspend fun remove(key: String): Boolean {
         return try {
-            logger.debug("Removing value for key: $key")
-            
+            logger.debug("WebSecureStorage", "Removing value for key: $key")
+
             val result = removeFromIndexedDB(key)
             if (result) {
-                logger.debug("Successfully removed value for key: $key")
+                logger.debug("WebSecureStorage", "Successfully removed value for key: $key")
             } else {
-                logger.warn("Failed to remove value for key: $key")
+                logger.warn("WebSecureStorage", "Failed to remove value for key: $key")
             }
             
             result
@@ -95,7 +95,7 @@ class WebSecureStorage : SecureStorage {
     override suspend fun contains(key: String): Boolean {
         return try {
             val exists = retrieveFromIndexedDB(key) != null
-            logger.debug("Key $key exists: $exists")
+            logger.debug("WebSecureStorage", "Key $key exists: $exists")
             exists
         } catch (e: Exception) {
             logger.error("Exception while checking if key exists: $key", e)
@@ -105,13 +105,13 @@ class WebSecureStorage : SecureStorage {
     
     override suspend fun clear(): Boolean {
         return try {
-            logger.debug("Clearing all secure storage")
-            
+            logger.debug("WebSecureStorage", "Clearing all secure storage")
+
             val result = clearIndexedDB()
             if (result) {
-                logger.debug("Successfully cleared all secure storage")
+                logger.debug("WebSecureStorage", "Successfully cleared all secure storage")
             } else {
-                logger.warn("Failed to clear secure storage")
+                logger.warn("WebSecureStorage", "Failed to clear secure storage")
             }
             
             result
@@ -124,7 +124,7 @@ class WebSecureStorage : SecureStorage {
     override fun getAllKeys(): Flow<Set<String>> = flow {
         try {
             val keys = getAllKeysFromIndexedDB()
-            logger.debug("Retrieved ${keys.size} keys from secure storage")
+            logger.debug("WebSecureStorage", "Retrieved ${keys.size} keys from secure storage")
             emit(keys)
         } catch (e: Exception) {
             logger.error("Exception while retrieving all keys", e)
@@ -135,7 +135,7 @@ class WebSecureStorage : SecureStorage {
     override suspend fun getItemCount(): Int {
         return try {
             val count = getAllKeysFromIndexedDB().size
-            logger.debug("Secure storage contains $count items")
+            logger.debug("WebSecureStorage", "Secure storage contains $count items")
             count
         } catch (e: Exception) {
             logger.error("Exception while getting item count", e)
@@ -157,11 +157,11 @@ class WebSecureStorage : SecureStorage {
         
         request.onsuccess = { event ->
             database = (event.target as IDBOpenDBRequest).result
-            logger.debug("IndexedDB initialized successfully")
+            logger.debug("WebSecureStorage", "IndexedDB initialized successfully")
         }
         
         request.onerror = { event ->
-            logger.error("Failed to initialize IndexedDB", event)
+            logger.error("WebSecureStorage", "Failed to initialize IndexedDB", event)
         }
     }
     
@@ -199,9 +199,9 @@ class WebSecureStorage : SecureStorage {
                 )
             }
             
-            logger.debug("Encryption key generated successfully")
+            logger.debug("WebSecureStorage", "Encryption key generated successfully")
         } catch (e: Exception) {
-            logger.error("Failed to generate encryption key", e)
+            logger.error("WebSecureStorage", "Failed to generate encryption key", e)
             throw e
         }
     }

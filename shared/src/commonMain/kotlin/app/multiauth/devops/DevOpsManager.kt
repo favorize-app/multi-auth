@@ -33,25 +33,25 @@ class DevOpsManager(
      * Initialize DevOps manager and all components
      */
     suspend fun initialize(): Boolean {
-        logger.info("Initializing DevOps manager")
+        logger.info("DevOps", "Initializing DevOps manager")
         
         return try {
             _systemStatus.value = DevOpsSystemStatus.INITIALIZING
             
             // Initialize CI/CD pipeline
-            logger.debug("Initializing CI/CD pipeline")
+            logger.debug("DevOps", "Initializing CI/CD pipeline")
             ciCdPipeline = CICDPipeline(logger, config.ciCdConfig)
             
             // Initialize production monitoring
-            logger.debug("Initializing production monitoring")
+            logger.debug("DevOps", "Initializing production monitoring")
             productionMonitoring = ProductionMonitoring(logger, config.monitoringConfig)
             
             // Initialize production deployment
-            logger.debug("Initializing production deployment")
+            logger.debug("DevOps", "Initializing production deployment")
             productionDeployment = ProductionDeployment(logger, config.deploymentConfig)
             
             // Initialize DevOps automation
-            logger.debug("Initializing DevOps automation")
+            logger.debug("DevOps", "Initializing DevOps automation")
             devOpsAutomation = DevOpsAutomation(logger, config.automationConfig)
             
             // Initialize all components
@@ -63,7 +63,7 @@ class DevOpsManager(
             if (ciCdInitialized && monitoringInitialized && deploymentInitialized && automationInitialized) {
                 _systemStatus.value = DevOpsSystemStatus.OPERATIONAL
                 _healthStatus.value = HealthStatus.HEALTHY
-                logger.info("DevOps manager initialized successfully")
+                logger.info("DevOps", "DevOps manager initialized successfully")
                 true
             } else {
                 _systemStatus.value = DevOpsSystemStatus.DEGRADED
@@ -93,7 +93,7 @@ class DevOpsManager(
             val result = ciCdPipeline.executePipeline(branch, environment)
             
             if (result.status == PipelineStatus.SUCCESS) {
-                logger.info("CI/CD pipeline executed successfully")
+                logger.info("DevOps", "CI/CD pipeline executed successfully")
             } else {
                 logger.warn("CI/CD pipeline completed with status: ${result.status}")
             }
@@ -116,7 +116,7 @@ class DevOpsManager(
      * Start production monitoring
      */
     suspend fun startProductionMonitoring(): Boolean {
-        logger.info("Starting production monitoring")
+        logger.info("DevOps", "Starting production monitoring")
         
         return try {
             val started = productionMonitoring.startMonitoring()
@@ -143,13 +143,13 @@ class DevOpsManager(
         artifacts: List<Artifact>,
         strategy: DeploymentStrategy = DeploymentStrategy.BLUE_GREEN
     ): DeploymentResult {
-        logger.info("Deploying to production: version $version")
+        logger.info("DevOps", "Deploying to production: version $version")
         
         return try {
             val result = productionDeployment.deployToProduction(version, artifacts, strategy)
             
             if (result.status == DeploymentStatus.DEPLOYED) {
-                logger.info("Production deployment completed successfully")
+                logger.info("DevOps", "Production deployment completed successfully")
             } else {
                 logger.warn("Production deployment completed with status: ${result.status}")
             }
@@ -175,13 +175,13 @@ class DevOpsManager(
         environment: String,
         config: InfrastructureConfig
     ): ProvisionResult {
-        logger.info("Provisioning infrastructure for environment: $environment")
+        logger.info("DevOps", "Provisioning infrastructure for environment: $environment")
         
         return try {
             val result = devOpsAutomation.provisionInfrastructure(environment, config)
             
             if (result.status == ProvisionStatus.SUCCESS) {
-                logger.info("Infrastructure provisioning completed successfully")
+                logger.info("DevOps", "Infrastructure provisioning completed successfully")
             } else {
                 logger.warn("Infrastructure provisioning completed with status: ${result.status}")
             }
@@ -205,7 +205,7 @@ class DevOpsManager(
      * Get system health status
      */
     suspend fun getSystemHealth(): HealthStatus {
-        logger.debug("Checking system health")
+        logger.debug("DevOps", "Checking system health")
         
         return try {
             val ciCdHealth = ciCdPipeline.getPipelineStatus() == PipelineStatus.IDLE
@@ -247,7 +247,7 @@ class DevOpsManager(
      * Execute emergency rollback
      */
     suspend fun emergencyRollback(environment: String): RollbackResult {
-        logger.warn("Executing emergency rollback for environment: $environment")
+        logger.warn("DevOps", "Executing emergency rollback for environment: $environment")
         
         return try {
             val result = productionDeployment.rollback(environment)
@@ -278,7 +278,7 @@ class DevOpsManager(
      * Backup entire system
      */
     suspend fun backupSystem(): SystemBackupResult {
-        logger.info("Starting system backup")
+        logger.info("DevOps", "Starting system backup")
         
         return try {
             val startTime = System.currentTimeMillis()
@@ -331,7 +331,7 @@ class DevOpsManager(
      * Restore system from backup
      */
     suspend fun restoreSystem(backupId: String): SystemRestoreResult {
-        logger.info("Starting system restore from backup: $backupId")
+        logger.info("DevOps", "Starting system restore from backup: $backupId")
         
         return try {
             val startTime = System.currentTimeMillis()
@@ -352,7 +352,7 @@ class DevOpsManager(
                     configRestore.status == RestoreStatus.SUCCESS
             
             if (success) {
-                logger.info("System restore completed successfully")
+                logger.info("DevOps", "System restore completed successfully")
             } else {
                 logger.warn("System restore completed with some failures")
             }
@@ -384,7 +384,7 @@ class DevOpsManager(
      * Get system metrics
      */
     suspend fun getSystemMetrics(): SystemMetrics {
-        logger.debug("Collecting system metrics")
+        logger.debug("DevOps", "Collecting system metrics")
         
         return try {
             val ciCdMetrics = ciCdPipeline.getPipelineMetrics()

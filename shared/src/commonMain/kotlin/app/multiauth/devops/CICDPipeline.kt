@@ -19,7 +19,7 @@ class CICDPipeline(
      * Execute the CI pipeline
      */
     suspend fun executeCI(): CIResult {
-        logger.info("Starting CI pipeline execution")
+        logger.info("DevOps", "Starting CI pipeline execution")
         
         return try {
             val steps = listOf(
@@ -34,7 +34,7 @@ class CICDPipeline(
             val results = mutableListOf<CIStepResult>()
             
             steps.forEach { (stepName, stepFunction) ->
-                logger.info("Executing CI step: $stepName")
+                logger.info("DevOps", "Executing CI step: $stepName")
                 val startTime = System.currentTimeMillis()
                 
                 try {
@@ -48,7 +48,7 @@ class CICDPipeline(
                         details = result
                     ))
                     
-                    logger.info("CI step '$stepName' completed successfully in ${duration}ms")
+                    logger.info("DevOps", "CI step '$stepName' completed successfully in ${duration}ms")
                 } catch (e: Exception) {
                     val duration = System.currentTimeMillis() - startTime
                     
@@ -88,7 +88,7 @@ class CICDPipeline(
      * Execute the CD pipeline
      */
     suspend fun executeCD(environment: DeploymentEnvironment): CDResult {
-        logger.info("Starting CD pipeline execution for environment: $environment")
+        logger.info("DevOps", "Starting CD pipeline execution for environment: $environment")
         
         return try {
             val steps = listOf(
@@ -104,7 +104,7 @@ class CICDPipeline(
             val results = mutableListOf<CDStepResult>()
             
             steps.forEach { (stepName, stepFunction) ->
-                logger.info("Executing CD step: $stepName")
+                logger.info("DevOps", "Executing CD step: $stepName")
                 val startTime = System.currentTimeMillis()
                 
                 try {
@@ -118,7 +118,7 @@ class CICDPipeline(
                         details = result
                     ))
                     
-                    logger.info("CD step '$stepName' completed successfully in ${duration}ms")
+                    logger.info("DevOps", "CD step '$stepName' completed successfully in ${duration}ms")
                 } catch (e: Exception) {
                     val duration = System.currentTimeMillis() - startTime
                     
@@ -160,7 +160,7 @@ class CICDPipeline(
      * Execute a complete CI/CD pipeline
      */
     suspend fun executeFullPipeline(environment: DeploymentEnvironment): PipelineResult {
-        logger.info("Starting full CI/CD pipeline execution")
+        logger.info("DevOps", "Starting full CI/CD pipeline execution")
         
         val ciResult = executeCI()
         if (ciResult.status == CIStatus.FAILED) {
@@ -198,7 +198,7 @@ class CICDPipeline(
      * Rollback to previous deployment
      */
     suspend fun rollback(environment: DeploymentEnvironment): RollbackResult {
-        logger.info("Starting rollback for environment: $environment")
+        logger.info("DevOps", "Starting rollback for environment: $environment")
         
         return try {
             val rollbackSteps = listOf(
@@ -211,7 +211,7 @@ class CICDPipeline(
             val results = mutableListOf<RollbackStepResult>()
             
             rollbackSteps.forEach { (stepName, stepFunction) ->
-                logger.info("Executing rollback step: $stepName")
+                logger.info("DevOps", "Executing rollback step: $stepName")
                 val startTime = System.currentTimeMillis()
                 
                 try {
@@ -225,7 +225,7 @@ class CICDPipeline(
                         details = result
                     ))
                     
-                    logger.info("Rollback step '$stepName' completed successfully in ${duration}ms")
+                    logger.info("DevOps", "Rollback step '$stepName' completed successfully in ${duration}ms")
                 } catch (e: Exception) {
                     val duration = System.currentTimeMillis() - startTime
                     

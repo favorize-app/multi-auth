@@ -74,7 +74,7 @@ class SmsVerificationService {
             
             sendResult.onSuccess {
                 _verificationState.value = SmsVerificationState.CodeSent(phoneNumber)
-                logger.info("SMS verification code sent successfully to: $phoneNumber")
+                logger.info("mfa", "SMS verification code sent successfully to: $phoneNumber")
             }.onFailure { error ->
                 _verificationState.value = SmsVerificationState.Error(error)
                 _pendingVerifications.remove(user.id)
@@ -99,7 +99,7 @@ class SmsVerificationService {
      */
     suspend fun verifyCode(user: User, code: String): Result<Unit> {
         return try {
-            logger.info("Verifying SMS code for user: ${user.displayName}")
+            logger.info("mfa", "Verifying SMS code for user: ${user.displayName}")
             
             val verification = _pendingVerifications[user.id]
             if (verification == null) {
@@ -162,7 +162,7 @@ class SmsVerificationService {
      */
     suspend fun resendCode(user: User): Result<Unit> {
         return try {
-            logger.info("Resending SMS verification code for user: ${user.displayName}")
+            logger.info("mfa", "Resending SMS verification code for user: ${user.displayName}")
             
             val verification = _pendingVerifications[user.id]
             if (verification == null) {
@@ -191,7 +191,7 @@ class SmsVerificationService {
             
             sendResult.onSuccess {
                 _verificationState.value = SmsVerificationState.CodeSent(verification.phoneNumber)
-                logger.info("SMS verification code resent successfully to: ${verification.phoneNumber}")
+                logger.info("mfa", "SMS verification code resent successfully to: ${verification.phoneNumber}")
             }.onFailure { error ->
                 _verificationState.value = SmsVerificationState.Error(error)
                 logger.error("Failed to resend SMS verification code", error)
@@ -212,7 +212,7 @@ class SmsVerificationService {
      * @param user The user to cancel verification for
      */
     fun cancelVerification(user: User) {
-        logger.info("Cancelling SMS verification for user: ${user.displayName}")
+        logger.info("mfa", "Cancelling SMS verification for user: ${user.displayName}")
         _pendingVerifications.remove(user.id)
         _verificationState.value = SmsVerificationState.Idle
     }
@@ -272,7 +272,7 @@ class SmsVerificationService {
             // 2. Send the actual SMS message
             // 3. Handle delivery status and errors
             
-            logger.info("SMS sent to $phoneNumber with code: $code")
+            logger.info("mfa", "SMS sent to $phoneNumber with code: $code")
             Result.success(Unit)
             
         } catch (e: Exception) {

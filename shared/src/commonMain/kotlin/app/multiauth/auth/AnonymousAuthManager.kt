@@ -54,7 +54,7 @@ class AnonymousAuthManager(
         metadata: Map<String, Any> = emptyMap()
     ): Result<User> {
         return try {
-            logger.info("Creating anonymous user session")
+            logger.info("auth", "Creating anonymous user session")
             
             _anonymousState.value = AnonymousAuthState.CreatingSession
             
@@ -101,7 +101,7 @@ class AnonymousAuthManager(
             // Dispatch success event
             eventBus.dispatch(AuthEvent.Anonymous.AnonymousSessionCreated(user, anonymousUser))
             
-            logger.info("Anonymous user session created: $anonymousId")
+            logger.info("auth", "Anonymous user session created: $anonymousId")
             Result.success(user)
             
         } catch (e: Exception) {
@@ -128,7 +128,7 @@ class AnonymousAuthManager(
         displayName: String
     ): Result<User> {
         return try {
-            logger.info("Converting anonymous user to permanent account: ${anonymousUser.id}")
+            logger.info("auth", "Converting anonymous user to permanent account: ${anonymousUser.id}")
             
             _anonymousState.value = AnonymousAuthState.ConvertingAccount
             
@@ -167,7 +167,7 @@ class AnonymousAuthManager(
             // Dispatch success event
             eventBus.dispatch(AuthEvent.Anonymous.AnonymousUserConverted(anonymousUser, permanentUser))
             
-            logger.info("Anonymous user converted to permanent account: ${anonymousUser.id} -> ${permanentUser.id}")
+            logger.info("auth", "Anonymous user converted to permanent account: ${anonymousUser.id} -> ${permanentUser.id}")
             Result.success(permanentUser)
             
         } catch (e: Exception) {
@@ -190,7 +190,7 @@ class AnonymousAuthManager(
         additionalHours: Long
     ): Result<Unit> {
         return try {
-            logger.info("Extending anonymous user session: ${anonymousUser.id}")
+            logger.info("auth", "Extending anonymous user session: ${anonymousUser.id}")
             
             val anonymousUserData = _anonymousUsers.value[anonymousUser.id]
             if (anonymousUserData == null) {
@@ -211,7 +211,7 @@ class AnonymousAuthManager(
             // Dispatch success event
             eventBus.dispatch(AuthEvent.Anonymous.AnonymousSessionExtended(anonymousUser, additionalHours))
             
-            logger.info("Anonymous user session extended: ${anonymousUser.id}")
+            logger.info("auth", "Anonymous user session extended: ${anonymousUser.id}")
             Result.success(Unit)
             
         } catch (e: Exception) {
@@ -228,7 +228,7 @@ class AnonymousAuthManager(
      */
     suspend fun terminateSession(anonymousUser: User): Result<Unit> {
         return try {
-            logger.info("Terminating anonymous user session: ${anonymousUser.id}")
+            logger.info("auth", "Terminating anonymous user session: ${anonymousUser.id}")
             
             val anonymousUserData = _anonymousUsers.value[anonymousUser.id]
             if (anonymousUserData == null) {
@@ -249,7 +249,7 @@ class AnonymousAuthManager(
             // Dispatch success event
             eventBus.dispatch(AuthEvent.Anonymous.AnonymousSessionTerminated(anonymousUser))
             
-            logger.info("Anonymous user session terminated: ${anonymousUser.id}")
+            logger.info("auth", "Anonymous user session terminated: ${anonymousUser.id}")
             Result.success(Unit)
             
         } catch (e: Exception) {
@@ -302,7 +302,7 @@ class AnonymousAuthManager(
                         _anonymousUsers.value = _anonymousUsers.value + (id to updatedUser)
                     }
                     
-                    logger.info("Cleaned up ${expiredUsers.size} expired anonymous sessions")
+                    logger.info("auth", "Cleaned up ${expiredUsers.size} expired anonymous sessions")
                 }
             } catch (e: Exception) {
                 logger.error("Failed to cleanup expired sessions", e)

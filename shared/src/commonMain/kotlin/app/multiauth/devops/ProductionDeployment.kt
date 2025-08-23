@@ -34,7 +34,7 @@ class ProductionDeployment(
         artifacts: List<Artifact>,
         deploymentStrategy: DeploymentStrategy = DeploymentStrategy.BLUE_GREEN
     ): DeploymentResult {
-        logger.info("Starting production deployment for version: $version")
+        logger.info("DevOps", "Starting production deployment for version: $version")
         
         return try {
             _deploymentStatus.value = DeploymentStatus.DEPLOYING
@@ -71,7 +71,7 @@ class ProductionDeployment(
             
             _deploymentStatus.value = DeploymentStatus.IDLE
             
-            logger.info("Production deployment completed successfully for version: $version")
+            logger.info("DevOps", "Production deployment completed successfully for version: $version")
             result
             
         } catch (e: Exception) {
@@ -101,7 +101,7 @@ class ProductionDeployment(
         version: String,
         artifacts: List<Artifact>
     ): DeploymentResult {
-        logger.info("Starting staging deployment for version: $version")
+        logger.info("DevOps", "Starting staging deployment for version: $version")
         
         return try {
             val deployment = Deployment(
@@ -129,7 +129,7 @@ class ProductionDeployment(
             // Update environment status
             updateEnvironmentStatus("staging", EnvironmentStatus.DEPLOYED)
             
-            logger.info("Staging deployment completed successfully for version: $version")
+            logger.info("DevOps", "Staging deployment completed successfully for version: $version")
             result
             
         } catch (e: Exception) {
@@ -155,7 +155,7 @@ class ProductionDeployment(
      * Rollback to previous version
      */
     suspend fun rollback(environment: String, targetVersion: String? = null): RollbackResult {
-        logger.info("Starting rollback for environment: $environment")
+        logger.info("DevOps", "Starting rollback for environment: $environment")
         
         return try {
             val currentDeployment = _deployments.value
@@ -179,7 +179,7 @@ class ProductionDeployment(
             // Update environment status
             updateEnvironmentStatus(environment, EnvironmentStatus.ROLLED_BACK)
             
-            logger.info("Rollback completed successfully for environment: $environment to version: $rollbackVersion")
+            logger.info("DevOps", "Rollback completed successfully for environment: $environment to version: $rollbackVersion")
             result
             
         } catch (e: Exception) {
@@ -290,7 +290,7 @@ class ProductionDeployment(
     // Private deployment strategy implementations
     
     private suspend fun executeBlueGreenDeployment(deployment: Deployment): DeploymentResult {
-        logger.info("Executing blue-green deployment for version: ${deployment.version}")
+        logger.info("DevOps", "Executing blue-green deployment for version: ${deployment.version}")
         
         val steps = listOf(
             "Prepare Green Environment" to { prepareGreenEnvironment(deployment) },
@@ -305,7 +305,7 @@ class ProductionDeployment(
     }
     
     private suspend fun executeRollingDeployment(deployment: Deployment): DeploymentResult {
-        logger.info("Executing rolling deployment for version: ${deployment.version}")
+        logger.info("DevOps", "Executing rolling deployment for version: ${deployment.version}")
         
         val steps = listOf(
             "Prepare Rolling Update" to { prepareRollingUpdate(deployment) },
@@ -320,7 +320,7 @@ class ProductionDeployment(
     }
     
     private suspend fun executeCanaryDeployment(deployment: Deployment): DeploymentResult {
-        logger.info("Executing canary deployment for version: ${deployment.version}")
+        logger.info("DevOps", "Executing canary deployment for version: ${deployment.version}")
         
         val steps = listOf(
             "Prepare Canary Environment" to { prepareCanaryEnvironment(deployment) },
@@ -335,7 +335,7 @@ class ProductionDeployment(
     }
     
     private suspend fun executeRecreateDeployment(deployment: Deployment): DeploymentResult {
-        logger.info("Executing recreate deployment for version: ${deployment.version}")
+        logger.info("DevOps", "Executing recreate deployment for version: ${deployment.version}")
         
         val steps = listOf(
             "Stop Current Deployment" to { stopCurrentDeployment(deployment) },
@@ -348,7 +348,7 @@ class ProductionDeployment(
     }
     
     private suspend fun executeStagingDeployment(deployment: Deployment): DeploymentResult {
-        logger.info("Executing staging deployment for version: ${deployment.version}")
+        logger.info("DevOps", "Executing staging deployment for version: ${deployment.version}")
         
         val steps = listOf(
             "Prepare Staging Environment" to { prepareStagingEnvironment(deployment) },
@@ -369,7 +369,7 @@ class ProductionDeployment(
         
         steps.forEach { (stepName, stepFunction) ->
             try {
-                logger.info("Executing deployment step: $stepName")
+                logger.info("DevOps", "Executing deployment step: $stepName")
                 val startTime = System.currentTimeMillis()
                 
                 val result = stepFunction()
@@ -382,7 +382,7 @@ class ProductionDeployment(
                     details = result
                 ))
                 
-                logger.info("Deployment step '$stepName' completed successfully in ${duration}ms")
+                logger.info("DevOps", "Deployment step '$stepName' completed successfully in ${duration}ms")
                 
             } catch (e: Exception) {
                 val duration = System.currentTimeMillis() - startTime
@@ -410,7 +410,7 @@ class ProductionDeployment(
     }
     
     private suspend fun executeRollback(environment: String, version: String): RollbackResult {
-        logger.info("Executing rollback for environment: $environment to version: $version")
+        logger.info("DevOps", "Executing rollback for environment: $environment to version: $version")
         
         val steps = listOf(
             "Stop Current Deployment" to { stopCurrentDeployment(environment) },
@@ -423,7 +423,7 @@ class ProductionDeployment(
         
         steps.forEach { (stepName, stepFunction) ->
             try {
-                logger.info("Executing rollback step: $stepName")
+                logger.info("DevOps", "Executing rollback step: $stepName")
                 val startTime = System.currentTimeMillis()
                 
                 val result = stepFunction()
@@ -436,7 +436,7 @@ class ProductionDeployment(
                     details = result
                 ))
                 
-                logger.info("Rollback step '$stepName' completed successfully in ${duration}ms")
+                logger.info("DevOps", "Rollback step '$stepName' completed successfully in ${duration}ms")
                 
             } catch (e: Exception) {
                 val duration = System.currentTimeMillis() - startTime

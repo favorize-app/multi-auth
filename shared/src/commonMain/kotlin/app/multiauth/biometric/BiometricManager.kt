@@ -48,7 +48,7 @@ class BiometricManager(
      */
     suspend fun checkBiometricAvailability(): Result<BiometricAvailability> {
         return try {
-            logger.info("Checking biometric availability")
+            logger.info("biometrics", "Checking biometric availability")
             
             if (!PlatformUtils.supportsFeature(app.multiauth.platform.PlatformFeature.BIOMETRICS)) {
                 logger.info("Biometrics not supported on current platform: ${PlatformUtils.currentPlatform}")
@@ -97,7 +97,7 @@ class BiometricManager(
         cancelMessage: String = "Cancel"
     ): Result<User> {
         return try {
-            logger.info("Starting biometric authentication")
+            logger.info("biometrics", "Starting biometric authentication")
             
             if (!_isBiometricAvailable.value) {
                 logger.warn("Biometric authentication not available")
@@ -110,7 +110,7 @@ class BiometricManager(
             val result = platformBiometric.authenticate(promptMessage, cancelMessage)
             
             result.onSuccess { user ->
-                logger.info("Biometric authentication successful for user: ${user.displayName}")
+                logger.info("biometrics", "Biometric authentication successful for user: ${user.displayName}")
                 _biometricState.value = BiometricState.Success(user)
                 _biometricState.value = BiometricState.Idle
                 
@@ -145,7 +145,7 @@ class BiometricManager(
      */
     suspend fun enableBiometric(user: User): Result<Unit> {
         return try {
-            logger.info("Enabling biometric authentication for user: ${user.displayName}")
+            logger.info("biometrics", "Enabling biometric authentication for user: ${user.displayName}")
             
             if (!_isBiometricAvailable.value) {
                 logger.warn("Biometric authentication not available")
@@ -192,7 +192,7 @@ class BiometricManager(
      */
     suspend fun disableBiometric(user: User): Result<Unit> {
         return try {
-            logger.info("Disabling biometric authentication for user: ${user.displayName}")
+            logger.info("biometrics", "Disabling biometric authentication for user: ${user.displayName}")
             
             _biometricState.value = BiometricState.Disabling
             

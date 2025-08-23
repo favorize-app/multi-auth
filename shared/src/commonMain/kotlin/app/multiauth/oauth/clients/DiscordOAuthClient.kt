@@ -51,7 +51,7 @@ class DiscordOAuthClient(
         }
         
         val authUrl = "$AUTH_URL$params"
-        logger.debug("Generated Discord OAuth authorization URL: $authUrl")
+        logger.debug("oath", "Generated Discord OAuth authorization URL: $authUrl")
         return authUrl
     }
     
@@ -60,7 +60,7 @@ class DiscordOAuthClient(
         codeVerifier: String
     ): OAuthResult {
         return try {
-            logger.debug("Exchanging authorization code for Discord tokens")
+            logger.debug("oath", "Exchanging authorization code for Discord tokens")
             
             val tokenRequest = DiscordTokenRequest(
                 clientId = config.clientId,
@@ -80,7 +80,7 @@ class DiscordOAuthClient(
             
             if (response.status.isSuccess()) {
                 val tokenResponse = json.decodeFromString<DiscordTokenResponse>(response.bodyAsText())
-                logger.debug("Successfully exchanged code for Discord tokens")
+                logger.debug("oath", "Successfully exchanged code for Discord tokens")
                 
                 OAuthResult.Success(
                     accessToken = tokenResponse.accessToken,
@@ -91,7 +91,7 @@ class DiscordOAuthClient(
                 )
             } else {
                 val errorResponse = json.decodeFromString<DiscordErrorResponse>(response.bodyAsText())
-                logger.error("Failed to exchange code for Discord tokens: ${errorResponse.error}")
+                logger.error("oath", "Failed to exchange code for Discord tokens: ${errorResponse.error}")
                 
                 OAuthResult.Error(
                     OAuthError.TokenExchangeFailed(
@@ -113,7 +113,7 @@ class DiscordOAuthClient(
     
     override suspend fun refreshAccessToken(refreshToken: String): OAuthResult {
         return try {
-            logger.debug("Refreshing Discord access token")
+            logger.debug("oath", "Refreshing Discord access token")
             
             val refreshRequest = DiscordRefreshRequest(
                 clientId = config.clientId,
@@ -131,7 +131,7 @@ class DiscordOAuthClient(
             
             if (response.status.isSuccess()) {
                 val tokenResponse = json.decodeFromString<DiscordTokenResponse>(response.bodyAsText())
-                logger.debug("Successfully refreshed Discord access token")
+                logger.debug("oath", "Successfully refreshed Discord access token")
                 
                 OAuthResult.Success(
                     accessToken = tokenResponse.accessToken,
@@ -142,7 +142,7 @@ class DiscordOAuthClient(
                 )
             } else {
                 val errorResponse = json.decodeFromString<DiscordErrorResponse>(response.bodyAsText())
-                logger.error("Failed to refresh Discord access token: ${errorResponse.error}")
+                logger.error("oath", "Failed to refresh Discord access token: ${errorResponse.error}")
                 
                 OAuthResult.Error(
                     OAuthError.TokenRefreshFailed(
@@ -164,7 +164,7 @@ class DiscordOAuthClient(
     
     override suspend fun getUserInfo(accessToken: String): OAuthResult {
         return try {
-            logger.debug("Fetching Discord user info")
+            logger.debug("oath", "Fetching Discord user info")
             
             val response = withContext(Dispatchers.IO) {
                 httpClient.get(USER_INFO_URL) {
@@ -174,7 +174,7 @@ class DiscordOAuthClient(
             
             if (response.status.isSuccess()) {
                 val userInfo = json.decodeFromString<DiscordUserInfo>(response.bodyAsText())
-                logger.debug("Successfully fetched Discord user info: ${userInfo.username}")
+                logger.debug("oath", "Successfully fetched Discord user info: ${userInfo.username}")
                 
                 OAuthResult.Success(
                     userInfo = OAuthUserInfo(
@@ -190,7 +190,7 @@ class DiscordOAuthClient(
                 )
             } else {
                 val errorResponse = json.decodeFromString<DiscordErrorResponse>(response.bodyAsText())
-                logger.error("Failed to fetch Discord user info: ${errorResponse.error}")
+                logger.error("oath", "Failed to fetch Discord user info: ${errorResponse.error}")
                 
                 OAuthResult.Error(
                     OAuthError.UserInfoFetchFailed(
@@ -212,7 +212,7 @@ class DiscordOAuthClient(
     
     override suspend fun revokeToken(token: String): Boolean {
         return try {
-            logger.debug("Revoking Discord OAuth token")
+            logger.debug("oath", "Revoking Discord OAuth token")
             
             val response = withContext(Dispatchers.IO) {
                 httpClient.post(REVOKE_URL) {
@@ -223,9 +223,9 @@ class DiscordOAuthClient(
             
             val success = response.status.isSuccess()
             if (success) {
-                logger.debug("Successfully revoked Discord OAuth token")
+                logger.debug("oath", "Successfully revoked Discord OAuth token")
             } else {
-                logger.warn("Failed to revoke Discord OAuth token: ${response.status}")
+                logger.warn("discord", "Failed to revoke Discord OAuth token: ${response.status}")
             }
             
             success
@@ -237,7 +237,7 @@ class DiscordOAuthClient(
     
     override suspend fun validateToken(accessToken: String): Boolean {
         return try {
-            logger.debug("Validating Discord OAuth token")
+            logger.debug("oath", "Validating Discord OAuth token")
             
             val response = withContext(Dispatchers.IO) {
                 httpClient.get(USER_INFO_URL) {
@@ -246,7 +246,7 @@ class DiscordOAuthClient(
             }
             
             val isValid = response.status.isSuccess()
-            logger.debug("Discord OAuth token validation result: $isValid")
+            logger.debug("oath", "Discord OAuth token validation result: $isValid")
             
             isValid
         } catch (e: Exception) {
