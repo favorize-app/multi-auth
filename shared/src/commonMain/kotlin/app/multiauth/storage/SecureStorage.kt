@@ -1,6 +1,7 @@
 package app.multiauth.storage
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 
 /**
  * Interface for secure storage operations across different platforms.
