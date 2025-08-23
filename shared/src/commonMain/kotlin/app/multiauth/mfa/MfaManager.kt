@@ -74,7 +74,7 @@ class MfaManager(
             result
             
         } catch (e: Exception) {
-            logger.error("Unexpected error enabling MFA", e)
+            logger.error("mfa", "Unexpected error enabling MFA", e)
             _mfaState.value = MfaState.Error(e)
             _mfaState.value = MfaState.Idle
             Result.failure(e)
@@ -120,7 +120,7 @@ class MfaManager(
             result
             
         } catch (e: Exception) {
-            logger.error("Unexpected error disabling MFA", e)
+            logger.error("mfa", "Unexpected error disabling MFA", e)
             _mfaState.value = MfaState.Error(e)
             _mfaState.value = MfaState.Idle
             Result.failure(e)
@@ -170,7 +170,7 @@ class MfaManager(
             result
             
         } catch (e: Exception) {
-            logger.error("Unexpected error during MFA verification", e)
+            logger.error("mfa", "Unexpected error during MFA verification", e)
             _mfaState.value = MfaState.Error(e)
             _mfaState.value = MfaState.Idle
             Result.failure(e)
@@ -201,7 +201,7 @@ class MfaManager(
             Result.success(codes)
             
         } catch (e: Exception) {
-            logger.error("Failed to generate backup codes", e)
+            logger.error("mfa", "Failed to generate backup codes", e)
             _mfaState.value = MfaState.Error(e)
             _mfaState.value = MfaState.Idle
             Result.failure(e)

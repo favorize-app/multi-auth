@@ -49,7 +49,7 @@ class DevOpsAutomation(
             true
             
         } catch (e: Exception) {
-            logger.error("Failed to initialize DevOps automation system", e)
+            logger.error("devops", "Failed to initialize DevOps automation system", e)
             false
         }
     }
@@ -88,7 +88,7 @@ class DevOpsAutomation(
             )
             
         } catch (e: Exception) {
-            logger.error("Infrastructure provisioning failed for environment: $environment", e)
+            logger.error("devops", "Infrastructure provisioning failed for environment: $environment", e)
             _automationStatus.value = AutomationStatus.FAILED
             _infrastructureState.value = InfrastructureState.FAILED
             
@@ -134,7 +134,7 @@ class DevOpsAutomation(
             )
             
         } catch (e: Exception) {
-            logger.error("Infrastructure deployment failed for environment: $environment", e)
+            logger.error("devops", "Infrastructure deployment failed for environment: $environment", e)
             _automationStatus.value = AutomationStatus.FAILED
             
             DeploymentResult(
@@ -179,7 +179,7 @@ class DevOpsAutomation(
             )
             
         } catch (e: Exception) {
-            logger.error("Infrastructure scaling failed for environment: $environment", e)
+            logger.error("devops", "Infrastructure scaling failed for environment: $environment", e)
             _automationStatus.value = AutomationStatus.FAILED
             
             ScalingResult(
@@ -222,7 +222,7 @@ class DevOpsAutomation(
             )
             
         } catch (e: Exception) {
-            logger.error("Infrastructure backup failed for environment: $environment", e)
+            logger.error("devops", "Infrastructure backup failed for environment: $environment", e)
             _automationStatus.value = AutomationStatus.FAILED
             
             BackupResult(
@@ -269,7 +269,7 @@ class DevOpsAutomation(
             )
             
         } catch (e: Exception) {
-            logger.error("Infrastructure restore failed for environment: $environment", e)
+            logger.error("devops", "Infrastructure restore failed for environment: $environment", e)
             _automationStatus.value = AutomationStatus.FAILED
             
             RestoreResult(
@@ -324,7 +324,7 @@ class DevOpsAutomation(
                         error = e
                     ))
                     
-                    logger.error("Workflow step '${step.name}' failed after ${duration}ms", e)
+                    logger.error("devops", "Workflow step '${step.name}' failed after ${duration}ms", e)
                     throw e
                 }
             }
@@ -350,7 +350,7 @@ class DevOpsAutomation(
             // Update workflow in list
             updateWorkflow(workflow)
             
-            logger.error("Workflow execution failed: ${workflow.name}", e)
+            logger.error("devops", "Workflow execution failed: ${workflow.name}", e)
             
             WorkflowResult(
                 workflowId = workflow.id,

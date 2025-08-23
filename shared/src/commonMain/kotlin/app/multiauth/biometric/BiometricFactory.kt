@@ -143,7 +143,7 @@ class MockBiometricProvider : PlatformBiometric {
             Result.success(availability)
             
         } catch (e: Exception) {
-            logger.error("Mock biometric: availability check failed", e)
+            logger.error("biometrics", "Mock biometric: availability check failed", e)
             Result.failure(e)
         }
     }
@@ -177,7 +177,7 @@ class MockBiometricProvider : PlatformBiometric {
             Result.success(user)
             
         } catch (e: Exception) {
-            logger.error("Mock biometric: authentication failed", e)
+            logger.error("biometrics", "Mock biometric: authentication failed", e)
             Result.failure(e)
         }
     }
@@ -193,7 +193,7 @@ class MockBiometricProvider : PlatformBiometric {
             Result.success(Unit)
             
         } catch (e: Exception) {
-            logger.error("Mock biometric: failed to enable", e)
+            logger.error("biometrics", "Mock biometric: failed to enable", e)
             Result.failure(e)
         }
     }
@@ -209,7 +209,7 @@ class MockBiometricProvider : PlatformBiometric {
             Result.success(Unit)
             
         } catch (e: Exception) {
-            logger.error("Mock biometric: failed to disable", e)
+            logger.error("biometrics", "Mock biometric: failed to disable", e)
             Result.failure(e)
         }
     }

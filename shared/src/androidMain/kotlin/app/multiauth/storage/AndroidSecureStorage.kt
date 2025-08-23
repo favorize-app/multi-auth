@@ -63,7 +63,7 @@ class AndroidSecureStorage(
             logger.debug("secure storage", "Successfully stored encrypted value for key: $key")
             true
         } catch (e: Exception) {
-            logger.error("Failed to store value for key: $key", e)
+            logger.error("secure storage", "Failed to store value for key: $key", e)
             false
         }
     }
@@ -82,7 +82,7 @@ class AndroidSecureStorage(
             logger.debug("secure storage", "Successfully retrieved value for key: $key")
             decryptedValue
         } catch (e: Exception) {
-            logger.error("Failed to retrieve value for key: $key", e)
+            logger.error("secure storage", "Failed to retrieve value for key: $key", e)
             null
         }
     }
@@ -103,7 +103,7 @@ class AndroidSecureStorage(
             
             removed
         } catch (e: Exception) {
-            logger.error("Exception while removing value for key: $key", e)
+            logger.error("secure storage", "Exception while removing value for key: $key", e)
             false
         }
     }
@@ -114,7 +114,7 @@ class AndroidSecureStorage(
             logger.debug("secure storage", "Key $key exists: $exists")
             exists
         } catch (e: Exception) {
-            logger.error("Exception while checking if key exists: $key", e)
+            logger.error("secure storage", "Exception while checking if key exists: $key", e)
             false
         }
     }
@@ -135,7 +135,7 @@ class AndroidSecureStorage(
             
             cleared
         } catch (e: Exception) {
-            logger.error("Exception while clearing secure storage", e)
+            logger.error("secure storage", "Exception while clearing secure storage", e)
             false
         }
     }
@@ -146,7 +146,7 @@ class AndroidSecureStorage(
             logger.debug("secure storage", "Retrieved ${allKeys.size} keys from secure storage")
             emit(allKeys)
         } catch (e: Exception) {
-            logger.error("Exception while retrieving all keys", e)
+            logger.error("secure storage", "Exception while retrieving all keys", e)
             emit(emptySet())
         }
     }.flowOn(Dispatchers.IO)
@@ -157,7 +157,7 @@ class AndroidSecureStorage(
             logger.debug("secure storage", "Secure storage contains $count items")
             count
         } catch (e: Exception) {
-            logger.error("Exception while getting item count", e)
+            logger.error("secure storage", "Exception while getting item count", e)
             0
         }
     }

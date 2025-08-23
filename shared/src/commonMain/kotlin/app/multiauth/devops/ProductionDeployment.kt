@@ -75,7 +75,7 @@ class ProductionDeployment(
             result
             
         } catch (e: Exception) {
-            logger.error("Production deployment failed for version: $version", e)
+            logger.error("devops", "Production deployment failed for version: $version", e)
             _deploymentStatus.value = DeploymentStatus.FAILED
             
             // Update deployment status to failed
@@ -133,7 +133,7 @@ class ProductionDeployment(
             result
             
         } catch (e: Exception) {
-            logger.error("Staging deployment failed for version: $version", e)
+            logger.error("devops", "Staging deployment failed for version: $version", e)
             
             // Update deployment status to failed
             val deploymentId = _deployments.value.lastOrNull()?.id
@@ -183,7 +183,7 @@ class ProductionDeployment(
             result
             
         } catch (e: Exception) {
-            logger.error("Rollback failed for environment: $environment", e)
+            logger.error("devops", "Rollback failed for environment: $environment", e)
             RollbackResult(
                 environment = environment,
                 status = RollbackStatus.FAILED,
@@ -266,7 +266,7 @@ class ProductionDeployment(
                         error = e
                     ))
                     
-                    logger.error("Validation '$validationName' failed", e)
+                    logger.error("devops", "Validation '$validationName' failed", e)
                 }
             }
             
@@ -277,7 +277,7 @@ class ProductionDeployment(
             )
             
         } catch (e: Exception) {
-            logger.error("Deployment configuration validation failed", e)
+            logger.error("devops", "Deployment configuration validation failed", e)
             ValidationResult(
                 isValid = false,
                 validations = emptyList(),
@@ -395,7 +395,7 @@ class ProductionDeployment(
                     error = e
                 ))
                 
-                logger.error("Deployment step '$stepName' failed after ${duration}ms", e)
+                logger.error("devops", "Deployment step '$stepName' failed after ${duration}ms", e)
                 throw e
             }
         }
@@ -449,7 +449,7 @@ class ProductionDeployment(
                     error = e
                 ))
                 
-                logger.error("Rollback step '$stepName' failed after ${duration}ms", e)
+                logger.error("devops", "Rollback step '$stepName' failed after ${duration}ms", e)
                 throw e
             }
         }

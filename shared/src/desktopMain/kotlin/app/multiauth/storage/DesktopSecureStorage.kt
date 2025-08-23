@@ -61,7 +61,7 @@ class DesktopSecureStorage : SecureStorage {
             logger.debug("DesktopSecureStorage", "Successfully stored encrypted value for key: $key")
             true
         } catch (e: Exception) {
-            logger.error("Failed to store value for key: $key", e)
+            logger.error("storage", "Failed to store value for key: $key", e)
             false
         }
     }
@@ -83,7 +83,7 @@ class DesktopSecureStorage : SecureStorage {
             logger.debug("DesktopSecureStorage", "Successfully retrieved value for key: $key")
             decryptedValue
         } catch (e: Exception) {
-            logger.error("Failed to retrieve value for key: $key", e)
+            logger.error("storage", "Failed to retrieve value for key: $key", e)
             null
         }
     }
@@ -106,7 +106,7 @@ class DesktopSecureStorage : SecureStorage {
                 true
             }
         } catch (e: Exception) {
-            logger.error("Exception while removing value for key: $key", e)
+            logger.error("storage", "Exception while removing value for key: $key", e)
             false
         }
     }
@@ -118,7 +118,7 @@ class DesktopSecureStorage : SecureStorage {
             logger.debug("DesktopSecureStorage", "Key $key exists: $exists")
             exists
         } catch (e: Exception) {
-            logger.error("Exception while checking if key exists: $key", e)
+            logger.error("storage", "Exception while checking if key exists: $key", e)
             false
         }
     }
@@ -141,7 +141,7 @@ class DesktopSecureStorage : SecureStorage {
             logger.debug("DesktopSecureStorage", "Successfully cleared $deletedCount files from secure storage")
             true
         } catch (e: Exception) {
-            logger.error("Exception while clearing secure storage", e)
+            logger.error("storage", "Exception while clearing secure storage", e)
             false
         }
     }
@@ -162,7 +162,7 @@ class DesktopSecureStorage : SecureStorage {
             logger.debug("DesktopSecureStorage", "Retrieved ${keys.size} keys from secure storage")
             emit(keys)
         } catch (e: Exception) {
-            logger.error("Exception while retrieving all keys", e)
+            logger.error("storage", "Exception while retrieving all keys", e)
             emit(emptySet())
         }
     }.flowOn(Dispatchers.IO)
@@ -177,7 +177,7 @@ class DesktopSecureStorage : SecureStorage {
             logger.debug("DesktopSecureStorage", "Secure storage contains $count items")
             count
         } catch (e: Exception) {
-            logger.error("Exception while getting item count", e)
+            logger.error("storage", "Exception while getting item count", e)
             0
         }
     }
@@ -199,7 +199,7 @@ class DesktopSecureStorage : SecureStorage {
             
             keyStore
         } catch (e: Exception) {
-            logger.error("Failed to initialize keystore", e)
+            logger.error("storage", "Failed to initialize keystore", e)
             // Fallback to in-memory keystore
             KeyStore.getInstance(KEYSTORE_TYPE).apply {
                 load(null, getKeyStorePassword())
@@ -219,7 +219,7 @@ class DesktopSecureStorage : SecureStorage {
             
             storagePath
         } catch (e: Exception) {
-            logger.error("Failed to create storage directory", e)
+            logger.error("storage", "Failed to create storage directory", e)
             // Fallback to temp directory
             val tempPath = Files.createTempDirectory("multiauth_secure_storage")
             logger.debug("DesktopSecureStorage", "Using temporary storage directory: $tempPath")
@@ -352,7 +352,7 @@ class DesktopSecureStorage : SecureStorage {
             logger.info("secure storage", "Keystore exported to: $backupFile")
             true
         } catch (e: Exception) {
-            logger.error("Failed to export keystore", e)
+            logger.error("storage", "Failed to export keystore", e)
             false
         }
     }
@@ -387,7 +387,7 @@ class DesktopSecureStorage : SecureStorage {
                 false
             }
         } catch (e: Exception) {
-            logger.error("Failed to import keystore", e)
+            logger.error("secure storage", "Failed to import keystore", e)
             false
         }
     }

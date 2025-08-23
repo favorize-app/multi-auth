@@ -84,7 +84,7 @@ class SmsVerificationService {
             sendResult
             
         } catch (e: Exception) {
-            logger.error("Unexpected error during SMS verification initiation", e)
+            logger.error("mfa", "Unexpected error during SMS verification initiation", e)
             _verificationState.value = SmsVerificationState.Error(e)
             Result.failure(e)
         }
@@ -148,7 +148,7 @@ class SmsVerificationService {
             }
             
         } catch (e: Exception) {
-            logger.error("Unexpected error during SMS code verification", e)
+            logger.error("mfa", "Unexpected error during SMS code verification", e)
             _verificationState.value = SmsVerificationState.Error(e)
             Result.failure(e)
         }
@@ -200,7 +200,7 @@ class SmsVerificationService {
             sendResult
             
         } catch (e: Exception) {
-            logger.error("Unexpected error during SMS code resend", e)
+            logger.error("mfa", "Unexpected error during SMS code resend", e)
             _verificationState.value = SmsVerificationState.Error(e)
             Result.failure(e)
         }
@@ -276,7 +276,7 @@ class SmsVerificationService {
             Result.success(Unit)
             
         } catch (e: Exception) {
-            logger.error("Failed to send SMS to $phoneNumber", e)
+            logger.error("mfa", "Failed to send SMS to $phoneNumber", e)
             Result.failure(e)
         }
     }

@@ -101,7 +101,7 @@ class MicrosoftOAuthClient(
                 )
             }
         } catch (e: Exception) {
-            logger.error("Exception during Microsoft token exchange", e)
+            logger.error("microsoft", "Exception during Microsoft token exchange", e)
             OAuthResult.Error(
                 OAuthError.TokenExchangeFailed(
                     error = "token_exchange_failed",
@@ -152,7 +152,7 @@ class MicrosoftOAuthClient(
                 )
             }
         } catch (e: Exception) {
-            logger.error("Exception during Microsoft token refresh", e)
+            logger.error("microsoft", "Exception during Microsoft token refresh", e)
             OAuthResult.Error(
                 OAuthError.TokenRefreshFailed(
                     error = "token_refresh_failed",
@@ -201,7 +201,7 @@ class MicrosoftOAuthClient(
                 )
             }
         } catch (e: Exception) {
-            logger.error("Exception during Microsoft user info fetch", e)
+            logger.error("microsoft", "Exception during Microsoft user info fetch", e)
             OAuthResult.Error(
                 OAuthError.UserInfoFetchFailed(
                     error = "user_info_fetch_failed",
@@ -222,7 +222,7 @@ class MicrosoftOAuthClient(
             // Return true to indicate "success" since we can't actually revoke
             true
         } catch (e: Exception) {
-            logger.error("Exception during Microsoft token revocation", e)
+            logger.error("microsoft", "Exception during Microsoft token revocation", e)
             false
         }
     }
@@ -243,7 +243,7 @@ class MicrosoftOAuthClient(
             
             isValid
         } catch (e: Exception) {
-            logger.error("Exception during Microsoft token validation", e)
+            logger.error("microsoft", "Exception during Microsoft token validation", e)
             false
         }
     }

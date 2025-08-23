@@ -112,7 +112,7 @@ class OAuthManager(
             }
             
         } catch (e: Exception) {
-            logger.error("Unexpected error during OAuth sign-in", e)
+            logger.error("oauth", "Unexpected error during OAuth sign-in", e)
             _oauthState.value = OAuthState.Error(e)
             _oauthState.value = OAuthState.Idle
             Result.failure(e)
@@ -143,7 +143,7 @@ class OAuthManager(
             Result.success(Unit)
             
         } catch (e: Exception) {
-            logger.error("Failed to sign out OAuth user", e)
+            logger.error("oauth", "Failed to sign out OAuth user", e)
             Result.failure(e)
         }
     }
@@ -175,7 +175,7 @@ class OAuthManager(
             }
             
         } catch (e: Exception) {
-            logger.error("Unexpected error during token refresh", e)
+            logger.error("oauth", "Unexpected error during token refresh", e)
             Result.failure(e)
         }
     }

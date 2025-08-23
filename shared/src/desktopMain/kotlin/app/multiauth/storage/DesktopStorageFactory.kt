@@ -135,7 +135,7 @@ object DesktopStorageFactory {
             }
             true
         } catch (e: Exception) {
-            logger.error("Failed to create default storage directory", e)
+            logger.error("DesktopStorageFactory", "Failed to create default storage directory", e)
             false
         }
     }

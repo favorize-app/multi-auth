@@ -73,7 +73,7 @@ class DevOpsManager(
             }
             
         } catch (e: Exception) {
-            logger.error("Failed to initialize DevOps manager", e)
+            logger.error("devops", "Failed to initialize DevOps manager", e)
             _systemStatus.value = DevOpsSystemStatus.FAILED
             _healthStatus.value = HealthStatus.UNHEALTHY
             false
@@ -101,7 +101,7 @@ class DevOpsManager(
             result
             
         } catch (e: Exception) {
-            logger.error("CI/CD pipeline execution failed", e)
+            logger.error("devops", "CI/CD pipeline execution failed", e)
             CICDPipelineResult(
                 pipelineId = "",
                 status = PipelineStatus.FAILED,
@@ -130,7 +130,7 @@ class DevOpsManager(
             started
             
         } catch (e: Exception) {
-            logger.error("Failed to start production monitoring", e)
+            logger.error("devops", "Failed to start production monitoring", e)
             false
         }
     }
@@ -157,7 +157,7 @@ class DevOpsManager(
             result
             
         } catch (e: Exception) {
-            logger.error("Production deployment failed", e)
+            logger.error("devops", "Production deployment failed", e)
             DeploymentResult(
                 deploymentId = "",
                 status = DeploymentStatus.FAILED,
@@ -189,7 +189,7 @@ class DevOpsManager(
             result
             
         } catch (e: Exception) {
-            logger.error("Infrastructure provisioning failed", e)
+            logger.error("devops", "Infrastructure provisioning failed", e)
             ProvisionResult(
                 environment = environment,
                 status = ProvisionStatus.FAILED,
@@ -220,7 +220,7 @@ class DevOpsManager(
             _healthStatus.value
             
         } catch (e: Exception) {
-            logger.error("Failed to check system health", e)
+            logger.error("devops", "Failed to check system health", e)
             _healthStatus.value = HealthStatus.UNHEALTHY
             HealthStatus.UNHEALTHY
         }
@@ -261,7 +261,7 @@ class DevOpsManager(
             result
             
         } catch (e: Exception) {
-            logger.error("Emergency rollback failed", e)
+            logger.error("devops", "Emergency rollback failed", e)
             RollbackResult(
                 environment = environment,
                 status = RollbackStatus.FAILED,
@@ -314,7 +314,7 @@ class DevOpsManager(
             )
             
         } catch (e: Exception) {
-            logger.error("System backup failed", e)
+            logger.error("devops", "System backup failed", e)
             SystemBackupResult(
                 status = BackupStatus.FAILED,
                 infrastructureBackup = null,
@@ -367,7 +367,7 @@ class DevOpsManager(
             )
             
         } catch (e: Exception) {
-            logger.error("System restore failed", e)
+            logger.error("devops", "System restore failed", e)
             SystemRestoreResult(
                 status = RestoreStatus.FAILED,
                 infrastructureRestore = null,
@@ -401,7 +401,7 @@ class DevOpsManager(
             )
             
         } catch (e: Exception) {
-            logger.error("Failed to collect system metrics", e)
+            logger.error("devops", "Failed to collect system metrics", e)
             SystemMetrics(
                 ciCdMetrics = null,
                 monitoringMetrics = null,

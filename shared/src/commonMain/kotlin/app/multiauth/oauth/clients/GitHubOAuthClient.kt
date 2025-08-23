@@ -101,7 +101,7 @@ class GitHubOAuthClient(
                 )
             }
         } catch (e: Exception) {
-            logger.error("Exception during GitHub token exchange", e)
+            logger.error("github", "Exception during GitHub token exchange", e)
             OAuthResult.Error(
                 OAuthError.TokenExchangeFailed(
                     error = "token_exchange_failed",
@@ -126,7 +126,7 @@ class GitHubOAuthClient(
                 )
             )
         } catch (e: Exception) {
-            logger.error("Exception during GitHub token refresh", e)
+            logger.error("github", "Exception during GitHub token refresh", e)
             OAuthResult.Error(
                 OAuthError.TokenRefreshFailed(
                     error = "token_refresh_failed",
@@ -192,7 +192,7 @@ class GitHubOAuthClient(
                 )
             }
         } catch (e: Exception) {
-            logger.error("Exception during GitHub user info fetch", e)
+            logger.error("github", "Exception during GitHub user info fetch", e)
             OAuthResult.Error(
                 OAuthError.UserInfoFetchFailed(
                     error = "user_info_fetch_failed",
@@ -213,7 +213,7 @@ class GitHubOAuthClient(
             // Return true to indicate "success" since we can't actually revoke
             true
         } catch (e: Exception) {
-            logger.error("Exception during GitHub token revocation", e)
+            logger.error("github", "Exception during GitHub token revocation", e)
             false
         }
     }
@@ -234,7 +234,7 @@ class GitHubOAuthClient(
             
             isValid
         } catch (e: Exception) {
-            logger.error("Exception during GitHub token validation", e)
+            logger.error("github", "Exception during GitHub token validation", e)
             false
         }
     }

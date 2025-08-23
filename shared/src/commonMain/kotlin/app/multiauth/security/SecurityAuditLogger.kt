@@ -72,7 +72,7 @@ class SecurityAuditLogger {
                 logger.info("security", "Security event logged: ${event.name} for user: ${user?.displayName ?: "unknown"}")
                 
             } catch (e: Exception) {
-                logger.error("Failed to log security event", e)
+                logger.error("security", "Failed to log security event", e)
             }
         }
     }
@@ -238,7 +238,7 @@ class SecurityAuditLogger {
                     logger.info("security", "Cleaned up ${currentEntries.size - filteredEntries.size} old audit entries")
                 }
             } catch (e: Exception) {
-                logger.error("Failed to cleanup old audit entries", e)
+                logger.error("security", "Failed to cleanup old audit entries", e)
             }
         }
     }
@@ -260,7 +260,7 @@ class SecurityAuditLogger {
                 ExportFormat.XML -> exportToXml(entries)
             }
         } catch (e: Exception) {
-            logger.error("Failed to export audit data", e)
+            logger.error("security", "Failed to export audit data", e)
             throw AuditExportException("Failed to export audit data", e)
         }
     }
