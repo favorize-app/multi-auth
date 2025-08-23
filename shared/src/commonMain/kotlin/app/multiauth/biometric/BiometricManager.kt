@@ -64,7 +64,7 @@ class BiometricManager(
                 _isBiometricAvailable.value = result.isAvailable
                 _biometricType.value = result.supportedTypes.firstOrNull()
                 
-                logger.info("Biometric availability: ${result.isAvailable}, types: ${result.supportedTypes}")
+                logger.info("biometrics", "Biometric availability: ${result.isAvailable}, types: ${result.supportedTypes}")
                 
                 if (result.isAvailable) {
                     eventBus.dispatch(AuthEvent.Biometric.BiometricAvailable(result.supportedTypes))
