@@ -18,6 +18,13 @@ object Logger {
     private val loggers = mutableListOf<LogHandler>()
     
     /**
+     * Gets a logger instance for a specific class.
+     */
+    fun getLogger(clazz: Any): Logger {
+        return this
+    }
+    
+    /**
      * Sets the minimum log level for all loggers.
      */
     fun setMinimumLevel(level: Level) {

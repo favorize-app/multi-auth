@@ -10,12 +10,11 @@ import kotlinx.coroutines.flow.Flow
 interface SmsService {
     
     /**
-     * Initializes the SMS service with configuration.
+     * Initializes the SMS service.
      * 
-     * @param config SMS service configuration
      * @return true if initialization successful, false otherwise
      */
-    suspend fun initialize(config: SmsConfig): Boolean
+    suspend fun initialize(): Boolean
     
     /**
      * Sends a verification code via SMS.
@@ -23,29 +22,37 @@ interface SmsService {
      * @param phoneNumber The recipient phone number
      * @param verificationCode The verification code
      * @param userId The user ID for tracking
-     * @return true if SMS sent successfully, false otherwise
+     * @param template Optional SMS template
+     * @param variables Optional template variables
+     * @return SmsSendResult with detailed information
      */
     suspend fun sendVerificationCode(
         phoneNumber: String,
         verificationCode: String,
-        userId: String
-    ): Boolean
+        userId: String?,
+        template: SmsTemplate?,
+        variables: SmsTemplateVariables?
+    ): SmsSendResult
     
     /**
      * Sends a security alert via SMS.
      * 
      * @param phoneNumber The recipient phone number
      * @param alertType The type of security alert
-     * @param details Additional details about the alert
+     * @param alertDetails Additional details about the alert
      * @param userId The user ID for tracking
-     * @return true if SMS sent successfully, false otherwise
+     * @param template Optional SMS template
+     * @param variables Optional template variables
+     * @return SmsSendResult with detailed information
      */
     suspend fun sendSecurityAlert(
         phoneNumber: String,
-        alertType: SecurityAlertType,
-        details: String,
-        userId: String
-    ): Boolean
+        alertType: String,
+        alertDetails: String,
+        userId: String?,
+        template: SmsTemplate?,
+        variables: SmsTemplateVariables?
+    ): SmsSendResult
     
     /**
      * Sends a custom SMS message.
@@ -53,13 +60,17 @@ interface SmsService {
      * @param phoneNumber The recipient phone number
      * @param message The SMS message content
      * @param userId The user ID for tracking
-     * @return true if SMS sent successfully, false otherwise
+     * @param template Optional SMS template
+     * @param variables Optional template variables
+     * @return SmsSendResult with detailed information
      */
-    suspend fun sendCustomMessage(
+    suspend fun sendCustomSms(
         phoneNumber: String,
         message: String,
-        userId: String
-    ): Boolean
+        userId: String?,
+        template: SmsTemplate?,
+        variables: SmsTemplateVariables?
+    ): SmsSendResult
     
     /**
      * Sends a two-factor authentication code via SMS.
@@ -67,74 +78,81 @@ interface SmsService {
      * @param phoneNumber The recipient phone number
      * @param mfaCode The MFA code
      * @param userId The user ID for tracking
-     * @return true if SMS sent successfully, false otherwise
+     * @param template Optional SMS template
+     * @param variables Optional template variables
+     * @return SmsSendResult with detailed information
      */
     suspend fun sendMfaCode(
         phoneNumber: String,
         mfaCode: String,
-        userId: String
-    ): Boolean
+        userId: String?,
+        template: SmsTemplate?,
+        variables: SmsTemplateVariables?
+    ): SmsSendResult
     
     /**
      * Sends a login notification via SMS.
      * 
      * @param phoneNumber The recipient phone number
-     * @param loginLocation The location of the login
-     * @param deviceInfo Information about the device
+     * @param loginDetails The login details
      * @param userId The user ID for tracking
-     * @return true if SMS sent successfully, false otherwise
+     * @param template Optional SMS template
+     * @param variables Optional template variables
+     * @return SmsSendResult with detailed information
      */
     suspend fun sendLoginNotification(
         phoneNumber: String,
-        loginLocation: String,
-        deviceInfo: String,
-        userId: String
-    ): Boolean
+        loginDetails: String,
+        userId: String?,
+        template: SmsTemplate?,
+        variables: SmsTemplateVariables?
+    ): SmsSendResult
     
     /**
      * Gets the delivery status of an SMS.
      * 
      * @param smsId The SMS ID to check
-     * @return SmsDeliveryStatus for the SMS
+     * @return SmsDeliveryStatusInfo for the SMS
      */
-    suspend fun getSmsDeliveryStatus(smsId: String): SmsDeliveryStatus?
+    suspend fun getDeliveryStatus(smsId: String): SmsDeliveryStatusInfo?
     
     /**
-     * Gets SMS statistics and metrics.
+     * Gets SMS service statistics.
      * 
-     * @return SmsStats with delivery statistics
+     * @return SmsStats with service metrics
      */
     suspend fun getSmsStats(): SmsStats
     
     /**
-     * Checks if the SMS service is ready to send messages.
+     * Checks if the service is ready to send SMS.
      * 
-     * @return true if ready, false otherwise
+     * @return true if service is ready, false otherwise
      */
     suspend fun isReady(): Boolean
     
     /**
-     * Gets information about the SMS service configuration.
+     * Gets information about the SMS service.
      * 
      * @return SmsServiceInfo with service details
      */
     suspend fun getServiceInfo(): SmsServiceInfo
     
     /**
-     * Validates a phone number format.
+     * Validates a phone number.
      * 
      * @param phoneNumber The phone number to validate
-     * @return true if valid format, false otherwise
+     * @return PhoneNumberValidationResult with validation details
      */
-    suspend fun validatePhoneNumber(phoneNumber: String): Boolean
+    suspend fun validatePhoneNumber(phoneNumber: String): PhoneNumberValidationResult
     
     /**
-     * Formats a phone number to international format.
+     * Formats a phone number.
      * 
      * @param phoneNumber The phone number to format
-     * @return Formatted phone number or null if invalid
+     * @param countryCode Optional country code
+     * @return Formatted phone number string
      */
-    suspend fun formatPhoneNumber(phoneNumber: String): String?
+    suspend fun formatPhoneNumber(phoneNumber: String, countryCode: String?): String
 }
 
 /**
@@ -168,25 +186,9 @@ enum class SmsProvider(val displayName: String, val supportsDeliveryReports: Boo
     VONAGE("Vonage", true),
     INFOBIP("Infobip", true),
     PLIVO("Plivo", true),
+    SIMPLE("Simple", false),
     CUSTOM("Custom", false)
 }
-
-/**
- * SMS delivery status information.
- */
-data class SmsDeliveryStatus(
-    val smsId: String,
-    val status: SmsDeliveryStatus,
-    val sentAt: Long,
-    val deliveredAt: Long?,
-    val failedAt: Long?,
-    val failureReason: String?,
-    val recipientPhoneNumber: String,
-    val message: String,
-    val providerMessageId: String?,
-    val cost: Double?,
-    val segments: Int = 1
-)
 
 /**
  * SMS delivery status values.
@@ -200,6 +202,23 @@ enum class SmsDeliveryStatus(val displayName: String) {
     REJECTED("Rejected"),
     UNDELIVERED("Undelivered")
 }
+
+/**
+ * SMS delivery status information.
+ */
+data class SmsDeliveryStatusInfo(
+    val smsId: String,
+    val status: SmsDeliveryStatus,
+    val sentAt: Long,
+    val deliveredAt: Long?,
+    val failedAt: Long?,
+    val failureReason: String?,
+    val recipientPhoneNumber: String,
+    val message: String,
+    val providerMessageId: String?,
+    val cost: Double?,
+    val segments: Int = 1
+)
 
 /**
  * SMS service statistics and metrics.
@@ -237,9 +256,23 @@ data class SmsServiceInfo(
 )
 
 /**
+ * SMS message types.
+ */
+enum class SmsType(val displayName: String) {
+    VERIFICATION("Verification"),
+    SECURITY_ALERT("Security Alert"),
+    MFA_CODE("MFA Code"),
+    LOGIN_NOTIFICATION("Login Notification"),
+    CUSTOM("Custom"),
+    PROMOTIONAL("Promotional"),
+    TRANSACTIONAL("Transactional")
+}
+
+/**
  * SMS message template for different types of messages.
  */
 data class SmsTemplate(
+    val id: String,
     val name: String,
     val content: String,
     val variables: List<String>,
@@ -333,4 +366,18 @@ data class SmsDeliveryReport(
     val cost: Double?,
     val segments: Int,
     val metadata: Map<String, String>
+)
+
+/**
+ * Queued SMS message for processing.
+ */
+data class QueuedSms(
+    val id: String,
+    val phoneNumber: String,
+    val message: String,
+    val type: SmsType,
+    val metadata: Map<String, String>,
+    val queuedAt: Long,
+    val priority: Int = 0,
+    val retryCount: Int = 0
 )

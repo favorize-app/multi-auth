@@ -9,7 +9,10 @@ import kotlinx.serialization.json.Json
  * Logs SMS messages to console and can optionally save them to files.
  */
 class SimpleSmsService(
-    private val config: SmsConfig = SmsConfig()
+    private val config: SmsConfig = SmsConfig(
+        provider = SmsProvider.CUSTOM,
+        apiKey = "simple-dev-key"
+    )
 ) : SmsService {
     
     private val logger = Logger.getLogger(this::class)
@@ -17,17 +20,17 @@ class SimpleSmsService(
     
     private var isInitialized = false
     private val smsQueue = mutableListOf<QueuedSms>()
-    private val deliveryStatuses = mutableMapOf<String, SmsDeliveryStatus>()
+    private val deliveryStatuses = mutableMapOf<String, SmsDeliveryStatusInfo>()
     private val rateLimits = mutableMapOf<String, SmsRateLimit>()
     
     override suspend fun initialize(): Boolean {
         return try {
-            logger.info("Initializing Simple SMS Service")
+            logger.info("SimpleSmsService", "Initializing Simple SMS Service")
             isInitialized = true
-            logger.info("Simple SMS Service initialized successfully")
+            logger.info("SimpleSmsService", "Simple SMS Service initialized successfully")
             true
         } catch (e: Exception) {
-            logger.error("Failed to initialize Simple SMS Service: ${e.message}")
+            logger.error("SimpleSmsService", "Failed to initialize Simple SMS Service: ${e.message}")
             false
         }
     }
@@ -113,34 +116,44 @@ class SimpleSmsService(
     override suspend fun sendCustomSms(
         phoneNumber: String,
         message: String,
-        metadata: Map<String, String>?
+        userId: String?,
+        template: SmsTemplate?,
+        variables: SmsTemplateVariables?
     ): SmsSendResult {
         return sendSms(
             phoneNumber = phoneNumber,
             message = message,
             type = SmsType.CUSTOM,
-            metadata = metadata ?: emptyMap()
+            metadata = mapOf(
+                "userId" to (userId ?: "unknown"),
+                "template" to (template?.id ?: "default")
+            )
         )
     }
     
-    override suspend fun getDeliveryStatus(smsId: String): SmsDeliveryStatus? {
+    override suspend fun getDeliveryStatus(smsId: String): SmsDeliveryStatusInfo? {
         return deliveryStatuses[smsId]
     }
     
     override suspend fun getSmsStats(): SmsStats {
-        val totalSent = smsQueue.size
-        val delivered = deliveryStatuses.values.count { it.status == SmsDeliveryStatus.DeliveryStatus.DELIVERED }
-        val failed = deliveryStatuses.values.count { it.status == SmsDeliveryStatus.DeliveryStatus.FAILED }
-        val pending = totalSent - delivered - failed
+        val totalSent = deliveryStatuses.values.size.toLong()
+        val totalDelivered = deliveryStatuses.values.count { it.status == SmsDeliveryStatus.DELIVERED }.toLong()
+        val totalFailed = deliveryStatuses.values.count { it.status == SmsDeliveryStatus.FAILED }.toLong()
+        val totalRejected = deliveryStatuses.values.count { it.status == SmsDeliveryStatus.REJECTED }.toLong()
         
         return SmsStats(
-            totalSmsSent = totalSent.toLong(),
-            deliveredSms = delivered.toLong(),
-            failedSms = failed.toLong(),
-            pendingSms = pending.toLong(),
-            deliveryRate = if (totalSent > 0) (delivered.toDouble() / totalSent) * 100 else 0.0,
-            averageDeliveryTime = calculateAverageDeliveryTime(),
-            smsByType = calculateSmsByType()
+            totalSent = totalSent,
+            totalDelivered = totalDelivered,
+            totalFailed = totalFailed,
+            totalRejected = totalRejected,
+            deliveryRate = if (totalSent > 0) totalDelivered.toDouble() / totalSent else 0.0,
+            failureRate = if (totalSent > 0) (totalFailed + totalRejected).toDouble() / totalSent else 0.0,
+            averageDeliveryTimeMs = null,
+            totalCost = 0.0,
+            lastSentAt = deliveryStatuses.values.maxOfOrNull { it.sentAt },
+            lastDeliveredAt = deliveryStatuses.values.maxOfOrNull { it.deliveredAt ?: 0L },
+            messagesByCountry = emptyMap(),
+            messagesByProvider = emptyMap()
         )
     }
     
@@ -150,61 +163,51 @@ class SimpleSmsService(
         return SmsServiceInfo(
             provider = SmsProvider.SIMPLE,
             isInitialized = isInitialized,
-            supportsTemplates = true,
-            supportsUnicode = true,
+            fromNumber = null,
+            fromName = null,
+            supportsDeliveryReports = false,
+            supportsAnalytics = false,
+            maxRetries = 3,
+            timeoutMs = 30000,
+            defaultCountryCode = "US",
             maxMessageLength = 160,
-            rateLimit = null,
-            features = listOf(
-                "SMS logging",
-                "Template support",
-                "Delivery tracking",
-                "File output",
-                "Rate limiting"
-            )
+            lastTestAt = null
         )
     }
     
     override suspend fun validatePhoneNumber(phoneNumber: String): PhoneNumberValidationResult {
         return try {
-            // Simple validation - check if it's a valid phone number format
-            val cleaned = phoneNumber.replace(Regex("[^0-9+]"), "")
+            // Simple validation - just check if it's not empty and has some digits
+            val hasDigits = phoneNumber.any { it.isDigit() }
+            val isValid = phoneNumber.isNotBlank() && hasDigits
             
-            if (cleaned.length < 10 || cleaned.length > 15) {
-                PhoneNumberValidationResult(
-                    isValid = false,
-                    formattedNumber = null,
-                    countryCode = null,
-                    errorMessage = "Phone number must be between 10 and 15 digits"
-                )
-            } else {
-                PhoneNumberValidationResult(
-                    isValid = true,
-                    formattedNumber = cleaned,
-                    countryCode = extractCountryCode(cleaned),
-                    errorMessage = null
-                )
-            }
+            PhoneNumberValidationResult(
+                isValid = isValid,
+                formattedNumber = if (isValid) phoneNumber else null,
+                countryCode = null,
+                nationalNumber = null,
+                isValidForRegion = isValid,
+                region = null,
+                carrier = null
+            )
         } catch (e: Exception) {
             PhoneNumberValidationResult(
                 isValid = false,
                 formattedNumber = null,
                 countryCode = null,
-                errorMessage = "Validation failed: ${e.message}"
+                nationalNumber = null,
+                isValidForRegion = false,
+                region = null,
+                carrier = null
             )
         }
     }
     
     override suspend fun formatPhoneNumber(phoneNumber: String, countryCode: String?): String {
         return try {
-            val cleaned = phoneNumber.replace(Regex("[^0-9+]"), "")
-            
-            when {
-                cleaned.startsWith("+") -> cleaned
-                countryCode != null && !cleaned.startsWith(countryCode) -> "+$countryCode$cleaned"
-                else -> cleaned
-            }
+            // Simple formatting - just clean up the number
+            phoneNumber.replace(Regex("[^\\d+]"), "")
         } catch (e: Exception) {
-            logger.error("Failed to format phone number: ${e.message}")
             phoneNumber
         }
     }
@@ -216,19 +219,19 @@ class SimpleSmsService(
         metadata: Map<String, String>
     ): SmsSendResult {
         if (!isInitialized) {
-            return SmsSendResult(
-                success = false,
-                smsId = null,
-                error = "SMS service not initialized"
+            return SmsSendResult.Failure(
+                error = "SMS service not initialized",
+                errorCode = "NOT_INITIALIZED",
+                retryable = false,
+                attemptedAt = System.currentTimeMillis()
             )
         }
         
         // Check rate limiting
         if (isRateLimited(phoneNumber, type)) {
-            return SmsSendResult(
-                success = false,
-                smsId = null,
-                error = "Rate limit exceeded for $phoneNumber"
+            return SmsSendResult.RateLimited(
+                retryAfterMs = 60000, // 1 minute
+                attemptedAt = System.currentTimeMillis()
             )
         }
         
@@ -241,7 +244,7 @@ class SimpleSmsService(
             message = message,
             type = type,
             metadata = metadata,
-            timestamp = timestamp
+            queuedAt = timestamp
         )
         
         try {
@@ -252,49 +255,62 @@ class SimpleSmsService(
             logSmsToConsole(sms)
             
             // Save SMS to file if configured
-            if (config.saveToFile) {
+            if (config.enableAnalytics) {
                 saveSmsToFile(sms)
             }
             
             // Mark as delivered (since this is a simple service)
-            val deliveryStatus = SmsDeliveryStatus(
+            val deliveryStatus = SmsDeliveryStatusInfo(
                 smsId = smsId,
-                status = SmsDeliveryStatus.DeliveryStatus.DELIVERED,
+                status = SmsDeliveryStatus.DELIVERED,
+                sentAt = timestamp,
                 deliveredAt = timestamp,
-                attempts = 1,
-                lastAttemptAt = timestamp,
-                errorMessage = null
+                failedAt = null,
+                failureReason = null,
+                recipientPhoneNumber = phoneNumber,
+                message = message,
+                providerMessageId = null,
+                cost = null,
+                segments = 1
             )
             deliveryStatuses[smsId] = deliveryStatus
             
             // Update rate limiting
             updateRateLimit(phoneNumber, type)
             
-            logger.info("SMS sent successfully: $smsId to $phoneNumber")
+            logger.info("SimpleSmsService", "SMS sent successfully: $smsId to $phoneNumber")
             
-            SmsSendResult(
-                success = true,
+            return SmsSendResult.Success(
                 smsId = smsId,
-                error = null
+                providerMessageId = null,
+                sentAt = timestamp,
+                cost = null,
+                segments = 1
             )
             
         } catch (e: Exception) {
-            logger.error("Failed to send SMS: ${e.message}")
+            logger.error("SimpleSmsService", "Failed to send SMS: ${e.message}")
             
-            val deliveryStatus = SmsDeliveryStatus(
+            val deliveryStatus = SmsDeliveryStatusInfo(
                 smsId = smsId,
-                status = SmsDeliveryStatus.DeliveryStatus.FAILED,
+                status = SmsDeliveryStatus.FAILED,
+                sentAt = timestamp,
                 deliveredAt = null,
-                attempts = 1,
-                lastAttemptAt = timestamp,
-                errorMessage = e.message
+                failedAt = timestamp,
+                failureReason = e.message,
+                recipientPhoneNumber = phoneNumber,
+                message = message,
+                providerMessageId = null,
+                cost = null,
+                segments = 1
             )
             deliveryStatuses[smsId] = deliveryStatus
             
-            SmsSendResult(
-                success = false,
-                smsId = smsId,
-                error = e.message
+            return SmsSendResult.Failure(
+                error = e.message ?: "Unknown error",
+                errorCode = "SEND_FAILED",
+                retryable = true,
+                attemptedAt = timestamp
             )
         }
     }
@@ -341,23 +357,42 @@ class SimpleSmsService(
     }
     
     private fun applyTemplate(template: SmsTemplate, variables: SmsTemplateVariables?): String {
-        var message = template.message
+        var message = template.content
         
-        variables?.variables?.forEach { (key, value) ->
-            message = message.replace("{{$key}}", value)
+        variables?.let { vars ->
+            vars.variables.forEach { variable ->
+                val value = when (variable) {
+                    "userId" -> vars.userId
+                    "username" -> vars.username
+                    "phoneNumber" -> vars.phoneNumber
+                    "verificationCode" -> vars.verificationCode
+                    "mfaCode" -> vars.mfaCode
+                    "alertType" -> vars.alertType?.name
+                    "alertDetails" -> vars.alertDetails
+                    "loginLocation" -> vars.loginLocation
+                    "deviceInfo" -> vars.deviceInfo
+                    "timestamp" -> vars.timestamp.toString()
+                    "supportPhone" -> vars.supportPhone
+                    "appName" -> vars.appName
+                    else -> null
+                }
+                if (value != null) {
+                    message = message.replace("{{$variable}}", value)
+                }
+            }
         }
         
         return message
     }
     
     private fun logSmsToConsole(sms: QueuedSms) {
-        logger.info("""
+                    logger.info("SimpleSmsService", """
             ===== SMS SENT =====
             ID: ${sms.id}
             To: ${sms.phoneNumber}
             Type: ${sms.type}
             Message: ${sms.message}
-            Timestamp: ${java.time.Instant.ofEpochMilli(sms.timestamp)}
+            Timestamp: ${java.time.Instant.ofEpochMilli(sms.queuedAt)}
             ===================
         """.trimIndent())
     }
@@ -376,14 +411,13 @@ class SimpleSmsService(
                 message = sms.message,
                 type = sms.type.name,
                 metadata = sms.metadata,
-                timestamp = sms.timestamp
+                timestamp = sms.queuedAt
             )
             
             smsFile.writeText(json.encodeToString(SmsFileData.serializer(), smsData))
-            logger.debug("SMS saved to file: ${smsFile.absolutePath}")
-            
+            logger.debug("SimpleSmsService", "SMS saved to file: ${smsFile.absolutePath}")
         } catch (e: Exception) {
-            logger.error("Failed to save SMS to file: ${e.message}")
+            logger.error("SimpleSmsService", "Failed to save SMS to file: ${e.message}")
         }
     }
     
@@ -392,10 +426,10 @@ class SimpleSmsService(
     }
     
     private fun calculateAverageDeliveryTime(): Double {
-        val deliveredSms = deliveryStatuses.values.filter { it.status == SmsDeliveryStatus.DeliveryStatus.DELIVERED }
+        val deliveredSms = deliveryStatuses.values.filter { it.status == SmsDeliveryStatus.DELIVERED }
         if (deliveredSms.isEmpty()) return 0.0
         
-        val totalTime = deliveredSms.sumOf { it.deliveredAt!! - it.timestamp }
+        val totalTime = deliveredSms.sumOf { (it.deliveredAt ?: 0L) - it.sentAt }
         return totalTime.toDouble() / deliveredSms.size
     }
     
@@ -417,20 +451,28 @@ class SimpleSmsService(
             SmsType.SECURITY_ALERT -> 300000L // 5 minutes
             SmsType.LOGIN_NOTIFICATION -> 600000L // 10 minutes
             SmsType.CUSTOM -> 60000L // 1 minute
+            else -> 60000L // 1 minute default
         }
         
-        return (now - rateLimit.lastSent) < timeWindow
+        return (now - rateLimit.nextResetTime) < timeWindow
     }
     
     private fun updateRateLimit(phoneNumber: String, type: SmsType) {
         val key = "${phoneNumber}_${type.name}"
         val now = System.currentTimeMillis()
         
+        val currentLimit = rateLimits[key]
+        val messagesThisHour = (currentLimit?.messagesSentThisHour ?: 0) + 1
+        val messagesThisDay = (currentLimit?.messagesSentThisDay ?: 0) + 1
+        
         rateLimits[key] = SmsRateLimit(
             phoneNumber = phoneNumber,
-            type = type.name,
-            lastSent = now,
-            count = (rateLimits[key]?.count ?: 0) + 1
+            maxMessagesPerHour = 10,
+            maxMessagesPerDay = 100,
+            messagesSentThisHour = messagesThisHour,
+            messagesSentThisDay = messagesThisDay,
+            nextResetTime = now + 3600000, // 1 hour from now
+            isRateLimited = messagesThisHour > 10 || messagesThisDay > 100
         )
     }
     
@@ -452,19 +494,6 @@ class SimpleSmsService(
 }
 
 /**
- * Internal data class for queued SMS messages.
- */
-@Serializable
-private data class QueuedSms(
-    val id: String,
-    val phoneNumber: String,
-    val message: String,
-    val type: SmsType,
-    val metadata: Map<String, String>,
-    val timestamp: Long
-)
-
-/**
  * Internal data class for SMS file storage.
  */
 @Serializable
@@ -476,14 +505,3 @@ private data class SmsFileData(
     val metadata: Map<String, String>,
     val timestamp: Long
 )
-
-/**
- * SMS types supported by the simple service.
- */
-private enum class SmsType {
-    VERIFICATION,
-    SECURITY_ALERT,
-    MFA_CODE,
-    LOGIN_NOTIFICATION,
-    CUSTOM
-}
