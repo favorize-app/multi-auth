@@ -63,7 +63,7 @@ class MfaManager(
                 
                 logger.info("mfa", "MFA method ${method.name} enabled successfully for user: ${user.displayName}")
             }.onFailure { error ->
-                logger.error("Failed to enable MFA method ${method.name}", error)
+                logger.error("mfa", "Failed to enable MFA method ${method.name}", error)
                 _mfaState.value = MfaState.Error(error)
                 _mfaState.value = MfaState.Idle
                 
@@ -109,7 +109,7 @@ class MfaManager(
                 
                 logger.info("mfa", "MFA method ${method.name} disabled successfully for user: ${user.displayName}")
             }.onFailure { error ->
-                logger.error("Failed to disable MFA method ${method.name}", error)
+                logger.error("mfa", "Failed to disable MFA method ${method.name}", error)
                 _mfaState.value = MfaState.Error(error)
                 _mfaState.value = MfaState.Idle
                 
@@ -159,7 +159,7 @@ class MfaManager(
                 
                 logger.info("mfa", "MFA verification successful for method ${method.name} and user: ${user.displayName}")
             }.onFailure { error ->
-                logger.error("MFA verification failed for method ${method.name}", error)
+                logger.error("mfa", "MFA verification failed for method ${method.name}", error)
                 _mfaState.value = MfaState.Error(error)
                 _mfaState.value = MfaState.Idle
                 
