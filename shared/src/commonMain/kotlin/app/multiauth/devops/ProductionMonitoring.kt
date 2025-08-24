@@ -531,7 +531,7 @@ class ProductionMonitoring(
     
     private fun calculateUptime(): Long {
         // Calculate system uptime
-        return Clock.System.now() - (Clock.System.now() - 24.hours).epochSeconds // Simulate 24h uptime
+        return (Clock.System.now() - (Clock.System.now() - 24.hours)).inWholeSeconds // Simulate 24h uptime
     }
     
     private fun generateAlertId(): String = "alert_${Clock.System.now().toEpochMilliseconds()}_${(0..9999).random()}"
