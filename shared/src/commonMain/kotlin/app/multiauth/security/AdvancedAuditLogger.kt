@@ -105,7 +105,7 @@ class AdvancedAuditLogger {
                 eventId = enrichedEvent.id,
                 success = true,
                 issues = emptyList(),
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()
             )
             
         } catch (e: Exception) {
@@ -114,7 +114,7 @@ class AdvancedAuditLogger {
                 eventId = event.id,
                 success = false,
                 issues = listOf("Logging failed: ${e.message}"),
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()
             )
         }
     }
@@ -171,7 +171,7 @@ class AdvancedAuditLogger {
                 eventId = event.id,
                 success = false,
                 issues = listOf("Security event logging failed: ${e.message}"),
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()
             )
         }
     }
@@ -219,7 +219,7 @@ class AdvancedAuditLogger {
                 eventId = event.id,
                 success = false,
                 issues = listOf("Compliance event logging failed: ${e.message}"),
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()
             )
         }
     }
@@ -267,7 +267,7 @@ class AdvancedAuditLogger {
                 securityAnalysis = securityAnalysis,
                 complianceStatus = complianceStatus,
                 recommendations = recommendations,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()
             )
             
             logger.info("security", "Audit report generated successfully")
