@@ -3,10 +3,9 @@ package app.multiauth.security
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.time.Instant
-import java.time.temporal.ChronoUnit
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicLong
+import kotlinx.datetime.Instant
+import kotlinx.datetime.Clock
+import kotlin.concurrent.AtomicLong
 
 /**
  * Advanced audit logging system with real-time monitoring, structured logging,
@@ -40,8 +39,8 @@ class AdvancedAuditLogger {
         const val COMPLIANCE_RETENTION_DAYS = 10950 // 30 years
     }
     
-    private val auditEvents = ConcurrentHashMap<String, AuditEvent>()
-    private val eventCounters = ConcurrentHashMap<String, AtomicLong>()
+    private val auditEvents = mutableMapOf<String, AuditEvent>()
+    private val eventCounters = mutableMapOf<String, AtomicLong>()
     private val realTimeAlerts = mutableListOf<SecurityAlert>()
     private val auditPolicies = mutableMapOf<String, AuditPolicy>()
     private val complianceRules = mutableMapOf<String, ComplianceRule>()
@@ -75,7 +74,7 @@ class AdvancedAuditLogger {
                     eventId = event.id,
                     success = false,
                     issues = validationResult.issues,
-                    timestamp = Instant.now()
+                    timestamp = Clock.System.now()
                 )
             }
             
