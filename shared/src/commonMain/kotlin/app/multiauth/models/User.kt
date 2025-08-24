@@ -19,7 +19,7 @@ data class User(
     val isAnonymous: Boolean = false,
     val anonymousSessionId: String? = null,
     val createdAt: Instant,
-    val updatedAt: Instant,
+    val updatedAt: Instant? = null,
     val lastSignInAt: Instant? = null,
     val authMethods: List<AuthMethod> = emptyList(),
     val metadata: Map<String, String> = emptyMap()

@@ -169,7 +169,7 @@ class MockBiometricProvider : PlatformBiometric {
                 id = "mock_user_001",
                 email = "mock@example.com",
                 displayName = "Mock User",
-                isEmailVerified = true,
+                emailVerified = true,
                 createdAt = Clock.System.now(),
                 lastSignInAt = Clock.System.now()
             )
