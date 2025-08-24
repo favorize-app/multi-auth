@@ -204,7 +204,7 @@ class SessionManager private constructor(
     private fun startSessionMonitoring() {
         scope.launch {
             while (true) {
-                delay(SESSION_CHECK_INTERVAL.toLong())
+                delay(SESSION_CHECK_INTERVAL)
                 
                 if (isSessionExpired()) {
                     Logger.warn("SessionManager", "Session expired, dispatching event")
@@ -269,7 +269,7 @@ class SessionManager private constructor(
     }
     
     companion object {
-        private const val SESSION_CHECK_INTERVAL = 30.seconds // 30 seconds
+        private val SESSION_CHECK_INTERVAL = 30.seconds // 30 seconds
         private val REFRESH_BUFFER_TIME = 5.minutes // 5 minutes
         
         private var INSTANCE: SessionManager? = null

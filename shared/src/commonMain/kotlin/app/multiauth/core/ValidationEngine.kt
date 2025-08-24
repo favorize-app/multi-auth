@@ -344,7 +344,7 @@ sealed class ValidationResult {
     data class Success<T>(val data: T) : ValidationResult()
     data class Failure(val error: ValidationError) : ValidationResult()
     
-    fun isSuccess(): Boolean = this is Success
+    fun isSuccess(): Boolean = this is Success<*> // ?
     fun isFailure(): Boolean = this is Failure
     
             fun getOrNull(): Any? = when (this) {
