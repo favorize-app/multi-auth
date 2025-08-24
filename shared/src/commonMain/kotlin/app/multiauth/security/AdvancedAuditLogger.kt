@@ -142,7 +142,7 @@ class AdvancedAuditLogger {
                 resource = event.resource,
                 outcome = if (event.isSuccessful) "SUCCESS" else "FAILURE",
                 metadata = mapOf(
-                    "securityEventType" to event.type.name,
+                    "securityEventType" to event.type,
                     "severity" to event.severity.name,
                     "threatScore" to event.threatScore.toString(),
                     "anomalyType" to event.anomalyType?.name ?: "NONE",
@@ -191,7 +191,7 @@ class AdvancedAuditLogger {
                 timestamp = event.timestamp,
                 level = LOG_LEVEL_INFO,
                 category = CATEGORY_COMPLIANCE,
-                action = event.type.name,
+                action = event.type,
                 userId = event.userId ?: "SYSTEM",
                 sessionId = null,
                 ipAddress = null,
@@ -200,7 +200,7 @@ class AdvancedAuditLogger {
                 outcome = "COMPLIANCE_CHECK",
                 metadata = mapOf(
                     "complianceStandard" to event.standard,
-                    "eventType" to event.type.name,
+                    "eventType" to event.type,
                     "description" to event.description
                 ),
                 context = AuditContext(
@@ -243,8 +243,8 @@ class AdvancedAuditLogger {
             
             // Filter events
             val filteredEvents = auditEvents.values.filter { event ->
-                event.timestamp.isAfter(timeRange.start) &&
-                event.timestamp.isBefore(timeRange.end) &&
+                event.timestamp > timeRange.start &&
+                event.timestamp < timeRange.end &&
                 (categories == null || event.category in categories) &&
                 (levels == null || event.level in levels)
             }
@@ -397,8 +397,8 @@ class AdvancedAuditLogger {
             logger.info("security", "Exporting audit data in $format format")
             
             val events = auditEvents.values.filter { event ->
-                event.timestamp.isAfter(timeRange.start) &&
-                event.timestamp.isBefore(timeRange.end)
+                event.timestamp > timeRange.start &&
+                event.timestamp < timeRange.end
             }
             
             val exportData = when (format) {
@@ -476,7 +476,7 @@ class AdvancedAuditLogger {
     private fun checkRealTimeAlerts(event: AuditEvent) {
         alertThresholds.forEach { (pattern, threshold) ->
             if (matchesAlertPattern(event, pattern) && 
-                eventCounters[pattern]?.get() ?: 0 >= threshold.count) {
+                (eventCounters[pattern] ?: 0L) >= threshold.count) {
                 generateAlert(event, threshold)
             }
         }
@@ -885,7 +885,7 @@ data class AuditContext(
 data class SecurityEvent(
     val id: String,
     val timestamp: Instant,
-    val type: SecurityEventType,
+    val type: String,
     val severity: SecurityEventSeverity,
     val userId: String?,
     val sessionId: String?,
