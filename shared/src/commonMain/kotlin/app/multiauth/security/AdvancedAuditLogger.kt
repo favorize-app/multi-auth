@@ -3,9 +3,10 @@ package app.multiauth.security
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.datetime.Instant
 import kotlinx.datetime.Clock
-import kotlin.concurrent.AtomicLong
+
 
 /**
  * Advanced audit logging system with real-time monitoring, structured logging,
@@ -40,7 +41,7 @@ class AdvancedAuditLogger {
     }
     
     private val auditEvents = mutableMapOf<String, AuditEvent>()
-    private val eventCounters = mutableMapOf<String, AtomicLong>()
+    private val eventCounters = mutableMapOf<String, Long>()
     private val realTimeAlerts = mutableListOf<SecurityAlert>()
     private val auditPolicies = mutableMapOf<String, AuditPolicy>()
     private val complianceRules = mutableMapOf<String, ComplianceRule>()
@@ -308,7 +309,7 @@ class AdvancedAuditLogger {
                 patternName = pattern.name,
                 success = true,
                 message = "Monitoring setup successfully",
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()
             )
             
         } catch (e: Exception) {
@@ -317,7 +318,7 @@ class AdvancedAuditLogger {
                 patternName = pattern.name,
                 success = false,
                 message = "Setup failed: ${e.message}",
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()
             )
         }
     }
@@ -364,7 +365,7 @@ class AdvancedAuditLogger {
                 isIntegrityMaintained = issues.isEmpty(),
                 issues = issues,
                 recommendations = recommendations,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()
             )
             
             logger.info("security", "Integrity check completed: ${if (result.isIntegrityMaintained) "PASSED" else "FAILED"}")
@@ -376,7 +377,7 @@ class AdvancedAuditLogger {
                 isIntegrityMaintained = false,
                 issues = listOf("Integrity check failed: ${e.message}"),
                 recommendations = listOf("Investigate integrity check failure"),
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()
             )
         }
     }
@@ -412,7 +413,7 @@ class AdvancedAuditLogger {
                 timeRange = timeRange,
                 eventCount = events.size.toLong(),
                 data = exportData,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()
             )
             
             logger.info("security", "Audit data exported successfully: ${result.exportId}")
@@ -455,7 +456,7 @@ class AdvancedAuditLogger {
         return event.copy(
             metadata = event.metadata + mapOf(
                 "enriched" to "true",
-                "enrichmentTimestamp" to Instant.now().toString(),
+                "enrichmentTimestamp" to Clock.System.now().toString(),
                 "eventHash" to generateEventHash(event)
             )
         )
@@ -463,13 +464,13 @@ class AdvancedAuditLogger {
     
     private fun updateEventCounters(event: AuditEvent) {
         // Update category counter
-        eventCounters.getOrPut(event.category) { AtomicLong(0) }.incrementAndGet()
+        eventCounters[event.category] = (eventCounters[event.category] ?: 0L) + 1L
         
         // Update level counter
-        eventCounters.getOrPut(event.level) { AtomicLong(0) }.incrementAndGet()
+        eventCounters[event.level] = (eventCounters[event.level] ?: 0L) + 1L
         
         // Update action counter
-        eventCounters.getOrPut(event.action) { AtomicLong(0) }.incrementAndGet()
+        eventCounters[event.action] = (eventCounters[event.action] ?: 0L) + 1L
     }
     
     private fun checkRealTimeAlerts(event: AuditEvent) {
@@ -506,7 +507,7 @@ class AdvancedAuditLogger {
             severity = event.severity,
             type = SecurityAlertType.THREAT_DETECTED,
             description = "Security event detected: ${event.type}",
-            timestamp = Instant.now(),
+            timestamp = Clock.System.now(),
             metadata = mapOf(
                 "threatScore" to event.threatScore.toString(),
                 "anomalyType" to event.anomalyType?.name ?: "NONE"
@@ -524,10 +525,10 @@ class AdvancedAuditLogger {
             severity = SecurityEventSeverity.MEDIUM,
             type = SecurityAlertType.THRESHOLD_EXCEEDED,
             description = "Threshold exceeded for pattern: ${threshold.pattern}",
-            timestamp = Instant.now(),
+            timestamp = Clock.System.now(),
             metadata = mapOf(
                 "threshold" to threshold.count.toString(),
-                "currentCount" to (eventCounters[threshold.pattern]?.get() ?: 0).toString()
+                "currentCount" to (eventCounters[threshold.pattern] ?: 0L).toString()
             )
         )
         
@@ -564,10 +565,7 @@ class AdvancedAuditLogger {
             uniqueUsers = uniqueUsers,
             uniqueSessions = uniqueSessions,
             uniqueIPs = uniqueIPs,
-            timeSpan = ChronoUnit.SECONDS.between(
-                events.minOfOrNull { it.timestamp } ?: Instant.now(),
-                events.maxOfOrNull { it.timestamp } ?: Instant.now()
-            )
+            timeSpan = kotlinx.datetime.Duration.parse("PT${kotlin.math.abs((events.maxOfOrNull { it.timestamp } ?: Clock.System.now()).epochSeconds - (events.minOfOrNull { it.timestamp } ?: Clock.System.now()).epochSeconds)}S")
         )
     }
     
@@ -684,14 +682,14 @@ class AdvancedAuditLogger {
         val issues = mutableListOf<String>()
         
         // Check for future timestamps
-        val futureEvents = auditEvents.values.filter { it.timestamp.isAfter(Instant.now()) }
+        val futureEvents = auditEvents.values.filter { it.timestamp > Clock.System.now() }
         if (futureEvents.isNotEmpty()) {
             issues.add("Found ${futureEvents.size} events with future timestamps")
         }
         
         // Check for very old timestamps
         val oldEvents = auditEvents.values.filter { 
-            ChronoUnit.DAYS.between(it.timestamp, Instant.now()) > 3650 // 10 years
+            kotlinx.datetime.Duration.parse("P${kotlin.math.abs((Clock.System.now().epochSeconds - it.timestamp.epochSeconds) / 86400)}D").inWholeDays > 3650 // 10 years
         }
         if (oldEvents.isNotEmpty()) {
             issues.add("Found ${oldEvents.size} events older than 10 years")
@@ -727,7 +725,7 @@ class AdvancedAuditLogger {
         auditPolicies.forEach { (category, policy) ->
             val expiredEvents = auditEvents.values.filter { event ->
                 event.category == category &&
-                ChronoUnit.DAYS.between(event.timestamp, Instant.now()) > policy.retentionPeriodDays
+                kotlinx.datetime.Duration.parse("P${kotlin.math.abs((Clock.System.now().epochSeconds - event.timestamp.epochSeconds) / 86400)}D").inWholeDays > policy.retentionPeriodDays
             }
             
             if (expiredEvents.isNotEmpty()) {
@@ -849,10 +847,10 @@ class AdvancedAuditLogger {
         )
     }
     
-    private fun generateEventId(): String = "audit_${System.currentTimeMillis()}_${(0..9999).random()}"
-    private fun generateReportId(): String = "report_${System.currentTimeMillis()}_${(0..9999).random()}"
-    private fun generateExportId(): String = "export_${System.currentTimeMillis()}_${(0..9999).random()}"
-    private fun generateAlertId(): String = "alert_${System.currentTimeMillis()}_${(0..9999).random()}"
+    private fun generateEventId(): String = "audit_${Clock.System.now().epochSeconds}_${(0..9999).random()}"
+    private fun generateReportId(): String = "report_${Clock.System.now().epochSeconds}_${(0..9999).random()}"
+    private fun generateExportId(): String = "export_${Clock.System.now().epochSeconds}_${(0..9999).random()}"
+    private fun generateAlertId(): String = "alert_${Clock.System.now().epochSeconds}_${(0..9999).random()}"
     private fun generateEventHash(event: AuditEvent): String = "${event.id}_${event.timestamp}_${event.action}".hashCode().toString()
 }
 
@@ -1053,16 +1051,7 @@ data class EventPattern(
 
 // Enums for advanced audit logging
 
-enum class SecurityEventType {
-    LOGIN_ATTEMPT,
-    LOGOUT,
-    PASSWORD_CHANGE,
-    PERMISSION_CHANGE,
-    DATA_ACCESS,
-    SYSTEM_ACCESS,
-    NETWORK_ACCESS,
-    FILE_ACCESS
-}
+// SecurityEventType enum removed to avoid conflicts
 
 enum class SecurityEventSeverity {
     LOW,
@@ -1079,6 +1068,19 @@ enum class SecurityAlertType {
 }
 
 // These enums are defined in other files to avoid redeclaration
+
+enum class ExportFormat {
+    JSON,
+    CSV,
+    XML
+}
+
+enum class RiskLevel {
+    LOW,
+    MEDIUM,
+    HIGH,
+    CRITICAL
+}
 
 // Event correlation engine for real-time monitoring
 
@@ -1126,12 +1128,12 @@ class EventCorrelationEngine {
     private fun triggerCallback(patternName: String, event: AuditEvent) {
         callbacks[patternName]?.let { callback ->
             val alert = SecurityAlert(
-                id = "corr_${System.currentTimeMillis()}_${(0..9999).random()}",
+                id = "corr_${Clock.System.now().epochSeconds}_${(0..9999).random()}",
                 eventId = event.id,
                 severity = SecurityEventSeverity.MEDIUM,
                 type = SecurityAlertType.THRESHOLD_EXCEEDED,
                 description = "Pattern matched: $patternName",
-                timestamp = Instant.now(),
+                timestamp = Clock.System.now(),
                 metadata = mapOf(
                     "pattern" to patternName,
                     "eventId" to event.id
