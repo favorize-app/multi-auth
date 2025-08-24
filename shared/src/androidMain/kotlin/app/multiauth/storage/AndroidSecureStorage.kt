@@ -169,7 +169,7 @@ class AndroidSecureStorage(
             // Try to get existing key from keystore
             keyStore.getKey(KEY_ALIAS, null) as? SecretKey
         } catch (e: Exception) {
-            logger.debug("No existing key found, generating new one", e)
+            logger.debug("secure storage", "No existing key found, generating new one", e)
             generateNewSecretKey()
         } ?: generateNewSecretKey()
     }
@@ -195,7 +195,7 @@ class AndroidSecureStorage(
             keyGenerator.init(keyGenParameterSpec)
             keyGenerator.generateKey()
         } catch (e: Exception) {
-            logger.warn("Failed to generate hardware-backed key, using software key", e)
+            logger.warn("secure storage","Failed to generate hardware-backed key, using software key", e)
             generateSoftwareSecretKey()
         }
     }
