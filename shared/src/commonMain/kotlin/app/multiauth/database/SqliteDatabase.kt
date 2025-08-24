@@ -5,10 +5,6 @@ import app.multiauth.models.OAuthAccount
 import app.multiauth.models.Session
 import app.multiauth.models.AuditLog
 import app.multiauth.util.Logger
-import app.multiauth.models.AuditLogEvent
-import app.multiauth.models.AuditLogSeverity
-import kotlinx.serialization.ListSerializer
-import kotlinx.serialization.MapSerializer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -18,10 +14,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.sql.Connection
 import java.sql.DriverManager
-import java.sql.PreparedStatement
 import java.sql.ResultSet
-import java.sql.SQLException
-import java.sql.Statement
 import java.sql.Timestamp
 import java.time.Instant
 
