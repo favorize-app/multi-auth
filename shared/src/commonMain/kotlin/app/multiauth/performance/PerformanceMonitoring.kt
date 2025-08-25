@@ -858,6 +858,7 @@ data class ConfigurationResult(
     val component: String,
     val success: Boolean,
     val error: String? = null,
+    @kotlinx.serialization.Contextual
     val timestamp: Instant
 )
 

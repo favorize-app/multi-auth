@@ -3,8 +3,8 @@ package app.multiauth.performance
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.time.Instant
-import java.time.temporal.ChronoUnit
+import kotlinx.datetime.Instant
+import kotlinx.datetime.Clock
 import kotlinx.coroutines.*
 import kotlin.math.roundToInt
 
@@ -36,7 +36,7 @@ class LoadTestingFramework {
     }
     
     private val testResults = mutableListOf<TestResult>()
-    private val performanceMetrics = mutableMapOf<String, PerformanceMetrics>()
+    private val performanceMetrics = mutableMapOf<String, LoadTestMetrics>()
     private val loadGenerators = mutableMapOf<String, LoadGenerator>()
     private val testScenarios = mutableMapOf<String, TestScenario>()
     
@@ -50,7 +50,7 @@ class LoadTestingFramework {
         return try {
             logger.info("performance", "Starting load test: ${scenario.name}")
             
-            val startTime = Instant.now()
+            val startTime = Clock.System.now()
             val results = mutableListOf<TestResult>()
             
             // Create load generators
@@ -68,8 +68,8 @@ class LoadTestingFramework {
                 }
             }
             
-            val endTime = Instant.now()
-            val duration = ChronoUnit.MILLIS.between(startTime, endTime)
+            val endTime = Clock.System.now()
+            val duration = (endTime - startTime).inWholeMilliseconds
             
             // Calculate overall metrics
             val overallMetrics = calculateOverallMetrics(results)
@@ -93,7 +93,7 @@ class LoadTestingFramework {
                 failedRequests = results.count { !it.isSuccessful }.toLong(),
                 metrics = overallMetrics,
                 report = report,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()
             )
             
         } catch (e: Exception) {
@@ -112,7 +112,7 @@ class LoadTestingFramework {
         return try {
             logger.info("performance", "Starting stress test: ${scenario.name}")
             
-            val startTime = Instant.now()
+            val startTime = Clock.System.now()
             val results = mutableListOf<TestResult>()
             var currentLoad = scenario.initialLoad
             var breakingPoint = 0
@@ -154,8 +154,8 @@ class LoadTestingFramework {
                 }
             }
             
-            val endTime = Instant.now()
-            val duration = ChronoUnit.MILLIS.between(startTime, endTime)
+            val endTime = Clock.System.now()
+            val duration = (endTime - startTime).inWholeMilliseconds
             
             val result = StressTestResult(
                 scenarioName = scenario.name,
@@ -167,7 +167,7 @@ class LoadTestingFramework {
                 totalRequests = results.size.toLong(),
                 successfulRequests = results.count { it.isSuccessful }.toLong(),
                 failedRequests = results.count { !it.isSuccessful }.toLong(),
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()
             )
             
             logger.info("performance", "Stress test completed. Breaking point: $breakingPoint users")
@@ -189,7 +189,7 @@ class LoadTestingFramework {
         return try {
             logger.info("performance", "Starting spike test: ${scenario.name}")
             
-            val startTime = Instant.now()
+            val startTime = Clock.System.now()
             
             // Create spike test scenario
             val spikeScenario = LoadTestScenario(
@@ -223,8 +223,8 @@ class LoadTestingFramework {
             // Analyze spike behavior
             val spikeAnalysis = analyzeSpikeBehavior(spikeResult)
             
-            val endTime = Instant.now()
-            val duration = ChronoUnit.MILLIS.between(startTime, endTime)
+            val endTime = Clock.System.now()
+            val duration = (endTime - startTime).inWholeMilliseconds
             
             val result = SpikeTestResult(
                 scenarioName = scenario.name,
@@ -236,7 +236,7 @@ class LoadTestingFramework {
                 recoveryTime = spikeAnalysis.recoveryTime,
                 performanceDegradation = spikeAnalysis.performanceDegradation,
                 recoveryEfficiency = spikeAnalysis.recoveryEfficiency,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()
             )
             
             logger.info("performance", "Spike test completed")
@@ -258,7 +258,7 @@ class LoadTestingFramework {
         return try {
             logger.info("performance", "Starting endurance test: ${scenario.name}")
             
-            val startTime = Instant.now()
+            val startTime = Clock.System.now()
             val results = mutableListOf<TestResult>()
             val checkpoints = mutableListOf<CheckpointResult>()
             
@@ -267,7 +267,7 @@ class LoadTestingFramework {
             var currentInterval = 0
             
             while (currentInterval < scenario.checkpointIntervals) {
-                val intervalStart = Instant.now()
+                val intervalStart = Clock.System.now()
                 
                 // Execute interval test
                 val intervalScenario = LoadTestScenario(
@@ -289,7 +289,7 @@ class LoadTestingFramework {
                 // Create checkpoint
                 val checkpoint = CheckpointResult(
                     intervalNumber = currentInterval,
-                    timestamp = Instant.now(),
+                    timestamp = Clock.System.now(),
                     metrics = intervalResult.metrics,
                     isStable = isSystemStable(intervalResult.metrics, scenario.stabilityThresholds)
                 )
@@ -303,8 +303,8 @@ class LoadTestingFramework {
                 }
             }
             
-            val endTime = Instant.now()
-            val duration = ChronoUnit.MILLIS.between(startTime, endTime)
+            val endTime = Clock.System.now()
+            val duration = (endTime - startTime).inWholeMilliseconds
             
             // Analyze endurance results
             val enduranceAnalysis = analyzeEnduranceResults(checkpoints)
@@ -320,7 +320,7 @@ class LoadTestingFramework {
                 failedRequests = results.count { !it.isSuccessful }.toLong(),
                 checkpoints = checkpoints,
                 analysis = enduranceAnalysis,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()
             )
             
             logger.info("performance", "Endurance test completed")
@@ -355,8 +355,8 @@ class LoadTestingFramework {
         return PerformanceReport(
             scenarioName = scenario.name,
             testType = scenario.testType,
-            startTime = Instant.now().minus(duration, ChronoUnit.MILLIS),
-            endTime = Instant.now(),
+            startTime = Clock.System.now().minus(kotlinx.datetime.Duration.parse("PT${duration}ms")),
+            endTime = Clock.System.now(),
             duration = duration,
             totalRequests = results.size.toLong(),
             successfulRequests = results.count { it.isSuccessful }.toLong(),
@@ -367,7 +367,7 @@ class LoadTestingFramework {
             errorAnalysis = errorAnalysis,
             recommendations = recommendations,
             detailedResults = results,
-            timestamp = Instant.now()
+            timestamp = Clock.System.now()
         )
     }
     
@@ -375,7 +375,7 @@ class LoadTestingFramework {
     
     private suspend fun executeTestPhase(phase: TestPhase, generators: List<LoadGenerator>): List<TestResult> {
         val results = mutableListOf<TestResult>()
-        val startTime = Instant.now()
+        val startTime = Clock.System.now()
         
         // Calculate user ramp-up
         val usersPerSecond = if (phase.rampUpTime > 0) {
@@ -388,7 +388,7 @@ class LoadTestingFramework {
         var elapsedTime = 0L
         
         while (elapsedTime < phase.duration * 1000 && currentUsers < phase.targetUsers) {
-            val phaseElapsed = ChronoUnit.MILLIS.between(startTime, Instant.now())
+            val phaseElapsed = (Clock.System.now() - startTime).inWholeMilliseconds
             
             // Ramp up users
             if (phase.rampUpTime > 0) {
@@ -404,7 +404,7 @@ class LoadTestingFramework {
             
             // Wait for next batch
             delay(100) // 100ms intervals
-            elapsedTime = ChronoUnit.MILLIS.between(startTime, Instant.now())
+            elapsedTime = (Clock.System.now() - startTime).inWholeMilliseconds
         }
         
         return results
@@ -445,7 +445,7 @@ class LoadTestingFramework {
             val generator = LoadGenerator(
                 id = "generator_$index",
                 scenario = scenario,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()
             )
             generators.add(generator)
             loadGenerators[generator.id] = generator
@@ -454,14 +454,14 @@ class LoadTestingFramework {
         return generators
     }
     
-    private fun calculateOverallMetrics(results: List<TestResult>): PerformanceMetrics {
+    private fun calculateOverallMetrics(results: List<TestResult>): LoadTestMetrics {
         if (results.isEmpty()) {
-            return PerformanceMetrics(
-                responseTime = PerformanceMetrics.ResponseTimeMetrics(),
-                throughput = PerformanceMetrics.ThroughputMetrics(),
+            return LoadTestMetrics(
+                responseTime = LoadTestMetrics.ResponseTimeMetrics(),
+                throughput = LoadTestMetrics.ThroughputMetrics(),
                 errorRate = 0.0,
                 concurrentUsers = 0,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()
             )
         }
         
@@ -475,9 +475,9 @@ class LoadTestingFramework {
         val p95ResponseTime = calculatePercentile(responseTimes, 95.0)
         val p99ResponseTime = calculatePercentile(responseTimes, 99.0)
         
-        val totalDuration = ChronoUnit.SECONDS.between(
-            results.minOfOrNull { it.timestamp } ?: Instant.now(),
-            results.maxOfOrNull { it.timestamp } ?: Instant.now()
+        val totalDuration = (endTime - startTime).inWholeSeconds(
+            results.minOfOrNull { it.timestamp } ?: Clock.System.now(),
+            results.maxOfOrNull { it.timestamp } ?: Clock.System.now()
         )
         
         val requestsPerSecond = if (totalDuration > 0) {
@@ -492,15 +492,15 @@ class LoadTestingFramework {
             0.0
         }
         
-        return PerformanceMetrics(
-            responseTime = PerformanceMetrics.ResponseTimeMetrics(
+        return LoadTestMetrics(
+            responseTime = LoadTestMetrics.ResponseTimeMetrics(
                 average = avgResponseTime,
                 minimum = minResponseTime,
                 maximum = maxResponseTime,
                 p95 = p95ResponseTime,
                 p99 = p99ResponseTime
             ),
-            throughput = PerformanceMetrics.ThroughputMetrics(
+            throughput = LoadTestMetrics.ThroughputMetrics(
                 requestsPerSecond = requestsPerSecond,
                 totalRequests = results.size.toLong(),
                 successfulRequests = successfulRequests.size.toLong(),
@@ -508,7 +508,7 @@ class LoadTestingFramework {
             ),
             errorRate = errorRate,
             concurrentUsers = results.groupBy { it.userId }.size,
-            timestamp = Instant.now()
+            timestamp = Clock.System.now()
         )
     }
     
@@ -535,7 +535,7 @@ class LoadTestingFramework {
             
             val intervalResults = results.filter { result ->
                 val resultTime = ChronoUnit.MILLIS.between(
-                    results.minOfOrNull { it.timestamp } ?: Instant.now(),
+                    results.minOfOrNull { it.timestamp } ?: Clock.System.now(),
                     result.timestamp
                 )
                 resultTime >= intervalStart && resultTime < intervalEnd
@@ -550,7 +550,7 @@ class LoadTestingFramework {
             throughputPoints.add(
                 ThroughputPoint(
                     interval = interval,
-                    timestamp = Instant.now().minus(duration - intervalEnd, ChronoUnit.MILLIS),
+                    timestamp = Clock.System.now().minus(duration - intervalEnd, ChronoUnit.MILLIS),
                     throughput = throughput
                 )
             )
@@ -571,7 +571,7 @@ class LoadTestingFramework {
         )
     }
     
-    private fun generateRecommendations(metrics: PerformanceMetrics, scenario: LoadTestScenario): List<String> {
+    private fun generateRecommendations(metrics: LoadTestMetrics, scenario: LoadTestScenario): List<String> {
         val recommendations = mutableListOf<String>()
         
         // Response time recommendations
@@ -601,7 +601,7 @@ class LoadTestingFramework {
         return recommendations
     }
     
-    private fun isSystemStable(metrics: PerformanceMetrics, thresholds: StabilityThresholds): Boolean {
+    private fun isSystemStable(metrics: LoadTestMetrics, thresholds: StabilityThresholds): Boolean {
         return metrics.responseTime.average <= thresholds.maxResponseTime &&
                metrics.throughput.requestsPerSecond >= thresholds.minThroughput &&
                metrics.errorRate <= thresholds.maxErrorRate
@@ -770,7 +770,7 @@ data class TestResult(
 )
 
 @Serializable
-data class PerformanceMetrics(
+data class LoadTestMetrics(
     val responseTime: ResponseTimeMetrics,
     val throughput: ThroughputMetrics,
     val errorRate: Double,
@@ -805,7 +805,7 @@ data class PerformanceReport(
     val totalRequests: Long,
     val successfulRequests: Long,
     val failedRequests: Long,
-    val metrics: PerformanceMetrics,
+    val metrics: LoadTestMetrics,
     val responseTimeDistribution: ResponseTimeDistribution,
     val throughputOverTime: List<ThroughputPoint>,
     val errorAnalysis: ErrorAnalysis,
@@ -852,7 +852,7 @@ data class SpikeAnalysis(
 data class CheckpointResult(
     val intervalNumber: Int,
     val timestamp: Instant,
-    val metrics: PerformanceMetrics,
+    val metrics: LoadTestMetrics,
     val isStable: Boolean
 )
 
@@ -875,13 +875,13 @@ data class LoadGenerator(
         val results = mutableListOf<TestResult>()
         
         repeat(userCount) { userIndex ->
-            val startTime = Instant.now()
+            val startTime = Clock.System.now()
             
             // Simulate authentication request
             delay((100..500).random().toLong()) // Random delay
             
-            val endTime = Instant.now()
-            val responseTime = ChronoUnit.MILLIS.between(startTime, endTime)
+            val endTime = Clock.System.now()
+            val responseTime = (endTime - startTime).inWholeMilliseconds
             
             val isSuccessful = (0..100).random() > 5 // 95% success rate
             
