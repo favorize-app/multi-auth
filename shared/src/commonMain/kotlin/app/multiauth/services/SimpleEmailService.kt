@@ -19,7 +19,7 @@ class SimpleEmailService(
     private val emailQueue = mutableListOf<QueuedEmail>()
     private val deliveryStatuses = mutableMapOf<String, EmailDeliveryStatus>()
     
-    override suspend fun initialize(): Boolean {
+    override suspend fun initialize(config: EmailConfig): Boolean {
         return try {
             logger.info("SimpleEmailService", "Initializing Simple Email Service")
             isInitialized = true
