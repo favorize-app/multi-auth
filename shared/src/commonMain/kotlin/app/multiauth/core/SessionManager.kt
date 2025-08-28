@@ -83,7 +83,7 @@ class SessionManager private constructor(
         // Reschedule token refresh
         scheduleTokenRefresh(updatedSession)
         
-        eventBus.dispatch(AuthEvent.Session.SessionRefreshed(updatedSession), "SessionManager")
+        eventBus.dispatch(AuthEvent.Session.SessionRefreshed, "SessionManager")
         
         return updatedSession
     }
