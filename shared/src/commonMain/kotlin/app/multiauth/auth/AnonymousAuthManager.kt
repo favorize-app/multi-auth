@@ -66,7 +66,7 @@ class AnonymousAuthManager(
             
             // Generate unique anonymous user ID
             val anonymousId = generateAnonymousId()
-            val sessionId = UUID.randomUUID().toString()
+            val sessionId = Uuid.randomUUID().toString()
             
             // Create anonymous user
             val anonymousUser = AnonymousUser(
@@ -144,7 +144,7 @@ class AnonymousAuthManager(
             
             // Create permanent user account
             val permanentUser = User(
-                id = UUID.randomUUID().toString(),
+                id = Uuid.randomUUID().toString(),
                 email = email,
                 displayName = displayName,
                 emailVerified = false,
@@ -323,7 +323,7 @@ class AnonymousAuthManager(
     // Private implementation methods
     
     private fun generateAnonymousId(): String {
-        return ANONYMOUS_USER_PREFIX + UUID.randomUUID().toString().replace("-", "").take(12)
+        return ANONYMOUS_USER_PREFIX + Uuid.randomUUID().toString().replace("-", "").take(12)
     }
     
     private fun updateConversionMetrics(action: AnonymousAction) {
