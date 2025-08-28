@@ -10,7 +10,7 @@ import app.multiauth.util.Logger
  */
 object StorageFactory {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     
     /**
      * Creates and returns the appropriate secure storage implementation for the current platform.

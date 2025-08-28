@@ -1,5 +1,7 @@
 package app.multiauth.models
 
+import kotlinx.datetime.Instant
+import kotlinx.datetime.Clock
 import kotlinx.serialization.Serializable
 
 /**
@@ -88,7 +90,7 @@ data class OAuthAccount(
      */
     fun isTokenExpired(): Boolean {
         return tokenExpiresAt?.let {
-            Clock.System.now().epochSeconds() > it
+            Clock.System.now().epochSeconds > it
         } ?: false
     }
 

@@ -23,7 +23,7 @@ class BiometricManager(
     private val eventBus: EventBus = EventBusInstance()
 ) {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     private val scope = CoroutineScope(Dispatchers.Main)
     
     private val _biometricState = MutableStateFlow<BiometricState>(BiometricState.Idle)

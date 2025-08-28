@@ -1,5 +1,7 @@
 package app.multiauth.security
 
+import kotlinx.datetime.Instant
+import kotlinx.datetime.Clock
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -11,7 +13,7 @@ import kotlin.math.abs
  */
 class ThreatDetection {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
     
     companion object {
@@ -78,7 +80,7 @@ class ThreatDetection {
                 threatPatterns = threatPatterns,
                 recommendations = recommendations,
                 automatedAction = automatedAction,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
             logger.info("security", "Threat analysis completed for event ${event.id}: $threatLevel")
@@ -94,7 +96,7 @@ class ThreatDetection {
                 threatPatterns = emptyList(),
                 recommendations = listOf("Investigate analysis failure"),
                 automatedAction = null,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
         }
     }
@@ -652,7 +654,7 @@ class ThreatDetection {
                     type = ActionType.ACCOUNT_LOCKOUT,
                     description = "Account locked due to critical threat",
                     severity = ActionSeverity.CRITICAL,
-                    timestamp = Clock.System.now()()
+                    timestamp = Clock.System.now()
                 )
             }
             THREAT_LEVEL_HIGH -> {
@@ -661,7 +663,7 @@ class ThreatDetection {
                     type = ActionType.ADDITIONAL_VERIFICATION,
                     description = "Additional verification required",
                     severity = ActionSeverity.HIGH,
-                    timestamp = Clock.System.now()()
+                    timestamp = Clock.System.now()
                 )
             }
             THREAT_LEVEL_MEDIUM -> {
@@ -670,7 +672,7 @@ class ThreatDetection {
                     type = ActionType.MONITORING_ENHANCED,
                     description = "Enhanced monitoring enabled",
                     severity = ActionSeverity.MEDIUM,
-                    timestamp = Clock.System.now()()
+                    timestamp = Clock.System.now()
                 )
             }
             else -> null
@@ -712,7 +714,7 @@ class ThreatDetection {
     }
     
     private fun getRecentEvents(userId: String?, windowMinutes: Int): List<SecurityEvent> {
-        val cutoffTime = Clock.System.now()().minus(windowMinutes.toLong(), ChronoUnit.MINUTES)
+        val cutoffTime = Clock.System.now().minus(windowMinutes.toLong(), ChronoUnit.MINUTES)
         return securityEvents.filter { event ->
             event.timestamp.isAfter(cutoffTime) && (userId == null || event.userId == userId)
         }

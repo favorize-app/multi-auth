@@ -8,7 +8,7 @@ import app.multiauth.util.Logger
  */
 object ExtendedOAuthProviders {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     
     /**
      * Discord OAuth provider configuration.

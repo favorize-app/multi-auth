@@ -1,5 +1,6 @@
 package app.multiauth.security
 
+import kotlinx.datetime.Clock
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -12,7 +13,7 @@ import java.util.Base64
  */
 class EnhancedEncryption {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
     private val secureRandom = SecureRandom()
     
@@ -187,7 +188,7 @@ class EnhancedEncryption {
         return EncryptedDataWithMetadata(
             encryptedData = encryptedResult,
             metadata = metadataJson,
-            timestamp = Clock.System.now().epochSeconds(),
+            timestamp = Clock.System.now().epochSeconds,
             version = "1.0"
         )
     }

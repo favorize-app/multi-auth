@@ -18,7 +18,7 @@ class TwitchOAuthClient(
     private val httpClient: HttpClient
 ) : OAuthClient {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     
     override suspend fun getAuthorizationUrl(
         state: String,
@@ -90,7 +90,7 @@ class RedditOAuthClient(
     private val httpClient: HttpClient
 ) : OAuthClient {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     
     override suspend fun getAuthorizationUrl(
         state: String,
@@ -163,7 +163,7 @@ class SteamOAuthClient(
     private val httpClient: HttpClient
 ) : OAuthClient {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     
     override suspend fun getAuthorizationUrl(
         state: String,
@@ -225,7 +225,7 @@ class EpicGamesOAuthClient(
     private val httpClient: HttpClient
 ) : OAuthClient {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     
     override suspend fun getAuthorizationUrl(
         state: String,
@@ -297,7 +297,7 @@ class SpotifyOAuthClient(
     private val httpClient: HttpClient
 ) : OAuthClient {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     
     override suspend fun getAuthorizationUrl(
         state: String,
@@ -369,7 +369,7 @@ class FacebookOAuthClient(
     private val httpClient: HttpClient
 ) : OAuthClient {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     
     override suspend fun getAuthorizationUrl(
         state: String,
@@ -441,7 +441,7 @@ class AppleOAuthClient(
     private val httpClient: HttpClient
 ) : OAuthClient {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     
     override suspend fun getAuthorizationUrl(
         state: String,

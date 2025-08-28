@@ -9,7 +9,7 @@ import app.multiauth.util.Logger
  */
 object OAuthClientFactory {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     
     /**
      * Creates an OAuth client for the specified provider.

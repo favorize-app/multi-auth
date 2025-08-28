@@ -70,7 +70,7 @@ interface SecureStorage {
  */
 abstract class BaseSecureStorage : SecureStorage {
     
-    protected val logger = app.multiauth.util.LoggerLogger(this::class)
+    protected val logger = app.multiauth.util.Logger.getLogger(this::class)
     
     override suspend fun contains(key: String): Boolean {
         return retrieve(key) != null

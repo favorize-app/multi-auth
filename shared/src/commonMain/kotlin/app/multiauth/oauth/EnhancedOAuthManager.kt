@@ -1,5 +1,7 @@
 package app.multiauth.oauth
 
+import kotlinx.datetime.Instant
+import kotlinx.datetime.Clock
 import app.multiauth.core.AuthEngine
 import app.multiauth.events.AuthEvent
 import app.multiauth.events.EventBus
@@ -11,7 +13,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlin.collections.MutableMap
 
 /**
  * Enhanced OAuth Manager with account linking and multiple provider support.
@@ -22,7 +23,7 @@ class EnhancedOAuthManager(
     private val eventBus: EventBus = EventBusInstance()
 ) {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     private val scope = CoroutineScope(Dispatchers.Main)
     
     companion object {
@@ -87,8 +88,8 @@ class EnhancedOAuthManager(
                 accessToken = oauthData.accessToken,
                 refreshToken = oauthData.refreshToken,
                 tokenExpiry = oauthData.tokenExpiry,
-                linkedAt = Clock.System.now()(),
-                lastUsed = Clock.System.now()()
+                linkedAt = Clock.System.now(),
+                lastUsed = Clock.System.now()
             )
             
             // Store the linked account
@@ -261,8 +262,8 @@ class EnhancedOAuthManager(
             
             // Update the linked account with new expiry time
             val updatedAccount = linkedAccount.copy(
-                tokenExpiry = Clock.System.now()().plus(1, java.time.temporal.ChronoUnit.HOURS),
-                lastUsed = Clock.System.now()()
+                tokenExpiry = Clock.System.now().plus(1, java.time.temporal.ChronoUnit.HOURS),
+                lastUsed = Clock.System.now()
             )
             
             updateLinkedAccountInStorage(user.id, updatedAccount)
@@ -340,7 +341,7 @@ class EnhancedOAuthManager(
                 return Result.failure(OAuthException("Invalid access token"))
             }
             
-            if (oauthData.tokenExpiry.isBefore(Clock.System.now()())) {
+            if (oauthData.tokenExpiry.isBefore(Clock.System.now())) {
                 return Result.failure(OAuthException("Access token has expired"))
             }
             
@@ -361,7 +362,7 @@ class EnhancedOAuthManager(
             accessToken = oauthData.accessToken,
             refreshToken = oauthData.refreshToken,
             tokenExpiry = oauthData.tokenExpiry,
-            lastUsed = Clock.System.now()()
+            lastUsed = Clock.System.now()
         )
         
         updateLinkedAccountInStorage(linkedAccount.userId, updatedAccount)
@@ -376,7 +377,7 @@ class EnhancedOAuthManager(
     }
     
     private fun isTokenRefreshNeeded(linkedAccount: LinkedAccount): Boolean {
-        val bufferTime = Clock.System.now()().plus(OAUTH_TOKEN_EXPIRY_BUFFER_MINUTES, java.time.temporal.ChronoUnit.MINUTES)
+        val bufferTime = Clock.System.now().plus(OAUTH_TOKEN_EXPIRY_BUFFER_MINUTES, java.time.temporal.ChronoUnit.MINUTES)
         return linkedAccount.tokenExpiry.isBefore(bufferTime)
     }
     
@@ -394,7 +395,7 @@ class EnhancedOAuthManager(
         val updatedProviderStats = currentAnalytics.providerStats + (provider to updatedStats)
         _oauthAnalytics.value = currentAnalytics.copy(
             providerStats = updatedProviderStats,
-            lastUpdated = Clock.System.now()()
+            lastUpdated = Clock.System.now()
         )
     }
 }
@@ -447,7 +448,7 @@ data class OAuthData(
  */
 data class OAuthAnalytics(
     val providerStats: Map<OAuthProvider, ProviderStats> = emptyMap(),
-    val lastUpdated: Instant = Clock.System.now()()
+    val lastUpdated: Instant = Clock.System.now()
 )
 
 /**

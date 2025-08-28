@@ -1,5 +1,7 @@
 package app.multiauth.oauth
 
+import kotlinx.datetime.Instant
+import kotlinx.datetime.Clock
 import kotlinx.serialization.Serializable
 
 /**
@@ -21,7 +23,7 @@ data class OAuthUserInfo(
     val provider: String,
     val providerId: String,
     val rawData: Map<String, String> = emptyMap(),
-    val timestamp: @kotlinx.serialization.Contextual Instant = kotlinx.datetime.Clock.System.now()
+    val timestamp: @kotlinx.serialization.Contextual Instant = Clock.System.now
 ) {
     
     /**

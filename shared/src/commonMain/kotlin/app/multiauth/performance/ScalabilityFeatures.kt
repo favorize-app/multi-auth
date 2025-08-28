@@ -1,13 +1,13 @@
 package app.multiauth.performance
 
+import kotlinx.datetime.Instant
+import kotlinx.datetime.Clock
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlin.collections.MutableMap
 // Replaced with coroutines
 // Replaced with coroutines
-// Replaced with kotlinx.datetime.Duration
-import kotlin.collections.MutableMap
+// Replaced with kotlin.time.Duration
 
 /**
  * Scalability features layer for horizontal scaling and load balancing.
@@ -15,7 +15,7 @@ import kotlin.collections.MutableMap
  */
 class ScalabilityFeatures {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
     
     companion object {
@@ -82,7 +82,7 @@ class ScalabilityFeatures {
                 serviceId = serviceInfo.id,
                 success = true,
                 registration = registration,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
         } catch (e: Exception) {
@@ -91,7 +91,7 @@ class ScalabilityFeatures {
                 serviceId = serviceInfo.id,
                 success = false,
                 error = e.message,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
         }
     }
@@ -121,7 +121,7 @@ class ScalabilityFeatures {
                 serviceId = serviceId,
                 success = true,
                 unregistration = unregistration,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
         } catch (e: Exception) {
@@ -130,7 +130,7 @@ class ScalabilityFeatures {
                 serviceId = serviceId,
                 success = false,
                 error = e.message,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
         }
     }
@@ -153,7 +153,7 @@ class ScalabilityFeatures {
                     requestId = request.id,
                     success = false,
                     error = "Circuit breaker is open",
-                    timestamp = Clock.System.now()()
+                    timestamp = Clock.System.now()
                 )
             }
             
@@ -170,7 +170,7 @@ class ScalabilityFeatures {
                     requestId = request.id,
                     success = true,
                     route = route,
-                    timestamp = Clock.System.now()()
+                    timestamp = Clock.System.now()
                 )
             } else {
                 logger.warn("performance", "No available service for request: ${request.id}")
@@ -179,7 +179,7 @@ class ScalabilityFeatures {
                     requestId = request.id,
                     success = false,
                     error = "No available service",
-                    timestamp = Clock.System.now()()
+                    timestamp = Clock.System.now()
                 )
             }
             
@@ -193,7 +193,7 @@ class ScalabilityFeatures {
                 requestId = request.id,
                 success = false,
                 error = e.message,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
         }
     }
@@ -208,7 +208,7 @@ class ScalabilityFeatures {
         return try {
             logger.info("performance", "Starting system scaling with strategy: $strategy")
             
-            val startTime = Clock.System.now()()
+            val startTime = Clock.System.now()
             
             // Get current performance metrics
             val metrics = performanceTrackerCurrentMetrics()
@@ -220,7 +220,7 @@ class ScalabilityFeatures {
                 // Execute scaling action
                 val executionResult = scalingManager.executeScalingAction(scalingAction)
                 
-                val executionTime = // Duration calculation required(startTime, Clock.System.now()())
+                val executionTime = // Duration calculation required(startTime, Clock.System.now())
                 
                 val result = ScalingResult(
                     strategy = strategy,
@@ -229,7 +229,7 @@ class ScalabilityFeatures {
                     executionTime = executionTime,
                     newInstances = executionResult.newInstances,
                     removedInstances = executionResult.removedInstances,
-                    timestamp = Clock.System.now()()
+                    timestamp = Clock.System.now()
                 )
                 
                 logger.info("performance", "System scaling completed: ${executionResult.newInstances} new instances")
@@ -245,7 +245,7 @@ class ScalabilityFeatures {
                     executionTime = 0,
                     newInstances = 0,
                     removedInstances = 0,
-                    timestamp = Clock.System.now()()
+                    timestamp = Clock.System.now()
                 )
             }
             
@@ -278,7 +278,7 @@ class ScalabilityFeatures {
                 performanceStatus = performanceStatus,
                 overallHealth = calculateOverallHealth(serviceStatus, loadBalancerStatus, scalingStatus, healthStatus, performanceStatus),
                 recommendations = generateScalabilityRecommendations(serviceStatus, loadBalancerStatus, scalingStatus, healthStatus, performanceStatus),
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
             logger.info("performance", "Scalability status report generated successfully")
@@ -307,7 +307,7 @@ class ScalabilityFeatures {
             ConfigurationResult(
                 component = "LoadBalancer",
                 success = true,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
         } catch (e: Exception) {
@@ -317,7 +317,7 @@ class ScalabilityFeatures {
                 component = "LoadBalancer",
                 success = false,
                 error = e.message,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
         }
     }
@@ -339,7 +339,7 @@ class ScalabilityFeatures {
             ConfigurationResult(
                 component = "AutoScaling",
                 success = true,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
         } catch (e: Exception) {
@@ -349,7 +349,7 @@ class ScalabilityFeatures {
                 component = "AutoScaling",
                 success = false,
                 error = e.message,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
         }
     }
@@ -363,7 +363,7 @@ class ScalabilityFeatures {
         return try {
             logger.info("performance", "Performing health check on all services")
             
-            val startTime = Clock.System.now()()
+            val startTime = Clock.System.now()
             val healthResults = mutableListOf<ServiceHealthResult>()
             
             // Get all registered services
@@ -375,7 +375,7 @@ class ScalabilityFeatures {
                 healthResults.add(healthResult)
             }
             
-            val executionTime = // Duration calculation required(startTime, Clock.System.now()())
+            val executionTime = // Duration calculation required(startTime, Clock.System.now())
             val healthyServices = healthResults.count { it.isHealthy }
             val unhealthyServices = healthResults.size - healthyServices
             
@@ -385,7 +385,7 @@ class ScalabilityFeatures {
                 unhealthyServices = unhealthyServices.toLong(),
                 executionTime = executionTime,
                 results = healthResults,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
             logger.info("general", "Health check completed: $healthyServices healthy, $unhealthyServices unhealthy")
@@ -415,7 +415,7 @@ class ScalabilityFeatures {
             CircuitBreakerResult(
                 enabled = enabled,
                 success = true,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
         } catch (e: Exception) {
@@ -425,7 +425,7 @@ class ScalabilityFeatures {
                 enabled = enabled,
                 success = false,
                 error = e.message,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
         }
     }
@@ -761,12 +761,12 @@ class PerformanceTracker {
 class ServiceRegistry {
     suspend fun register(serviceInfo: ServiceInfo): ServiceRegistration {
         // Placeholder implementation
-        return ServiceRegistration(serviceInfo.id, Clock.System.now()())
+        return ServiceRegistration(serviceInfo.id, Clock.System.now())
     }
     
     suspend fun unregister(serviceId: String): ServiceUnregistration {
         // Placeholder implementation
-        return ServiceUnregistration(serviceId, Clock.System.now()())
+        return ServiceUnregistration(serviceId, Clock.System.now())
     }
     
     fun getServiceStatus(): ServiceStatus {

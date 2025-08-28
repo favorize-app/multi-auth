@@ -1,5 +1,6 @@
 package app.multiauth.mfa
 
+import kotlinx.datetime.Clock
 import app.multiauth.util.Logger
 import java.security.MessageDigest
 // Platform-specific implementation required
@@ -11,7 +12,7 @@ import kotlin.math.pow
  */
 class TotpGenerator {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     
     companion object {
         private const val TOTP_DIGITS = 6
@@ -46,7 +47,7 @@ class TotpGenerator {
      * @return 6-digit TOTP code
      */
     fun generateTotp(secret: String, algorithm: String = HMAC_SHA1): String {
-        val time = Clock.System.now().epochSeconds() / 1000 / TOTP_PERIOD
+        val time = Clock.System.now().epochSeconds / 1000 / TOTP_PERIOD
         return generateTotpForTime(secret, time, algorithm)
     }
     
@@ -108,7 +109,7 @@ class TotpGenerator {
         algorithm: String = HMAC_SHA1
     ): Boolean {
         try {
-            val currentTime = Clock.System.now().epochSeconds() / 1000 / TOTP_PERIOD
+            val currentTime = Clock.System.now().epochSeconds / 1000 / TOTP_PERIOD
             
             // Check the current time and window periods before/after
             for (i in -window..window) {
@@ -134,7 +135,7 @@ class TotpGenerator {
      * @return Seconds remaining until next code
      */
     fun getTimeRemaining(): Long {
-        val currentTime = Clock.System.now().epochSeconds() / 1000
+        val currentTime = Clock.System.now().epochSeconds / 1000
         val periodStart = (currentTime / TOTP_PERIOD) * TOTP_PERIOD
         val nextPeriod = periodStart + TOTP_PERIOD
         
@@ -147,7 +148,7 @@ class TotpGenerator {
      * @return Current TOTP period number
      */
     fun getCurrentPeriod(): Long {
-        return Clock.System.now().epochSeconds() / 1000 / TOTP_PERIOD
+        return Clock.System.now().epochSeconds / 1000 / TOTP_PERIOD
     }
     
     /**

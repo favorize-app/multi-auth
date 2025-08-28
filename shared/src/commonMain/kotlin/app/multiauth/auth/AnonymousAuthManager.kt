@@ -1,5 +1,6 @@
 package app.multiauth.auth
 
+import kotlinx.datetime.Instant
 import app.multiauth.core.AuthEngine
 import app.multiauth.events.AuthEvent
 import app.multiauth.events.EventBus
@@ -12,8 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
-import java.util.UUID
-import kotlin.time.Duration.Companion.hours
+import kotlin.random.UUID
 
 /**
  * Manager for anonymous authentication.
@@ -25,11 +25,11 @@ class AnonymousAuthManager(
     private val eventBus: EventBus = EventBusInstance()
 ) {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     private val scope = CoroutineScope(Dispatchers.Main)
     
     companion object {
-        private const val ANONYMOUS_SESSION_DURATION_HOURS = 24L
+        private val ANONYMOUS_SESSION_DURATION_HOURS = 24L.hours
         private const val MAX_ANONYMOUS_SESSIONS = 5
         private const val ANONYMOUS_USER_PREFIX = "anon_"
     }

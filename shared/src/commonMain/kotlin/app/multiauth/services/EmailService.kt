@@ -1,5 +1,6 @@
 package app.multiauth.services
 
+import kotlinx.datetime.Clock
 import app.multiauth.util.Logger
 import kotlinx.coroutines.flow.Flow
 
@@ -303,7 +304,7 @@ data class EmailTemplateVariables(
     val alertDetails: String? = null,
     val loginLocation: String? = null,
     val deviceInfo: String? = null,
-    val timestamp: Long = Clock.System.now().epochSeconds(),
+    val timestamp: Long = Clock.System.now().epochSeconds,
     val supportEmail: String? = null,
     val appName: String = "Multi-Auth",
     val appUrl: String? = null

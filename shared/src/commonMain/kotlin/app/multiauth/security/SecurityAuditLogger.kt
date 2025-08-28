@@ -1,5 +1,7 @@
 package app.multiauth.security
 
+import kotlinx.datetime.Instant
+import kotlinx.datetime.Clock
 import app.multiauth.models.User
 import app.multiauth.util.Logger
 import kotlinx.coroutines.CoroutineScope
@@ -8,7 +10,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlin.collections.MutableMap
 
 /**
  * Security audit logger for tracking security-related events and activities.
@@ -16,7 +17,7 @@ import kotlin.collections.MutableMap
  */
 class SecurityAuditLogger {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     private val scope = CoroutineScope(Dispatchers.Main)
     
     companion object {
@@ -53,7 +54,7 @@ class SecurityAuditLogger {
         scope.launch {
             try {
                 val entry = SecurityAuditEntry(
-                    timestamp = Clock.System.now(),
+                    timestamp = Clock.System.now,
                     event = event,
                     userId = user?.id,
                     userEmail = user?.email,
@@ -90,7 +91,7 @@ class SecurityAuditLogger {
     ) {
         val event = SecurityEventType.LOGIN_ATTEMPT
         val entry = SecurityAuditEntry(
-            timestamp = Clock.System.now(),
+            timestamp = Clock.System.now,
             event = event,
             userId = null,
             userEmail = userEmail,
@@ -122,7 +123,7 @@ class SecurityAuditLogger {
     ) {
         val event = SecurityEventType.LOGIN_ATTEMPT
         val entry = SecurityAuditEntry(
-            timestamp = Clock.System.now(),
+            timestamp = Clock.System.now,
             event = event,
             userId = user.id,
             userEmail = user.email,
@@ -151,7 +152,7 @@ class SecurityAuditLogger {
     ) {
         val event = SecurityEventType.LOGIN_ATTEMPT
         val entry = SecurityAuditEntry(
-            timestamp = Clock.System.now(),
+            timestamp = Clock.System.now,
             event = event,
             userId = user?.id,
             userEmail = user?.email,
@@ -228,7 +229,7 @@ class SecurityAuditLogger {
     fun cleanupOldEntries() {
         scope.launch {
             try {
-                val cutoffTime = Clock.System.now().minus(kotlinx.datetime.Duration.parse("P${RETENTION_DAYS}D"))
+                val cutoffTime = Clock.System.now().minus(Duration.parse("P${RETENTION_DAYS}D"))
                 val currentEntries = _auditEntries.value
                 val filteredEntries = currentEntries.filter { it.timestamp > cutoffTime }
                 
@@ -310,8 +311,8 @@ class SecurityAuditLogger {
     
     private fun checkUserActivity(userId: String) {
         val userActivities = _userActivityCountsOrPut(userId) { mutableListOf() }
-        val now = Clock.System.now()
-        val cutoffTime = now.minus(kotlinx.datetime.Duration.parse("PT${SUSPICIOUS_ACTIVITY_WINDOW_MINUTES}M"))
+        val now = Clock.System.now
+        val cutoffTime = now.minus(Duration.parse("PT${SUSPICIOUS_ACTIVITY_WINDOW_MINUTES}M"))
         
         // Remove old activities
         userActivities.removeAll { it < cutoffTime }
@@ -337,8 +338,8 @@ class SecurityAuditLogger {
     
     private fun checkIpActivity(ipAddress: String) {
         val ipActivities = _ipActivityCountsOrPut(ipAddress) { mutableListOf() }
-        val now = Clock.System.now()
-        val cutoffTime = now.minus(kotlinx.datetime.Duration.parse("PT${SUSPICIOUS_ACTIVITY_WINDOW_MINUTES}M"))
+        val now = Clock.System.now
+        val cutoffTime = now.minus(Duration.parse("PT${SUSPICIOUS_ACTIVITY_WINDOW_MINUTES}M"))
         
         // Remove old activities
         ipActivities.removeAll { it < cutoffTime }
@@ -450,7 +451,7 @@ data class SecurityMetrics(
     val failedAuthentications: Long = 0,
     val accountsLocked: Long = 0,
     val suspiciousActivitiesDetected: Long = 0,
-    val lastUpdated: Instant = Clock.System.now()
+    val lastUpdated: Instant = Clock.System.now
 )
 
 /**

@@ -8,7 +8,7 @@ import app.multiauth.util.Logger
  */
 object DatabaseFactory {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     
     /**
      * Creates a database instance based on the configuration.

@@ -1,12 +1,13 @@
 package app.multiauth.devops
 
+import kotlinx.datetime.Clock
 import app.multiauth.util.Logger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.hours
+import kotlinx.datetime.Duration
+import kotlinx.datetime.Duration.Companion.hours
 
 /**
  * Production Monitoring and Alerting System
@@ -91,9 +92,9 @@ class ProductionMonitoring(
             
             checks.forEach { (checkName, checkFunction) ->
                 try {
-                    val startTime = Clock.System.now()
+                    val startTime = Clock.System.now
                     val result = checkFunction()
-                    val duration = Clock.System.now() - startTime
+                    val duration = Clock.System.now - startTime
                     
                     val healthStatus = when {
                         result.contains("OK") -> HealthStatus.HEALTHY
@@ -122,7 +123,7 @@ class ProductionMonitoring(
                         status = HealthStatus.UNHEALTHY,
                         details = "Health check failed: ${e.message}",
                         duration = 0,
-                        timestamp = Clock.System.now().epochSeconds(),
+                        timestamp = Clock.System.now().epochSeconds,
                         error = e
                     ))
                     
@@ -530,7 +531,7 @@ class ProductionMonitoring(
     
     private fun calculateUptime(): Long {
         // Calculate system uptime
-        return (Clock.System.now() - (Clock.System.now() - 24.hours)).inWholeSeconds // Simulate 24h uptime
+        return (Clock.System.now - (Clock.System.now - 24.hours)).inWholeSeconds // Simulate 24h uptime
     }
     
     private fun generateAlertId(): String = "alert_${Clock.System.now().toEpochMilliseconds()}_${(0..9999).random()}"

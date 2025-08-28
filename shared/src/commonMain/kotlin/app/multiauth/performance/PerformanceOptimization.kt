@@ -1,13 +1,13 @@
 package app.multiauth.performance
 
+import kotlinx.datetime.Instant
+import kotlinx.datetime.Clock
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlin.collections.MutableMap
 // Replaced with coroutines
 // Replaced with coroutines
-// Replaced with kotlinx.datetime.Duration
-import kotlin.collections.MutableMap
+// Replaced with kotlin.time.Duration
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.sqrt
 
@@ -17,7 +17,7 @@ import kotlin.math.sqrt
  */
 class PerformanceOptimization {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
     
     companion object {
@@ -65,7 +65,7 @@ class PerformanceOptimization {
         return try {
             logger.info("performance", "Starting performance optimization analysis with strategy: $strategy")
             
-            val startTime = Clock.System.now()()
+            val startTime = Clock.System.now()
             
             // Collect current performance metrics
             val currentMetrics = collectCurrentPerformanceMetrics()
@@ -79,7 +79,7 @@ class PerformanceOptimization {
             // Calculate potential improvements
             val improvements = calculatePotentialImprovements(recommendations)
             
-            val analysisTime = // Duration calculation required(startTime, Clock.System.now()())
+            val analysisTime = // Duration calculation required(startTime, Clock.System.now())
             
             val result = OptimizationAnalysisResult(
                 strategy = strategy,
@@ -88,7 +88,7 @@ class PerformanceOptimization {
                 recommendations = recommendations,
                 improvements = improvements,
                 analysisTime = analysisTime,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
             logger.info("performance", "Performance optimization analysis completed in ${analysisTime}ms")
@@ -110,7 +110,7 @@ class PerformanceOptimization {
         return try {
             logger.info("performance", "Applying performance optimizations")
             
-            val startTime = Clock.System.now()()
+            val startTime = Clock.System.now()
             val appliedOptimizations = mutableListOf<AppliedOptimization>()
             val failedOptimizations = mutableListOf<FailedOptimization>()
             
@@ -125,7 +125,7 @@ class PerformanceOptimization {
                             AppliedOptimization(
                                 recommendation = recommendation,
                                 result = result,
-                                timestamp = Clock.System.now()()
+                                timestamp = Clock.System.now()
                             )
                         )
                     } else {
@@ -133,7 +133,7 @@ class PerformanceOptimization {
                             FailedOptimization(
                                 recommendation = recommendation,
                                 error = result.error,
-                                timestamp = Clock.System.now()()
+                                timestamp = Clock.System.now()
                             )
                         )
                     }
@@ -143,13 +143,13 @@ class PerformanceOptimization {
                         FailedOptimization(
                             recommendation = recommendation,
                             error = e.message,
-                            timestamp = Clock.System.now()()
+                            timestamp = Clock.System.now()
                         )
                     )
                 }
             }
             
-            val applicationTime = // Duration calculation required(startTime, Clock.System.now()())
+            val applicationTime = // Duration calculation required(startTime, Clock.System.now())
             
             // Measure performance improvement
             val performanceImprovement = measurePerformanceImprovement(analysis.currentMetrics)
@@ -159,7 +159,7 @@ class PerformanceOptimization {
                 failedOptimizations = failedOptimizations,
                 applicationTime = applicationTime,
                 performanceImprovement = performanceImprovement,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
             logger.info("general", "Applied ${appliedOptimizations.size} optimizations, ${failedOptimizations.size} failed")
@@ -181,7 +181,7 @@ class PerformanceOptimization {
         return try {
             logger.info("performance", "Starting memory usage optimization to target: ${targetMemoryUsage}%")
             
-            val startTime = Clock.System.now()()
+            val startTime = Clock.System.now()
             val initialMemoryUsage = getCurrentMemoryUsage()
             
             // Analyze memory usage patterns
@@ -194,7 +194,7 @@ class PerformanceOptimization {
             val finalMemoryUsage = getCurrentMemoryUsage()
             val improvement = initialMemoryUsage - finalMemoryUsage
             
-            val optimizationTime = // Duration calculation required(startTime, Clock.System.now()())
+            val optimizationTime = // Duration calculation required(startTime, Clock.System.now())
             
             val result = MemoryOptimizationResult(
                 initialMemoryUsage = initialMemoryUsage,
@@ -202,7 +202,7 @@ class PerformanceOptimization {
                 improvement = improvement,
                 optimizations = optimizations,
                 optimizationTime = optimizationTime,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
             logger.info("performance", "Memory optimization completed: ${improvement}% improvement")
@@ -224,7 +224,7 @@ class PerformanceOptimization {
         return try {
             logger.info("performance", "Starting database performance optimization to target: ${targetResponseTime}ms")
             
-            val startTime = Clock.System.now()()
+            val startTime = Clock.System.now()
             val initialResponseTime = getCurrentDatabaseResponseTime()
             
             // Analyze database performance
@@ -237,7 +237,7 @@ class PerformanceOptimization {
             val finalResponseTime = getCurrentDatabaseResponseTime()
             val improvement = initialResponseTime - finalResponseTime
             
-            val optimizationTime = // Duration calculation required(startTime, Clock.System.now()())
+            val optimizationTime = // Duration calculation required(startTime, Clock.System.now())
             
             val result = DatabaseOptimizationResult(
                 initialResponseTime = initialResponseTime,
@@ -245,7 +245,7 @@ class PerformanceOptimization {
                 improvement = improvement,
                 optimizations = optimizations,
                 optimizationTime = optimizationTime,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
             logger.info("performance", "Database optimization completed: ${improvement}ms improvement")
@@ -267,7 +267,7 @@ class PerformanceOptimization {
         return try {
             logger.info("performance", "Starting cache optimization to target hit ratio: ${targetHitRatio}")
             
-            val startTime = Clock.System.now()()
+            val startTime = Clock.System.now()
             val initialHitRatio = getCurrentCacheHitRatio()
             
             // Analyze cache performance
@@ -280,7 +280,7 @@ class PerformanceOptimization {
             val finalHitRatio = getCurrentCacheHitRatio()
             val improvement = finalHitRatio - initialHitRatio
             
-            val optimizationTime = // Duration calculation required(startTime, Clock.System.now()())
+            val optimizationTime = // Duration calculation required(startTime, Clock.System.now())
             
             val result = CacheOptimizationResult(
                 initialHitRatio = initialHitRatio,
@@ -288,7 +288,7 @@ class PerformanceOptimization {
                 improvement = improvement,
                 optimizations = optimizations,
                 optimizationTime = optimizationTime,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
             logger.info("performance", "Cache optimization completed: ${improvement * 100}% improvement")
@@ -310,7 +310,7 @@ class PerformanceOptimization {
         return try {
             logger.info("performance", "Starting performance profiling for ${profilingDuration} seconds")
             
-            val startTime = Clock.System.now()()
+            val startTime = Clock.System.now()
             
             // Start profiling
             performanceProfiler.startProfiling()
@@ -324,14 +324,14 @@ class PerformanceOptimization {
             // Analyze profiling data
             val analysis = analyzeProfilingData(profilingData)
             
-            val profilingTime = // Duration calculation required(startTime, Clock.System.now()())
+            val profilingTime = // Duration calculation required(startTime, Clock.System.now())
             
             val result = PerformanceProfilingResult(
                 profilingDuration = profilingDuration,
                 profilingData = profilingData,
                 analysis = analysis,
                 profilingTime = profilingTime,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
             logger.info("performance", "Performance profiling completed")
@@ -374,7 +374,7 @@ class PerformanceOptimization {
                     appliedOptimizations,
                     performanceBaselines
                 ),
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
             logger.info("performance", "Optimization status report generated successfully")
@@ -412,10 +412,10 @@ class PerformanceOptimization {
         // Collect and store performance metrics
         val metrics = collectCurrentPerformanceMetrics()
         optimizationMetrics["current"] = OptimizationMetric(
-            id = "current_${Clock.System.now().epochSeconds()}",
+            id = "current_${Clock.System.now().epochSeconds}",
             type = "PERFORMANCE_METRICS",
             value = calculateOverallPerformanceScore(metrics),
-            timestamp = Clock.System.now()()
+            timestamp = Clock.System.now()
         )
     }
     
@@ -444,7 +444,7 @@ class PerformanceOptimization {
             errorRate = getCurrentErrorRate(),
             cacheHitRatio = getCurrentCacheHitRatio(),
             databaseResponseTime = getCurrentDatabaseResponseTime(),
-            timestamp = Clock.System.now()()
+            timestamp = Clock.System.now()
         )
     }
     
@@ -573,7 +573,7 @@ class PerformanceOptimization {
         return try {
             logger.info("performance", "Applying optimization: ${recommendation.type}")
             
-            val startTime = Clock.System.now()()
+            val startTime = Clock.System.now()
             
             // Apply specific optimization based on type
             val result = when (recommendation.type) {
@@ -584,7 +584,7 @@ class PerformanceOptimization {
                 else -> OptimizationResult(false, "Unknown optimization type")
             }
             
-            val applicationTime = // Duration calculation required(startTime, Clock.System.now()())
+            val applicationTime = // Duration calculation required(startTime, Clock.System.now())
             
             // Record optimization
             optimizationManager.recordOptimization(recommendation, result, applicationTime)
@@ -626,7 +626,7 @@ class PerformanceOptimization {
             responseTimeImprovement = initialMetrics.responseTime - currentMetrics.responseTime,
             throughputImprovement = currentMetrics.throughput - initialMetrics.throughput,
             cacheHitRatioImprovement = currentMetrics.cacheHitRatio - initialMetrics.cacheHitRatio,
-            timestamp = Clock.System.now()()
+            timestamp = Clock.System.now()
         )
     }
     
