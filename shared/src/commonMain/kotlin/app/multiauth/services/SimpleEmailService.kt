@@ -139,12 +139,12 @@ class SimpleEmailService(
         val pending = totalSent - delivered - failed
         
         return EmailStats(
-            totalEmailsSent = totalSent.toLong(),
-            deliveredEmails = delivered.toLong(),
-            failedEmails = failed.toLong(),
+            totalSent = totalSent.toLong(),
+            totalDelivered = delivered.toLong(),
+            totalFailed = failed.toLong(),
             pendingEmails = pending.toLong(),
             deliveryRate = if (totalSent > 0) (delivered.toDouble() / totalSent) * 100 else 0.0,
-            averageDeliveryTime = calculateAverageDeliveryTime(),
+            averageDeliveryTimeMs = calculateAverageDeliveryTime(),
             emailsByType = calculateEmailsByType()
         )
     }
@@ -380,12 +380,12 @@ class SimpleEmailService(
         return "email_${System.currentTimeMillis()}_${(0..9999).random()}"
     }
     
-    private fun calculateAverageDeliveryTime(): Double {
+    private fun calculateAverageDeliveryTime(): Long {
         val deliveredEmails = deliveryStatuses.values.filter { it.status == DeliveryStatus.DELIVERED }
-        if (deliveredEmails.isEmpty()) return 0.0
+        if (deliveredEmails.isEmpty()) return 0
         
-        val totalTime = deliveredEmails.sumOf { it.deliveredAt!! - it.timestamp }
-        return totalTime.toDouble() / deliveredEmails.size
+        val totalTime = deliveredEmails.sumOf { it.deliveredAt!! - it.sentAt }
+        return totalTime / deliveredEmails.size
     }
     
     private fun calculateEmailsByType(): Map<String, Long> {

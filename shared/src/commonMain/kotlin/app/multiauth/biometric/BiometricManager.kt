@@ -81,7 +81,7 @@ class BiometricManager(
             logger.error("biometrics", "Unexpected error checking biometric availability", e)
             _isBiometricAvailable.value = false
             _biometricType.value = null
-            Result.failure(e)
+            Result.failure<BiometricAvailability>(e)
         }
     }
     
@@ -133,7 +133,7 @@ class BiometricManager(
             logger.error("biometrics", "Unexpected error during biometric authentication", e)
             _biometricState.value = BiometricState.Error(e)
             _biometricState.value = BiometricState.Idle
-            Result.failure(e)
+            Result.failure<User>(e)
         }
     }
     
@@ -180,7 +180,7 @@ class BiometricManager(
             logger.error("biometrics", "Unexpected error enabling biometric authentication", e)
             _biometricState.value = BiometricState.Error(e)
             _biometricState.value = BiometricState.Idle
-            Result.failure(e)
+            Result.failure<Unit>(e)
         }
     }
     
@@ -222,7 +222,7 @@ class BiometricManager(
             logger.error("biometrics", "Unexpected error disabling biometric authentication", e)
             _biometricState.value = BiometricState.Error(e)
             _biometricState.value = BiometricState.Idle
-            Result.failure(e)
+            Result.failure<Unit>(e)
         }
     }
     
