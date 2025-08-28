@@ -20,7 +20,7 @@ class LinkedInOAuthClient(
     private val httpClient: HttpClient
 ) : OAuthClient {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
     
     companion object {
@@ -168,7 +168,7 @@ class LinkedInOAuthClient(
             
             // Fetch user profile
             val userResponse = withContext(Dispatchers.IO) {
-                httpClient.get(USER_INFO_URL) {
+                httpClient(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                     header("Accept", "application/json")
                 }
@@ -179,7 +179,7 @@ class LinkedInOAuthClient(
                 
                 // Fetch user email
                 val emailResponse = withContext(Dispatchers.IO) {
-                    httpClient.get(USER_EMAIL_URL) {
+                    httpClient(USER_EMAIL_URL) {
                         header("Authorization", "Bearer $accessToken")
                         header("Accept", "application/json")
                     }
@@ -249,7 +249,7 @@ class LinkedInOAuthClient(
             logger.debug("oath", "Validating LinkedIn OAuth token")
             
             val response = withContext(Dispatchers.IO) {
-                httpClient.get(USER_INFO_URL) {
+                httpClient(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                     header("Accept", "application/json")
                 }

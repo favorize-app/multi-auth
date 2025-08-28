@@ -6,15 +6,13 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 
 /**
  * Handles validation of tokens, permissions, and authentication state.
  * Provides utilities for token validation, permission checking, and security validation.
  */
 class ValidationEngine private constructor(
-    private val eventBus: EventBus = EventBus.getInstance()
+    private val eventBus: EventBus = EventBusInstance()
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     

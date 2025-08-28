@@ -3,13 +3,11 @@ package app.multiauth.performance
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.time.Instant
-import java.time.temporal.ChronoUnit
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.Executors
-import java.util.concurrent.ScheduledExecutorService
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicLong
+import kotlin.collections.MutableMap
+// Replaced with coroutines
+// Replaced with coroutines
+// Replaced with kotlinx.datetime.Duration
+import kotlin.collections.MutableMap
 
 /**
  * Database optimization layer for performance improvement.
@@ -17,7 +15,7 @@ import java.util.concurrent.atomic.AtomicLong
  */
 class DatabaseOptimizer {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
     
     companion object {
@@ -37,8 +35,8 @@ class DatabaseOptimizer {
     }
     
     private val connectionPool = ConnectionPool()
-    private val queryCache = ConcurrentHashMap<String, QueryCacheEntry>()
-    private val queryStats = ConcurrentHashMap<String, QueryStatistics>()
+    private val queryCache = mutableMapOf<String, QueryCacheEntry>()
+    private val queryStats = mutableMapOf<String, QueryStatistics>()
     private val performanceMetrics = mutableMapOf<String, PerformanceMetric>()
     private val scheduledExecutor: ScheduledExecutorService = Executors.newScheduledThreadPool(2)
     
@@ -65,7 +63,7 @@ class DatabaseOptimizer {
         timeoutMs: Long = MAX_QUERY_EXECUTION_TIME_MS
     ): QueryExecutionResult {
         return try {
-            val startTime = Instant.now()
+            val startTime = Clock.System.now()()
             
             // Check query cache first
             val cacheKey = generateCacheKey(query, parameters)
@@ -80,7 +78,7 @@ class DatabaseOptimizer {
                     executionTime = 0,
                     cacheHit = true,
                     optimized = true,
-                    timestamp = Instant.now()
+                    timestamp = Clock.System.now()()
                 )
             }
             
@@ -96,7 +94,7 @@ class DatabaseOptimizer {
                     executeQuery(connection, optimizedQuery, parameters)
                 }
                 
-                val executionTime = ChronoUnit.MILLIS.between(startTime, Instant.now())
+                val executionTime = // Duration calculation required(startTime, Clock.System.now()())
                 
                 // Cache result if appropriate
                 if (shouldCacheQuery(query, executionTime)) {
@@ -115,7 +113,7 @@ class DatabaseOptimizer {
                     executionTime = executionTime,
                     cacheHit = false,
                     optimized = true,
-                    timestamp = Instant.now()
+                    timestamp = Clock.System.now()()
                 )
                 
             } finally {
@@ -133,7 +131,7 @@ class DatabaseOptimizer {
                 cacheHit = false,
                 optimized = false,
                 error = e.message,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
         }
     }
@@ -152,7 +150,7 @@ class DatabaseOptimizer {
         return try {
             logger.info("performance", "Executing batch queries: ${queries.size} queries")
             
-            val startTime = Instant.now()
+            val startTime = Clock.System.now()()
             val results = mutableListOf<QueryExecutionResult>()
             val batches = queries.chunked(batchSize)
             
@@ -166,7 +164,7 @@ class DatabaseOptimizer {
                 results.addAll(batchResults)
             }
             
-            val totalExecutionTime = ChronoUnit.MILLIS.between(startTime, Instant.now())
+            val totalExecutionTime = // Duration calculation required(startTime, Clock.System.now()())
             val successfulQueries = results.count { it.error == null }
             val failedQueries = results.size - successfulQueries
             
@@ -179,10 +177,10 @@ class DatabaseOptimizer {
                     results.mapNotNull { it.executionTime }.average()
                 } else 0.0,
                 results = results,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
             
-            logger.info("Batch execution completed: $successfulQueries successful, $failedQueries failed")
+            logger.info("general", "Batch execution completed: $successfulQueries successful, $failedQueries failed")
             batchResult
             
         } catch (e: Exception) {
@@ -224,7 +222,7 @@ class DatabaseOptimizer {
                 executionPlan = executionPlan,
                 statistics = stats,
                 recommendations = generateOptimizationRecommendations(indexAnalysis, optimizations, stats),
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
             
             logger.info("performance", "Query analysis completed")
@@ -246,12 +244,12 @@ class DatabaseOptimizer {
         return try {
             logger.info("performance", "Starting index optimization with strategy: ${optimizationStrategy.name}")
             
-            val startTime = Instant.now()
+            val startTime = Clock.System.now()()
             val recommendations = mutableListOf<IndexRecommendation>()
             val actions = mutableListOf<IndexAction>()
             
             // Analyze current index usage
-            val currentIndexes = indexAnalyzer.getCurrentIndexes()
+            val currentIndexes = indexAnalyzerCurrentIndexes()
             val indexUsage = indexAnalyzer.analyzeIndexUsage()
             
             // Generate optimization recommendations
@@ -268,7 +266,7 @@ class DatabaseOptimizer {
                 }
             }
             
-            val executionTime = ChronoUnit.MILLIS.between(startTime, Instant.now())
+            val executionTime = // Duration calculation required(startTime, Clock.System.now()())
             
             val result = IndexOptimizationResult(
                 strategy = optimizationStrategy.name,
@@ -277,7 +275,7 @@ class DatabaseOptimizer {
                 executionTime = executionTime,
                 recommendationsList = recommendations,
                 actionsList = actions,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
             
             logger.info("performance", "Index optimization completed: ${recommendations.size} recommendations")
@@ -298,10 +296,10 @@ class DatabaseOptimizer {
         return try {
             logger.info("performance", "Generating database performance report")
             
-            val connectionMetrics = connectionPool.getMetrics()
+            val connectionMetrics = connectionPoolMetrics()
             val queryMetrics = calculateQueryMetrics()
             val cacheMetrics = calculateCacheMetrics()
-            val indexMetrics = indexAnalyzer.getIndexMetrics()
+            val indexMetrics = indexAnalyzerIndexMetrics()
             
             val report = DatabasePerformanceReport(
                 connectionPool = connectionMetrics,
@@ -310,7 +308,7 @@ class DatabaseOptimizer {
                 indexPerformance = indexMetrics,
                 overallPerformance = calculateOverallPerformance(connectionMetrics, queryMetrics, cacheMetrics, indexMetrics),
                 recommendations = generatePerformanceRecommendations(connectionMetrics, queryMetrics, cacheMetrics, indexMetrics),
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
             
             logger.info("performance", "Performance report generated successfully")
@@ -331,7 +329,7 @@ class DatabaseOptimizer {
         return try {
             logger.info("performance", "Optimizing connection pool settings")
             
-            val currentMetrics = connectionPool.getMetrics()
+            val currentMetrics = connectionPoolMetrics()
             val recommendations = mutableListOf<ConnectionPoolRecommendation>()
             
             // Analyze connection usage patterns
@@ -369,7 +367,7 @@ class DatabaseOptimizer {
                 applied = appliedRecommendations.count { it.success }.toLong(),
                 recommendationsList = recommendations,
                 appliedList = appliedRecommendations,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
             
             logger.info("performance", "Connection pool optimization completed: ${result.applied} recommendations applied")
@@ -409,8 +407,8 @@ class DatabaseOptimizer {
         val entry = QueryCacheEntry(
             key = cacheKey,
             result = result,
-            timestamp = Instant.now(),
-            expirationTime = Instant.now().plus(ttl.toLong(), ChronoUnit.SECONDS),
+            timestamp = Clock.System.now()(),
+            expirationTime = Clock.System.now()().plus(ttl.toLong(), ChronoUnit.SECONDS),
             executionTime = executionTime
         )
         
@@ -418,7 +416,7 @@ class DatabaseOptimizer {
     }
     
     private fun updateQueryStats(query: String, operation: QueryOperation, executionTime: Long) {
-        val stats = queryStats.getOrPut(query) { QueryStatistics() }
+        val stats = queryStatsOrPut(query) { QueryStatistics() }
         
         when (operation) {
             QueryOperation.EXECUTION -> {
@@ -426,21 +424,21 @@ class DatabaseOptimizer {
                 stats.totalExecutionTime += executionTime
                 stats.averageExecutionTime = stats.totalExecutionTime / stats.executionCount
                 stats.lastExecutionTime = executionTime
-                stats.lastExecution = Instant.now()
+                stats.lastExecution = Clock.System.now()()
             }
             QueryOperation.CACHE_HIT -> {
                 stats.cacheHitCount++
-                stats.lastCacheHit = Instant.now()
+                stats.lastCacheHit = Clock.System.now()()
             }
             QueryOperation.ERROR -> {
                 stats.errorCount++
-                stats.lastError = Instant.now()
+                stats.lastError = Clock.System.now()()
             }
         }
     }
     
     private fun updatePerformanceMetrics(executionTime: Long) {
-        val metric = performanceMetrics.getOrPut("query_execution") { PerformanceMetric() }
+        val metric = performanceMetricsOrPut("query_execution") { PerformanceMetric() }
         metric.addValue(executionTime.toDouble())
     }
     
@@ -672,7 +670,7 @@ class DatabaseOptimizer {
     
     private fun generateConservativeRecommendation(index: DatabaseIndex, usage: IndexUsage?): IndexRecommendation? {
         // Conservative optimization - only remove clearly unused indexes
-        return if (usage?.usageCount == 0L && usage.lastUsed?.isBefore(Instant.now().minus(30, ChronoUnit.DAYS)) == true) {
+        return if (usage?.usageCount == 0L && usage.lastUsed?.isBefore(Clock.System.now()().minus(30, ChronoUnit.DAYS)) == true) {
             IndexRecommendation(
                 action = IndexActionType.DROP,
                 indexName = index.name,
@@ -684,7 +682,7 @@ class DatabaseOptimizer {
     
     private fun generateBalancedRecommendation(index: DatabaseIndex, usage: IndexUsage?): IndexRecommendation? {
         // Balanced optimization - moderate approach
-        return if (usage?.usageCount == 0L && usage.lastUsed?.isBefore(Instant.now().minus(7, ChronoUnit.DAYS)) == true) {
+        return if (usage?.usageCount == 0L && usage.lastUsed?.isBefore(Clock.System.now()().minus(7, ChronoUnit.DAYS)) == true) {
             IndexRecommendation(
                 action = IndexActionType.DROP,
                 indexName = index.name,
@@ -705,7 +703,7 @@ class DatabaseOptimizer {
         return IndexAction(
             recommendation = recommendation,
             executed = success,
-            timestamp = Instant.now()
+            timestamp = Clock.System.now()()
         )
     }
     
@@ -744,7 +742,7 @@ class DatabaseOptimizer {
         return ConnectionPoolAction(
             recommendation = recommendation,
             executed = success,
-            timestamp = Instant.now()
+            timestamp = Clock.System.now()()
         )
     }
     
@@ -863,7 +861,7 @@ data class QueryCacheEntry(
     val expirationTime: Instant,
     val executionTime: Long
 ) {
-    fun isExpired(): Boolean = expirationTime.isBefore(Instant.now())
+    fun isExpired(): Boolean = expirationTime.isBefore(Clock.System.now()())
 }
 
 @Serializable
@@ -1095,11 +1093,11 @@ enum class RecommendationType {
     DECREASE_POOL_SIZE
 }
 
-enum class RecommendationPriority {
-    LOW,
-    MEDIUM,
-    HIGH
-}
+// enum class RecommendationPriority {
+//     LOW,
+//     MEDIUM,
+//     HIGH
+// }
 
 /**
  * Exception thrown when database optimization operations fail.

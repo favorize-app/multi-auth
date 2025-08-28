@@ -3,12 +3,10 @@ package app.multiauth.performance
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.time.Instant
-import java.time.temporal.ChronoUnit
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.Executors
-import java.util.concurrent.ScheduledExecutorService
-import java.util.concurrent.TimeUnit
+import kotlin.collections.MutableMap
+// Replaced with coroutines
+// Replaced with coroutines
+// Replaced with kotlinx.datetime.Duration
 
 /**
  * Comprehensive caching layer for performance optimization.
@@ -16,7 +14,7 @@ import java.util.concurrent.TimeUnit
  */
 class CachingLayer {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
     
     companion object {
@@ -38,7 +36,7 @@ class CachingLayer {
         const val POLICY_TTL = "TTL" // Time To Live
     }
     
-    private val memoryCache = ConcurrentHashMap<String, CacheEntry>()
+    private val memoryCache = mutableMapOf<String, CacheEntry>()
     private val cacheStats = mutableMapOf<String, CacheStatistics>()
     private val cachePolicies = mutableMapOf<String, CachePolicy>()
     private val scheduledExecutor: ScheduledExecutorService = Executors.newScheduledThreadPool(2)
@@ -71,7 +69,7 @@ class CachingLayer {
             
             val serializedValue = serializeValue(value)
             val expirationTime = if (ttlSeconds > 0) {
-                Instant.now().plus(ttlSeconds.toLong(), ChronoUnit.SECONDS)
+                Clock.System.now()().plus(ttlSeconds.toLong(), ChronoUnit.SECONDS)
             } else {
                 null
             }
@@ -79,10 +77,10 @@ class CachingLayer {
             val entry = CacheEntry(
                 key = key,
                 value = serializedValue,
-                timestamp = Instant.now(),
+                timestamp = Clock.System.now()(),
                 expirationTime = expirationTime,
                 accessCount = 0,
-                lastAccessTime = Instant.now()
+                lastAccessTime = Clock.System.now()()
             )
             
             when (cacheType) {
@@ -107,7 +105,7 @@ class CachingLayer {
                 key = key,
                 success = true,
                 operation = CacheOperation.SET,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
             
         } catch (e: Exception) {
@@ -117,7 +115,7 @@ class CachingLayer {
                 success = false,
                 operation = CacheOperation.SET,
                 error = e.message,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
         }
     }
@@ -201,7 +199,7 @@ class CachingLayer {
                 key = key,
                 success = true,
                 operation = CacheOperation.REMOVE,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
             
         } catch (e: Exception) {
@@ -211,7 +209,7 @@ class CachingLayer {
                 success = false,
                 operation = CacheOperation.REMOVE,
                 error = e.message,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
         }
     }
@@ -268,10 +266,10 @@ class CachingLayer {
                 successfulKeys = successful.toLong(),
                 failedKeys = failed.toLong(),
                 results = results,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
             
-            logger.info("Batch cache operation completed: $successful successful, $failed failed")
+            logger.info("general", "Batch cache operation completed: $successful successful, $failed failed")
             batchResult
             
         } catch (e: Exception) {
@@ -342,7 +340,7 @@ class CachingLayer {
                 pattern = pattern,
                 invalidatedKeys = invalidatedKeys.size.toLong(),
                 keys = invalidatedKeys,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
             
             logger.info("performance", "Cache invalidation completed: ${invalidatedKeys.size} keys invalidated")
@@ -373,7 +371,7 @@ class CachingLayer {
                 missRate = calculateMissRate(memoryStats, redisStats),
                 evictionCount = memoryStats.evictionCount + redisStats.evictionCount,
                 averageResponseTime = calculateAverageResponseTime(memoryStats, redisStats),
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
             
             combinedStats
@@ -388,7 +386,7 @@ class CachingLayer {
                 missRate = 0.0,
                 evictionCount = 0L,
                 averageResponseTime = 0.0,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
         }
     }
@@ -420,7 +418,7 @@ class CachingLayer {
             val result = ClearResult(
                 cacheType = cacheType,
                 clearedKeys = clearedKeys,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
             
             logger.info("performance", "Cache clear completed: $clearedKeys keys cleared")
@@ -453,14 +451,14 @@ class CachingLayer {
         val entry = memoryCache[key] ?: return null
         
         // Check expiration
-        if (entry.expirationTime != null && entry.expirationTime.isBefore(Instant.now())) {
+        if (entry.expirationTime != null && entry.expirationTime.isBefore(Clock.System.now()())) {
             memoryCache.remove(key)
             return null
         }
         
         // Update access statistics
         entry.accessCount++
-        entry.lastAccessTime = Instant.now()
+        entry.lastAccessTime = Clock.System.now()()
         
         return CachedValue(
             key = entry.key,
@@ -491,7 +489,7 @@ class CachingLayer {
         val entry = memoryCache[key] ?: return false
         
         // Check expiration
-        if (entry.expirationTime != null && entry.expirationTime.isBefore(Instant.now())) {
+        if (entry.expirationTime != null && entry.expirationTime.isBefore(Clock.System.now()())) {
             memoryCache.remove(key)
             return false
         }
@@ -578,7 +576,7 @@ class CachingLayer {
     }
     
     private fun evictExpired() {
-        val now = Instant.now()
+        val now = Clock.System.now()()
         val expiredKeys = memoryCache.entries
             .filter { it.value.expirationTime?.isBefore(now) == true }
             .map { it.key }
@@ -612,22 +610,22 @@ class CachingLayer {
     }
     
     private fun updateCacheStats(key: String, operation: CacheOperation) {
-        val stats = cacheStats.getOrPut(key) { CacheStatistics() }
+        val stats = cacheStatsOrPut(key) { CacheStatistics() }
         
         when (operation) {
             CacheOperation.SET -> stats.setCount++
-            CacheOperation.GET -> stats.getCount++
+            CacheOperation.GET -> statsCount++
             CacheOperation.REMOVE -> stats.removeCount++
         }
         
         stats.lastOperation = operation
-        stats.lastOperationTime = Instant.now()
+        stats.lastOperationTime = Clock.System.now()()
     }
     
     private fun updateAccessStats(key: String) {
         val entry = memoryCache[key] ?: return
         entry.accessCount++
-        entry.lastAccessTime = Instant.now()
+        entry.lastAccessTime = Clock.System.now()()
     }
     
     private fun getMemoryCacheStats(): CacheStatistics {
@@ -644,7 +642,7 @@ class CachingLayer {
             missRate = missRate,
             evictionCount = 0L, // Track this separately
             averageResponseTime = 0.0, // Track this separately
-            timestamp = Instant.now()
+            timestamp = Clock.System.now()()
         )
     }
     
@@ -658,7 +656,7 @@ class CachingLayer {
             missRate = 0.0,
             evictionCount = 0L,
             averageResponseTime = 0.0,
-            timestamp = Instant.now()
+            timestamp = Clock.System.now()()
         )
     }
     

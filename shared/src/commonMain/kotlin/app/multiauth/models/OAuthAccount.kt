@@ -1,7 +1,6 @@
 package app.multiauth.models
 
 import kotlinx.serialization.Serializable
-import java.time.Instant
 
 /**
  * Represents an OAuth account linked to a user.
@@ -89,7 +88,7 @@ data class OAuthAccount(
      */
     fun isTokenExpired(): Boolean {
         return tokenExpiresAt?.let {
-            System.currentTimeMillis() > it
+            Clock.System.now().epochSeconds() > it
         } ?: false
     }
 

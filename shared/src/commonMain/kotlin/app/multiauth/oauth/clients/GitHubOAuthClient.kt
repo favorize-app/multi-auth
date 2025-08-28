@@ -20,7 +20,7 @@ class GitHubOAuthClient(
     private val httpClient: HttpClient
 ) : OAuthClient {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
     
     companion object {
@@ -142,7 +142,7 @@ class GitHubOAuthClient(
             
             // Fetch user profile
             val userResponse = withContext(Dispatchers.IO) {
-                httpClient.get(USER_INFO_URL) {
+                httpClient(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                     header("Accept", "application/vnd.github.v3+json")
                 }
@@ -153,7 +153,7 @@ class GitHubOAuthClient(
                 
                 // Fetch user emails
                 val emailsResponse = withContext(Dispatchers.IO) {
-                    httpClient.get(USER_EMAILS_URL) {
+                    httpClient(USER_EMAILS_URL) {
                         header("Authorization", "Bearer $accessToken")
                         header("Accept", "application/vnd.github.v3+json")
                     }
@@ -223,7 +223,7 @@ class GitHubOAuthClient(
             logger.debug("oath", "Validating GitHub OAuth token")
             
             val response = withContext(Dispatchers.IO) {
-                httpClient.get(USER_INFO_URL) {
+                httpClient(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                     header("Accept", "application/vnd.github.v3+json")
                 }

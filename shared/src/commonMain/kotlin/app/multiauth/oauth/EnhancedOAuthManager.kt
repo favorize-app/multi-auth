@@ -11,8 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.time.Instant
-import java.util.concurrent.ConcurrentHashMap
+import kotlin.collections.MutableMap
 
 /**
  * Enhanced OAuth Manager with account linking and multiple provider support.
@@ -20,10 +19,10 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class EnhancedOAuthManager(
     private val authEngine: AuthEngine,
-    private val eventBus: EventBus = EventBus.getInstance()
+    private val eventBus: EventBus = EventBusInstance()
 ) {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     private val scope = CoroutineScope(Dispatchers.Main)
     
     companion object {
@@ -40,7 +39,7 @@ class EnhancedOAuthManager(
     private val _oauthAnalytics = MutableStateFlow<OAuthAnalytics>(OAuthAnalytics())
     val oauthAnalytics: StateFlow<OAuthAnalytics> = _oauthAnalytics.asStateFlow()
     
-    private val _activeSessions = ConcurrentHashMap<String, OAuthSession>()
+    private val _activeSessions = mutableMapOf<String, OAuthSession>()
     
     /**
      * Links an OAuth account to an existing user account.
@@ -56,7 +55,7 @@ class EnhancedOAuthManager(
         oauthData: OAuthData
     ): Result<Unit> {
         return try {
-            logger.info("Linking OAuth account for user: ${user.displayName}, provider: ${provider.name}")
+            logger.info("general", "Linking OAuth account for user: ${user.displayName}, provider: ${provider.name}")
             
             _oauthState.value = EnhancedOAuthState.LinkingAccount(provider)
             
@@ -88,8 +87,8 @@ class EnhancedOAuthManager(
                 accessToken = oauthData.accessToken,
                 refreshToken = oauthData.refreshToken,
                 tokenExpiry = oauthData.tokenExpiry,
-                linkedAt = Instant.now(),
-                lastUsed = Instant.now()
+                linkedAt = Clock.System.now()(),
+                lastUsed = Clock.System.now()()
             )
             
             // Store the linked account
@@ -104,7 +103,7 @@ class EnhancedOAuthManager(
             // Dispatch success event
             eventBus.dispatch(AuthEvent.OAuth.AccountLinked(user, provider, linkedAccount))
             
-            logger.info("OAuth account linked successfully for user: ${user.displayName}, provider: ${provider.name}")
+            logger.info("general", "OAuth account linked successfully for user: ${user.displayName}, provider: ${provider.name}")
             Result.success(Unit)
             
         } catch (e: Exception) {
@@ -128,7 +127,7 @@ class EnhancedOAuthManager(
      */
     suspend fun unlinkAccount(user: User, provider: OAuthProvider): Result<Unit> {
         return try {
-            logger.info("Unlinking OAuth account for user: ${user.displayName}, provider: ${provider.name}")
+            logger.info("general", "Unlinking OAuth account for user: ${user.displayName}, provider: ${provider.name}")
             
             _oauthState.value = EnhancedOAuthState.UnlinkingAccount(provider)
             
@@ -156,7 +155,7 @@ class EnhancedOAuthManager(
             // Dispatch success event
             eventBus.dispatch(AuthEvent.OAuth.AccountUnlinked(user, provider, accountToRemove))
             
-            logger.info("OAuth account unlinked successfully for user: ${user.displayName}, provider: ${provider.name}")
+            logger.info("general", "OAuth account unlinked successfully for user: ${user.displayName}, provider: ${provider.name}")
             Result.success(Unit)
             
         } catch (e: Exception) {
@@ -183,7 +182,7 @@ class EnhancedOAuthManager(
         oauthData: OAuthData
     ): Result<User> {
         return try {
-            logger.info("Signing in with linked OAuth account, provider: ${provider.name}")
+            logger.info("general", "Signing in with linked OAuth account, provider: ${provider.name}")
             
             _oauthState.value = EnhancedOAuthState.SigningIn(provider)
             
@@ -203,7 +202,7 @@ class EnhancedOAuthManager(
             updateLinkedAccount(linkedAccount, oauthData)
             
             // Get the user from the auth engine
-            val user = authEngine.getCurrentUser()
+            val user = authEngineCurrentUser()
             if (user == null) {
                 return Result.failure(OAuthException("User not found"))
             }
@@ -237,7 +236,7 @@ class EnhancedOAuthManager(
      */
     suspend fun refreshTokens(user: User, provider: OAuthProvider): Result<Unit> {
         return try {
-            logger.info("Refreshing OAuth tokens for user: ${user.displayName}, provider: ${provider.name}")
+            logger.info("general", "Refreshing OAuth tokens for user: ${user.displayName}, provider: ${provider.name}")
             
             _oauthState.value = EnhancedOAuthState.RefreshingTokens(provider)
             
@@ -248,7 +247,7 @@ class EnhancedOAuthManager(
             
             // Check if refresh is needed
             if (!isTokenRefreshNeeded(linkedAccount)) {
-                logger.info("Token refresh not needed for user: ${user.displayName}, provider: ${provider.name}")
+                logger.info("general", "Token refresh not needed for user: ${user.displayName}, provider: ${provider.name}")
                 return Result.success(Unit)
             }
             
@@ -262,8 +261,8 @@ class EnhancedOAuthManager(
             
             // Update the linked account with new expiry time
             val updatedAccount = linkedAccount.copy(
-                tokenExpiry = Instant.now().plus(1, java.time.temporal.ChronoUnit.HOURS),
-                lastUsed = Instant.now()
+                tokenExpiry = Clock.System.now()().plus(1, java.time.temporal.ChronoUnit.HOURS),
+                lastUsed = Clock.System.now()()
             )
             
             updateLinkedAccountInStorage(user.id, updatedAccount)
@@ -276,7 +275,7 @@ class EnhancedOAuthManager(
             // Dispatch success event
             eventBus.dispatch(AuthEvent.OAuth.TokensRefreshed(user, provider))
             
-            logger.info("OAuth tokens refreshed successfully for user: ${user.displayName}, provider: ${provider.name}")
+            logger.info("general", "OAuth tokens refreshed successfully for user: ${user.displayName}, provider: ${provider.name}")
             Result.success(Unit)
             
         } catch (e: Exception) {
@@ -341,7 +340,7 @@ class EnhancedOAuthManager(
                 return Result.failure(OAuthException("Invalid access token"))
             }
             
-            if (oauthData.tokenExpiry.isBefore(Instant.now())) {
+            if (oauthData.tokenExpiry.isBefore(Clock.System.now()())) {
                 return Result.failure(OAuthException("Access token has expired"))
             }
             
@@ -362,7 +361,7 @@ class EnhancedOAuthManager(
             accessToken = oauthData.accessToken,
             refreshToken = oauthData.refreshToken,
             tokenExpiry = oauthData.tokenExpiry,
-            lastUsed = Instant.now()
+            lastUsed = Clock.System.now()()
         )
         
         updateLinkedAccountInStorage(linkedAccount.userId, updatedAccount)
@@ -377,13 +376,13 @@ class EnhancedOAuthManager(
     }
     
     private fun isTokenRefreshNeeded(linkedAccount: LinkedAccount): Boolean {
-        val bufferTime = Instant.now().plus(OAUTH_TOKEN_EXPIRY_BUFFER_MINUTES, java.time.temporal.ChronoUnit.MINUTES)
+        val bufferTime = Clock.System.now()().plus(OAUTH_TOKEN_EXPIRY_BUFFER_MINUTES, java.time.temporal.ChronoUnit.MINUTES)
         return linkedAccount.tokenExpiry.isBefore(bufferTime)
     }
     
     private fun updateAnalytics(provider: OAuthProvider, action: OAuthAction) {
         val currentAnalytics = _oauthAnalytics.value
-        val providerStats = currentAnalytics.providerStats.getOrPut(provider) { ProviderStats() }
+        val providerStats = currentAnalytics.providerStatsOrPut(provider) { ProviderStats() }
         
         val updatedStats = when (action) {
             OAuthAction.ACCOUNT_LINKED -> providerStats.copy(accountsLinked = providerStats.accountsLinked + 1)
@@ -395,7 +394,7 @@ class EnhancedOAuthManager(
         val updatedProviderStats = currentAnalytics.providerStats + (provider to updatedStats)
         _oauthAnalytics.value = currentAnalytics.copy(
             providerStats = updatedProviderStats,
-            lastUpdated = Instant.now()
+            lastUpdated = Clock.System.now()()
         )
     }
 }
@@ -448,7 +447,7 @@ data class OAuthData(
  */
 data class OAuthAnalytics(
     val providerStats: Map<OAuthProvider, ProviderStats> = emptyMap(),
-    val lastUpdated: Instant = Instant.now()
+    val lastUpdated: Instant = Clock.System.now()()
 )
 
 /**

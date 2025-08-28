@@ -4,7 +4,6 @@ import app.multiauth.models.AuthResult
 import app.multiauth.providers.*
 import app.multiauth.util.Logger
 import kotlinx.coroutines.delay
-import kotlinx.datetime.Clock
 
 /**
  * Mock email provider for testing and development purposes.

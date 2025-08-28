@@ -20,10 +20,10 @@ import kotlinx.coroutines.launch
  */
 class BiometricManager(
     private val authEngine: AuthEngine,
-    private val eventBus: EventBus = EventBus.getInstance()
+    private val eventBus: EventBus = EventBusInstance()
 ) {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     private val scope = CoroutineScope(Dispatchers.Main)
     
     private val _biometricState = MutableStateFlow<BiometricState>(BiometricState.Idle)

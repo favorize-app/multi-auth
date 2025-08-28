@@ -3,13 +3,11 @@ package app.multiauth.performance
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.time.Instant
-import java.time.temporal.ChronoUnit
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.Executors
-import java.util.concurrent.ScheduledExecutorService
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicLong
+import kotlin.collections.MutableMap
+// Replaced with coroutines
+// Replaced with coroutines
+// Replaced with kotlinx.datetime.Duration
+import kotlin.collections.MutableMap
 
 /**
  * Scalability features layer for horizontal scaling and load balancing.
@@ -17,7 +15,7 @@ import java.util.concurrent.atomic.AtomicLong
  */
 class ScalabilityFeatures {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
     
     companion object {
@@ -84,7 +82,7 @@ class ScalabilityFeatures {
                 serviceId = serviceInfo.id,
                 success = true,
                 registration = registration,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
             
         } catch (e: Exception) {
@@ -93,7 +91,7 @@ class ScalabilityFeatures {
                 serviceId = serviceInfo.id,
                 success = false,
                 error = e.message,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
         }
     }
@@ -123,7 +121,7 @@ class ScalabilityFeatures {
                 serviceId = serviceId,
                 success = true,
                 unregistration = unregistration,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
             
         } catch (e: Exception) {
@@ -132,7 +130,7 @@ class ScalabilityFeatures {
                 serviceId = serviceId,
                 success = false,
                 error = e.message,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
         }
     }
@@ -150,12 +148,12 @@ class ScalabilityFeatures {
             
             // Check circuit breaker status
             if (circuitBreaker.isOpen()) {
-                logger.warn("Circuit breaker is open, request rejected")
+                logger.warn("general", "Circuit breaker is open, request rejected")
                 return RoutingResult(
                     requestId = request.id,
                     success = false,
                     error = "Circuit breaker is open",
-                    timestamp = Instant.now()
+                    timestamp = Clock.System.now()()
                 )
             }
             
@@ -172,7 +170,7 @@ class ScalabilityFeatures {
                     requestId = request.id,
                     success = true,
                     route = route,
-                    timestamp = Instant.now()
+                    timestamp = Clock.System.now()()
                 )
             } else {
                 logger.warn("performance", "No available service for request: ${request.id}")
@@ -181,7 +179,7 @@ class ScalabilityFeatures {
                     requestId = request.id,
                     success = false,
                     error = "No available service",
-                    timestamp = Instant.now()
+                    timestamp = Clock.System.now()()
                 )
             }
             
@@ -195,7 +193,7 @@ class ScalabilityFeatures {
                 requestId = request.id,
                 success = false,
                 error = e.message,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
         }
     }
@@ -210,10 +208,10 @@ class ScalabilityFeatures {
         return try {
             logger.info("performance", "Starting system scaling with strategy: $strategy")
             
-            val startTime = Instant.now()
+            val startTime = Clock.System.now()()
             
             // Get current performance metrics
-            val metrics = performanceTracker.getCurrentMetrics()
+            val metrics = performanceTrackerCurrentMetrics()
             
             // Determine scaling action
             val scalingAction = scalingManager.determineScalingAction(metrics, strategy)
@@ -222,7 +220,7 @@ class ScalabilityFeatures {
                 // Execute scaling action
                 val executionResult = scalingManager.executeScalingAction(scalingAction)
                 
-                val executionTime = ChronoUnit.MILLIS.between(startTime, Instant.now())
+                val executionTime = // Duration calculation required(startTime, Clock.System.now()())
                 
                 val result = ScalingResult(
                     strategy = strategy,
@@ -231,7 +229,7 @@ class ScalabilityFeatures {
                     executionTime = executionTime,
                     newInstances = executionResult.newInstances,
                     removedInstances = executionResult.removedInstances,
-                    timestamp = Instant.now()
+                    timestamp = Clock.System.now()()
                 )
                 
                 logger.info("performance", "System scaling completed: ${executionResult.newInstances} new instances")
@@ -247,7 +245,7 @@ class ScalabilityFeatures {
                     executionTime = 0,
                     newInstances = 0,
                     removedInstances = 0,
-                    timestamp = Instant.now()
+                    timestamp = Clock.System.now()()
                 )
             }
             
@@ -266,11 +264,11 @@ class ScalabilityFeatures {
         return try {
             logger.info("performance", "Generating scalability status report")
             
-            val serviceStatus = serviceRegistry.getServiceStatus()
-            val loadBalancerStatus = loadBalancer.getStatus()
-            val scalingStatus = scalingManager.getStatus()
-            val healthStatus = healthMonitor.getOverallHealth()
-            val performanceStatus = performanceTracker.getStatus()
+            val serviceStatus = serviceRegistryServiceStatus()
+            val loadBalancerStatus = loadBalancerStatus()
+            val scalingStatus = scalingManagerStatus()
+            val healthStatus = healthMonitorOverallHealth()
+            val performanceStatus = performanceTrackerStatus()
             
             val report = ScalabilityStatusReport(
                 serviceStatus = serviceStatus,
@@ -280,7 +278,7 @@ class ScalabilityFeatures {
                 performanceStatus = performanceStatus,
                 overallHealth = calculateOverallHealth(serviceStatus, loadBalancerStatus, scalingStatus, healthStatus, performanceStatus),
                 recommendations = generateScalabilityRecommendations(serviceStatus, loadBalancerStatus, scalingStatus, healthStatus, performanceStatus),
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
             
             logger.info("performance", "Scalability status report generated successfully")
@@ -309,7 +307,7 @@ class ScalabilityFeatures {
             ConfigurationResult(
                 component = "LoadBalancer",
                 success = true,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
             
         } catch (e: Exception) {
@@ -319,7 +317,7 @@ class ScalabilityFeatures {
                 component = "LoadBalancer",
                 success = false,
                 error = e.message,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
         }
     }
@@ -341,7 +339,7 @@ class ScalabilityFeatures {
             ConfigurationResult(
                 component = "AutoScaling",
                 success = true,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
             
         } catch (e: Exception) {
@@ -351,7 +349,7 @@ class ScalabilityFeatures {
                 component = "AutoScaling",
                 success = false,
                 error = e.message,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
         }
     }
@@ -365,11 +363,11 @@ class ScalabilityFeatures {
         return try {
             logger.info("performance", "Performing health check on all services")
             
-            val startTime = Instant.now()
+            val startTime = Clock.System.now()()
             val healthResults = mutableListOf<ServiceHealthResult>()
             
             // Get all registered services
-            val services = serviceRegistry.getAllServices()
+            val services = serviceRegistryAllServices()
             
             // Perform health check on each service
             services.forEach { service ->
@@ -377,7 +375,7 @@ class ScalabilityFeatures {
                 healthResults.add(healthResult)
             }
             
-            val executionTime = ChronoUnit.MILLIS.between(startTime, Instant.now())
+            val executionTime = // Duration calculation required(startTime, Clock.System.now()())
             val healthyServices = healthResults.count { it.isHealthy }
             val unhealthyServices = healthResults.size - healthyServices
             
@@ -387,10 +385,10 @@ class ScalabilityFeatures {
                 unhealthyServices = unhealthyServices.toLong(),
                 executionTime = executionTime,
                 results = healthResults,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
             
-            logger.info("Health check completed: $healthyServices healthy, $unhealthyServices unhealthy")
+            logger.info("general", "Health check completed: $healthyServices healthy, $unhealthyServices unhealthy")
             result
             
         } catch (e: Exception) {
@@ -417,7 +415,7 @@ class ScalabilityFeatures {
             CircuitBreakerResult(
                 enabled = enabled,
                 success = true,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
             
         } catch (e: Exception) {
@@ -427,7 +425,7 @@ class ScalabilityFeatures {
                 enabled = enabled,
                 success = false,
                 error = e.message,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
         }
     }
@@ -464,7 +462,7 @@ class ScalabilityFeatures {
     }
     
     private suspend fun evaluateAutoScaling() {
-        val metrics = performanceTracker.getCurrentMetrics()
+        val metrics = performanceTrackerCurrentMetrics()
         
         // Check if scaling is needed
         if (shouldScale(metrics)) {
@@ -763,12 +761,12 @@ class PerformanceTracker {
 class ServiceRegistry {
     suspend fun register(serviceInfo: ServiceInfo): ServiceRegistration {
         // Placeholder implementation
-        return ServiceRegistration(serviceInfo.id, Instant.now())
+        return ServiceRegistration(serviceInfo.id, Clock.System.now()())
     }
     
     suspend fun unregister(serviceId: String): ServiceUnregistration {
         // Placeholder implementation
-        return ServiceUnregistration(serviceId, Instant.now())
+        return ServiceUnregistration(serviceId, Clock.System.now()())
     }
     
     fun getServiceStatus(): ServiceStatus {
@@ -913,24 +911,24 @@ data class CircuitBreakerConfig(
 )
 
 @Serializable
-data class PerformanceMetrics(
-    val cpuUsage: Double = 0.0,
-    val memoryUsage: Double = 0.0,
-    val averageResponseTime: Long = 0,
-    val requestRate: Double = 0.0
-)
-
-/**
- * Exception thrown when scalability operations fail.
- */
-class ScalabilityException(message: String, cause: Throwable? = null) : Exception(message, cause)
-
-/**
- * Priority levels for scalability recommendations.
- */
-enum class RecommendationPriority {
-    LOW,
-    MEDIUM,
-    HIGH,
-    CRITICAL
-}
+// data class PerformanceMetrics(
+//     val cpuUsage: Double = 0.0,
+//     val memoryUsage: Double = 0.0,
+//     val averageResponseTime: Long = 0,
+//     val requestRate: Double = 0.0
+// )
+// 
+// /**
+//  * Exception thrown when scalability operations fail.
+//  */
+// class ScalabilityException(message: String, cause: Throwable? = null) : Exception(message, cause)
+// 
+// /**
+//  * Priority levels for scalability recommendations.
+//  */
+// enum class RecommendationPriority {
+//     LOW,
+//     MEDIUM,
+//     HIGH,
+//     CRITICAL
+// }

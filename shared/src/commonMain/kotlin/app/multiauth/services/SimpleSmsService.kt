@@ -15,7 +15,7 @@ class SimpleSmsService(
     )
 ) : SmsService {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
     
     private var isInitialized = false
@@ -223,7 +223,7 @@ class SimpleSmsService(
                 error = "SMS service not initialized",
                 errorCode = "NOT_INITIALIZED",
                 retryable = false,
-                attemptedAt = System.currentTimeMillis()
+                attemptedAt = Clock.System.now().epochSeconds()
             )
         }
         
@@ -231,12 +231,12 @@ class SimpleSmsService(
         if (isRateLimited(phoneNumber, type)) {
             return SmsSendResult.RateLimited(
                 retryAfterMs = 60000, // 1 minute
-                attemptedAt = System.currentTimeMillis()
+                attemptedAt = Clock.System.now().epochSeconds()
             )
         }
         
         val smsId = generateSmsId()
-        val timestamp = System.currentTimeMillis()
+        val timestamp = Clock.System.now().epochSeconds()
         
         val sms = QueuedSms(
             id = smsId,
@@ -415,7 +415,7 @@ class SimpleSmsService(
     }
     
     private fun generateSmsId(): String {
-        return "sms_${System.currentTimeMillis()}_${(0..9999).random()}"
+        return "sms_${Clock.System.now().epochSeconds()}_${(0..9999).random()}"
     }
     
     private fun calculateAverageDeliveryTime(): Double {
@@ -437,7 +437,7 @@ class SimpleSmsService(
         
         if (rateLimit == null) return false
         
-        val now = System.currentTimeMillis()
+        val now = Clock.System.now().epochSeconds()
         val timeWindow = when (type) {
             SmsType.VERIFICATION -> 60000L // 1 minute
             SmsType.MFA_CODE -> 30000L // 30 seconds
@@ -452,7 +452,7 @@ class SimpleSmsService(
     
     private fun updateRateLimit(phoneNumber: String, type: SmsType) {
         val key = "${phoneNumber}_${type.name}"
-        val now = System.currentTimeMillis()
+        val now = Clock.System.now().epochSeconds()
         
         val currentLimit = rateLimits[key]
         val messagesThisHour = (currentLimit?.messagesSentThisHour ?: 0) + 1

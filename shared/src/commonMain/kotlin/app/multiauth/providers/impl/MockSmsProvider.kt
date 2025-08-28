@@ -5,7 +5,6 @@ import app.multiauth.providers.*
 import app.multiauth.providers.VerificationSession
 import app.multiauth.util.Logger
 import kotlinx.coroutines.delay
-import kotlinx.datetime.Clock
 
 /**
  * Mock SMS provider for testing and development purposes.

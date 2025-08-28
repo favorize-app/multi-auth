@@ -10,7 +10,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 import kotlinx.datetime.plus
 import kotlinx.datetime.DateTimeUnit
 
@@ -22,7 +21,7 @@ class AuthEngine private constructor(
     private val emailProvider: EmailProvider,
     private val smsProvider: SmsProvider,
     private val oauthProvider: OAuthProvider,
-    private val eventBus: EventBus = EventBus.getInstance()
+    private val eventBus: EventBus = EventBusInstance()
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     
@@ -106,7 +105,7 @@ class AuthEngine private constructor(
             // Send verification email
             val verificationResult = emailProvider.sendVerificationEmail(email)
             if (verificationResult.isFailure()) {
-                Logger.warn("AuthEngine", "Failed to send verification email: ${verificationResult.getOrNull()}")
+                Logger.warn("AuthEngine", "Failed to send verification email: ${verificationResultOrNull()}")
             } else {
                 eventBus.dispatch(AuthEvent.Verification.EmailVerificationCodeSent(email), "AuthEngine")
             }
@@ -188,7 +187,7 @@ class AuthEngine private constructor(
             _isLoading.value = false
             
             if (result.isSuccess()) {
-                val sessionId = result.getOrThrow()
+                val sessionId = resultOrThrow()
                 _authState.value = AuthState.VerificationRequired(
                     VerificationMethod.Phone(phoneNumber)
                 )

@@ -5,7 +5,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.datetime.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 
@@ -123,7 +122,7 @@ class ProductionMonitoring(
                         status = HealthStatus.UNHEALTHY,
                         details = "Health check failed: ${e.message}",
                         duration = 0,
-                        timestamp = System.currentTimeMillis(),
+                        timestamp = Clock.System.now().epochSeconds(),
                         error = e
                     ))
                     

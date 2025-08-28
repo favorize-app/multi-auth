@@ -5,7 +5,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.datetime.Clock
 
 /**
  * DevOps Manager
@@ -88,7 +87,7 @@ class DevOpsManager(
         branch: String = "main",
         environment: String = "production"
     ): CICDPipelineResult {
-        logger.info("Executing CI/CD pipeline for branch: $branch, environment: $environment")
+        logger.info("general", "Executing CI/CD pipeline for branch: $branch, environment: $environment")
         
         return try {
             val result = ciCdPipeline.executePipeline(branch, environment)
@@ -209,8 +208,8 @@ class DevOpsManager(
         logger.debug("DevOps", "Checking system health")
         
         return try {
-            val ciCdHealth = ciCdPipeline.getPipelineStatus() == PipelineStatus.IDLE
-            val monitoringHealth = productionMonitoring.getMonitoringStatus() == MonitoringStatus.ACTIVE
+            val ciCdHealth = ciCdPipelinePipelineStatus() == PipelineStatus.IDLE
+            val monitoringHealth = productionMonitoringMonitoringStatus() == MonitoringStatus.ACTIVE
             val deploymentHealth = productionDeployment.deploymentStatus.value == DeploymentStatus.IDLE
             val automationHealth = devOpsAutomation.automationStatus.value == AutomationStatus.IDLE
             
@@ -234,8 +233,8 @@ class DevOpsManager(
         val dashboard = DevOpsDashboard(
             systemStatus = _systemStatus.value,
             healthStatus = _healthStatus.value,
-            ciCdStatus = ciCdPipeline.getPipelineStatus(),
-            monitoringStatus = productionMonitoring.getMonitoringStatus(),
+            ciCdStatus = ciCdPipelinePipelineStatus(),
+            monitoringStatus = productionMonitoringMonitoringStatus(),
             deploymentStatus = productionDeployment.deploymentStatus.value,
             automationStatus = devOpsAutomation.automationStatus.value,
             lastUpdated = Clock.System.now().toEpochMilliseconds()
@@ -388,10 +387,10 @@ class DevOpsManager(
         logger.debug("DevOps", "Collecting system metrics")
         
         return try {
-            val ciCdMetrics = ciCdPipeline.getPipelineMetrics()
-            val monitoringMetrics = productionMonitoring.getMetrics()
-            val deploymentMetrics = productionDeployment.getDeploymentMetrics()
-            val automationMetrics = devOpsAutomation.getAutomationDashboard()
+            val ciCdMetrics = ciCdPipelinePipelineMetrics()
+            val monitoringMetrics = productionMonitoringMetrics()
+            val deploymentMetrics = productionDeploymentDeploymentMetrics()
+            val automationMetrics = devOpsAutomationAutomationDashboard()
             
             SystemMetrics(
                 ciCdMetrics = ciCdMetrics,
@@ -532,7 +531,7 @@ data class SystemMetrics(
 
 // Extension functions for metrics collection
 
-suspend fun CICDPipeline.getPipelineMetrics(): PipelineMetrics {
+suspend fun CICDPipelinePipelineMetrics(): PipelineMetrics {
     // Simulate pipeline metrics collection
     return PipelineMetrics(
         totalPipelines = 100,
@@ -543,7 +542,7 @@ suspend fun CICDPipeline.getPipelineMetrics(): PipelineMetrics {
     )
 }
 
-suspend fun ProductionMonitoring.getMetrics(): MonitoringMetrics {
+suspend fun ProductionMonitoringMetrics(): MonitoringMetrics {
     // Simulate monitoring metrics collection
     return MonitoringMetrics(
         cpuUsage = 45.5,
@@ -555,7 +554,7 @@ suspend fun ProductionMonitoring.getMetrics(): MonitoringMetrics {
     )
 }
 
-suspend fun ProductionDeployment.getDeploymentMetrics(): DeploymentMetrics {
+suspend fun ProductionDeploymentDeploymentMetrics(): DeploymentMetrics {
     // Simulate deployment metrics collection
     return DeploymentMetrics(
         totalDeployments = 25,

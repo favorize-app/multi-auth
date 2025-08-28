@@ -1,7 +1,6 @@
 package app.multiauth.models
 
 import kotlinx.serialization.Serializable
-import java.time.Instant
 
 /**
  * Represents a user session in the multi-auth system.
@@ -99,28 +98,28 @@ data class Session(
      */
     fun isActive(): Boolean {
         return status == SessionStatus.ACTIVE &&
-               System.currentTimeMillis() < expiresAt.toEpochMilli()
+               Clock.System.now().epochSeconds() < expiresAt.toEpochMilli()
     }
 
     /**
      * Checks if the session is expired
      */
     fun isExpired(): Boolean {
-        return System.currentTimeMillis() >= expiresAt.toEpochMilli()
+        return Clock.System.now().epochSeconds() >= expiresAt.toEpochMilli()
     }
 
     /**
      * Gets remaining session time in milliseconds
      */
     fun getRemainingTime(): Long {
-        return maxOf(0, expiresAt.toEpochMilli() - System.currentTimeMillis())
+        return maxOf(0, expiresAt.toEpochMilli() - Clock.System.now().epochSeconds())
     }
 
     /**
      * Creates a copy with updated last accessed time
      */
     fun withUpdatedAccess(): Session {
-        return copy(lastAccessedAt = Instant.now())
+        return copy(lastAccessedAt = Clock.System.now()())
     }
 
     /**
@@ -130,7 +129,7 @@ data class Session(
         return copy(
             status = SessionStatus.TERMINATED,
             terminationReason = reason,
-            terminatedAt = Instant.now()
+            terminatedAt = Clock.System.now()()
         )
     }
 
