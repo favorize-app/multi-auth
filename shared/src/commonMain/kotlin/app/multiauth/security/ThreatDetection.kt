@@ -3,8 +3,6 @@ package app.multiauth.security
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.time.Instant
-import java.time.temporal.ChronoUnit
 import kotlin.math.abs
 
 /**
@@ -13,7 +11,7 @@ import kotlin.math.abs
  */
 class ThreatDetection {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
     
     companion object {
@@ -80,7 +78,7 @@ class ThreatDetection {
                 threatPatterns = threatPatterns,
                 recommendations = recommendations,
                 automatedAction = automatedAction,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
             
             logger.info("security", "Threat analysis completed for event ${event.id}: $threatLevel")
@@ -96,7 +94,7 @@ class ThreatDetection {
                 threatPatterns = emptyList(),
                 recommendations = listOf("Investigate analysis failure"),
                 automatedAction = null,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
         }
     }
@@ -245,7 +243,7 @@ class ThreatDetection {
         // Check for unusual time gaps
         val lastEvent = getLastEvent(event.userId)
         if (lastEvent != null) {
-            val timeGap = ChronoUnit.MINUTES.between(lastEvent.timestamp, event.timestamp)
+            val timeGap = // Duration calculation required(lastEvent.timestamp, event.timestamp)
             val isUnusualGap = timeGap < profile.minTimeBetweenActions || timeGap > profile.maxTimeBetweenActions
             
             if (isUnusualGap) {
@@ -654,7 +652,7 @@ class ThreatDetection {
                     type = ActionType.ACCOUNT_LOCKOUT,
                     description = "Account locked due to critical threat",
                     severity = ActionSeverity.CRITICAL,
-                    timestamp = Instant.now()
+                    timestamp = Clock.System.now()()
                 )
             }
             THREAT_LEVEL_HIGH -> {
@@ -663,7 +661,7 @@ class ThreatDetection {
                     type = ActionType.ADDITIONAL_VERIFICATION,
                     description = "Additional verification required",
                     severity = ActionSeverity.HIGH,
-                    timestamp = Instant.now()
+                    timestamp = Clock.System.now()()
                 )
             }
             THREAT_LEVEL_MEDIUM -> {
@@ -672,7 +670,7 @@ class ThreatDetection {
                     type = ActionType.MONITORING_ENHANCED,
                     description = "Enhanced monitoring enabled",
                     severity = ActionSeverity.MEDIUM,
-                    timestamp = Instant.now()
+                    timestamp = Clock.System.now()()
                 )
             }
             else -> null
@@ -682,7 +680,7 @@ class ThreatDetection {
     // Helper methods for data retrieval and analysis
     
     private fun updateUserBehaviorProfile(event: SecurityEvent) {
-        val profile = userBehaviorProfiles.getOrPut(event.userId) {
+        val profile = userBehaviorProfilesOrPut(event.userId) {
             UserBehaviorProfile(
                 userId = event.userId,
                 commonDevices = mutableListOf(),
@@ -714,7 +712,7 @@ class ThreatDetection {
     }
     
     private fun getRecentEvents(userId: String?, windowMinutes: Int): List<SecurityEvent> {
-        val cutoffTime = Instant.now().minus(windowMinutes.toLong(), ChronoUnit.MINUTES)
+        val cutoffTime = Clock.System.now()().minus(windowMinutes.toLong(), ChronoUnit.MINUTES)
         return securityEvents.filter { event ->
             event.timestamp.isAfter(cutoffTime) && (userId == null || event.userId == userId)
         }
@@ -844,17 +842,17 @@ data class AutomatedAction(
 
 // Enums for threat detection
 
-enum class AnomalyType {
-    UNKNOWN_DEVICE,
-    UNKNOWN_LOCATION,
-    UNUSUAL_TIME,
-    UNUSUAL_ACTIVITY_FREQUENCY,
-    RAPID_ACTIONS,
-    UNUSUAL_TIME_GAP,
-    MULTIPLE_AUTH_FAILURES,
-    RARE_EVENT_TYPE,
-    HIGH_EVENT_RATE
-}
+// enum class AnomalyType {
+//     UNKNOWN_DEVICE,
+//     UNKNOWN_LOCATION,
+//     UNUSUAL_TIME,
+//     UNUSUAL_ACTIVITY_FREQUENCY,
+//     RAPID_ACTIONS,
+//     UNUSUAL_TIME_GAP,
+//     MULTIPLE_AUTH_FAILURES,
+//     RARE_EVENT_TYPE,
+//     HIGH_EVENT_RATE
+// }
 
 enum class AnomalySeverity {
     LOW,

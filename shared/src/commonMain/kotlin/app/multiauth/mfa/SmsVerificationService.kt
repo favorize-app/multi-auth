@@ -8,11 +8,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.Instant
 import kotlinx.datetime.plus
-import java.security.SecureRandom
+// Platform-specific implementation required
 
 /**
  * Service for handling SMS-based MFA verification.
@@ -20,7 +18,7 @@ import java.security.SecureRandom
  */
 class SmsVerificationService {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     private val scope = CoroutineScope(Dispatchers.Main)
     
     companion object {

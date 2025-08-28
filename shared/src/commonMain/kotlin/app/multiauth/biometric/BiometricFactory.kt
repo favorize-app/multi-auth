@@ -3,7 +3,6 @@ package app.multiauth.biometric
 import app.multiauth.platform.Platform
 import app.multiauth.platform.PlatformUtils
 import app.multiauth.util.Logger
-import kotlinx.datetime.Clock
 
 /**
  * Factory for creating platform-specific biometric implementations.
@@ -11,7 +10,7 @@ import kotlinx.datetime.Clock
  */
 object BiometricFactory {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     
     /**
      * Creates and returns the appropriate biometric implementation for the current platform.
@@ -123,7 +122,7 @@ object BiometricFactory {
  */
 class MockBiometricProvider : PlatformBiometric {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     private var isEnabled = false
     private var mockUser: app.multiauth.models.User? = null
     

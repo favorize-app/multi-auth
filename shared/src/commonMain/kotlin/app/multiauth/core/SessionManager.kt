@@ -9,8 +9,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
@@ -19,7 +17,7 @@ import kotlin.time.Duration.Companion.seconds
  * Handles token refresh, session expiration, and secure storage.
  */
 class SessionManager private constructor(
-    private val eventBus: EventBus = EventBus.getInstance()
+    private val eventBus: EventBus = EventBusInstance()
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     

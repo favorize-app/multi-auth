@@ -19,10 +19,10 @@ import kotlinx.coroutines.flow.asStateFlow
  */
 class OAuthManager(
     private val authEngine: AuthEngine,
-    private val eventBus: EventBus = EventBus.getInstance()
+    private val eventBus: EventBus = EventBusInstance()
 ) {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     private val scope = CoroutineScope(Dispatchers.Main)
     
     private val _oauthState = MutableStateFlow<OAuthState>(OAuthState.Idle)
@@ -66,14 +66,14 @@ class OAuthManager(
             )
             
             result.onSuccess { authCode ->
-                logger.info("OAuth flow completed successfully, exchanging code for tokens")
+                logger.info("general", "OAuth flow completed successfully, exchanging code for tokens")
                 _oauthState.value = OAuthState.ExchangingCode
                 
                 // Exchange authorization code for tokens
                 val tokenResult = exchangeCodeForTokens(authCode, pkce)
                 
                 tokenResult.onSuccess { tokens ->
-                    logger.info("Token exchange successful, creating user session")
+                    logger.info("general", "Token exchange successful, creating user session")
                     _oauthState.value = OAuthState.CreatingSession
                     
                     // Create user session with the obtained tokens
@@ -276,8 +276,8 @@ class OAuthManager(
                 email = "user@example.com",
                 displayName = "OAuth User",
                 isEmailVerified = true,
-                createdAt = System.currentTimeMillis(),
-                lastSignInAt = System.currentTimeMillis()
+                createdAt = Clock.System.now().epochSeconds(),
+                lastSignInAt = Clock.System.now().epochSeconds()
             )
             Result.success(user)
         } catch (e: Exception) {

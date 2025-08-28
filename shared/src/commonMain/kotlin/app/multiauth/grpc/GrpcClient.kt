@@ -85,7 +85,7 @@ interface GrpcClient {
  */
 abstract class BaseGrpcClient : GrpcClient {
     
-    protected val logger = Logger.getLogger(this::class)
+    protected val logger = LoggerLogger(this::class)
     protected var isConnectedToServer = false
     protected var currentAccessToken: String? = null
     protected var currentRefreshToken: String? = null

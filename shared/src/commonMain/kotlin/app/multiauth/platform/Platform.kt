@@ -73,7 +73,7 @@ object PlatformUtils {
     fun isDesktop(): Boolean {
         return try {
             // This will only compile and run on JVM
-            System.getProperty("os.name").isNotEmpty()
+            // Platform-specific implementation required("os.name").isNotEmpty()
         } catch (e: Exception) {
             false
         }
@@ -113,7 +113,7 @@ object PlatformUtils {
                 "Web Unknown"
             }
             Platform.DESKTOP -> try {
-                "${System.getProperty("os.name")} ${System.getProperty("os.version")}"
+                "${// Platform-specific implementation required("os.name")} ${// Platform-specific implementation required("os.version")}"
             } catch (e: Exception) {
                 "Desktop Unknown"
             }

@@ -12,7 +12,7 @@ class SimpleEmailService(
     private val config: EmailConfig = EmailConfig()
 ) : EmailService {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
     
     private var isInitialized = false
@@ -136,16 +136,21 @@ class SimpleEmailService(
         val totalSent = emailQueue.size
         val delivered = deliveryStatuses.values.count { it.status == DeliveryStatus.DELIVERED }
         val failed = deliveryStatuses.values.count { it.status == DeliveryStatus.FAILED }
-        val pending = totalSent - delivered - failed
-        
+
         return EmailStats(
             totalSent = totalSent.toLong(),
             totalDelivered = delivered.toLong(),
             totalFailed = failed.toLong(),
-            pendingEmails = pending.toLong(),
             deliveryRate = if (totalSent > 0) (delivered.toDouble() / totalSent) * 100 else 0.0,
             averageDeliveryTimeMs = calculateAverageDeliveryTime(),
-            emailsByType = calculateEmailsByType()
+            totalOpened = TODO(),
+            totalClicked = TODO(),
+            totalBounced = TODO(),
+            openRate = TODO(),
+            clickRate = TODO(),
+            bounceRate = TODO(),
+            lastSentAt = TODO(),
+            lastDeliveredAt = TODO()
         )
     }
     
@@ -184,7 +189,7 @@ class SimpleEmailService(
         }
         
         val emailId = generateEmailId()
-        val timestamp = System.currentTimeMillis()
+        val timestamp = Clock.System.now().epochSeconds()
         
         val email = QueuedEmail(
             id = emailId,
@@ -318,7 +323,7 @@ class SimpleEmailService(
                 <h2>Security Alert: ${alertType.displayName}</h2>
                 <p><strong>Alert Type:</strong> ${alertType.displayName}</p>
                 <p><strong>Details:</strong> $alertDetails</p>
-                <p><strong>Time:</strong> ${java.time.Instant.now()}</p>
+                <p><strong>Time:</strong> ${java.time.Clock.System.now()()}</p>
                 <p>If this activity was not authorized by you, please contact support immediately.</p>
             </body>
             </html>
@@ -377,7 +382,7 @@ class SimpleEmailService(
     }
     
     private fun generateEmailId(): String {
-        return "email_${System.currentTimeMillis()}_${(0..9999).random()}"
+        return "email_${Clock.System.now().epochSeconds()}_${(0..9999).random()}"
     }
     
     private fun calculateAverageDeliveryTime(): Long {

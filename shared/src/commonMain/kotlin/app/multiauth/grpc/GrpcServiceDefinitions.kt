@@ -290,7 +290,7 @@ object GrpcErrorCodes {
  */
 object GrpcServiceUtils {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     
     /**
      * Creates a successful authentication response.

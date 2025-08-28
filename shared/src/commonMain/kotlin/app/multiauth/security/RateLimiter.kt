@@ -12,6 +12,17 @@ import kotlinx.datetime.Clock
 import kotlin.collections.MutableMap
 import kotlin.time.Duration
 
+// Default rate limiting configurations
+const val DEFAULT_LOGIN_ATTEMPTS_PER_HOUR = 5
+const val DEFAULT_PASSWORD_RESET_ATTEMPTS_PER_HOUR = 3
+const val DEFAULT_MFA_ATTEMPTS_PER_HOUR = 10
+const val DEFAULT_API_REQUESTS_PER_MINUTE = 100
+
+// Account lockout configurations
+const val DEFAULT_ACCOUNT_LOCKOUT_DURATION_MINUTES = 30L
+const val DEFAULT_MAX_FAILED_ATTEMPTS = 5
+const val DEFAULT_FAILED_ATTEMPT_WINDOW_MINUTES = 15L
+
 /**
  * Rate limiter for preventing brute force attacks and controlling request frequency.
  * Provides configurable rate limiting for different types of operations.
@@ -22,16 +33,7 @@ class RateLimiter {
     private val scope = CoroutineScope(Dispatchers.Main)
     
     companion object {
-        // Default rate limiting configurations
-        internal const val DEFAULT_LOGIN_ATTEMPTS_PER_HOUR = 5
-        internal const val DEFAULT_PASSWORD_RESET_ATTEMPTS_PER_HOUR = 3
-        internal const val DEFAULT_MFA_ATTEMPTS_PER_HOUR = 10
-        internal const val DEFAULT_API_REQUESTS_PER_MINUTE = 100
-        
-        // Account lockout configurations
-        internal const val DEFAULT_ACCOUNT_LOCKOUT_DURATION_MINUTES = 30L
-        internal const val DEFAULT_MAX_FAILED_ATTEMPTS = 5
-        internal const val DEFAULT_FAILED_ATTEMPT_WINDOW_MINUTES = 15L
+        // Constants are now defined at package level
     }
     
     private val _rateLimitState = MutableStateFlow<RateLimitState>(RateLimitState.Idle)
@@ -315,7 +317,7 @@ class RateLimiter {
         }
         
         // Check rate limit
-        val attempts = storage.getOrPut(identifier) { mutableListOf() }
+        val attempts = storageOrPut(identifier) { mutableListOf() }
         val now = Clock.System.now()
         val cutoffTime = now.minus(Duration.parse("PT${windowMinutes}M"))
         
@@ -341,7 +343,7 @@ class RateLimiter {
     }
     
     private fun recordAttempt(identifier: String, storage: MutableMap<String, MutableList<Instant>>) {
-        val attempts = storage.getOrPut(identifier) { mutableListOf() }
+        val attempts = storageOrPut(identifier) { mutableListOf() }
         attempts.add(Clock.System.now())
         
         // Update metrics
@@ -358,7 +360,7 @@ class RateLimiter {
         recordAttempt(identifier, storage)
         
         // Record failed attempt for lockout tracking
-        val failedAttempts = _failedAttempts.getOrPut(identifier) { mutableListOf() }
+        val failedAttempts = _failedAttemptsOrPut(identifier) { mutableListOf() }
         failedAttempts.add(FailedAttempt(Clock.System.now(), attemptType, reason))
         
         updateMetrics(identifier, false)

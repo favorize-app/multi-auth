@@ -22,7 +22,7 @@ class GoogleOAuthClient(
     private val httpClient: HttpClient
 ) : OAuthClient {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
     
     companion object {
@@ -171,7 +171,7 @@ class GoogleOAuthClient(
             logger.debug("oath", "Fetching user info from Google")
             
             val response = withContext(Dispatchers.IO) {
-                httpClient.get(USER_INFO_URL) {
+                httpClient(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                 }
             }
@@ -244,7 +244,7 @@ class GoogleOAuthClient(
             logger.debug("oath", "Validating Google OAuth token")
             
             val response = withContext(Dispatchers.IO) {
-                httpClient.get(USER_INFO_URL) {
+                httpClient(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                 }
             }

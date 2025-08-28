@@ -1,7 +1,6 @@
 package app.multiauth.oauth
 
 import app.multiauth.util.Logger
-import java.time.Instant
 
 /**
  * Extended OAuth providers for additional services.
@@ -9,7 +8,7 @@ import java.time.Instant
  */
 object ExtendedOAuthProviders {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     
     /**
      * Discord OAuth provider configuration.

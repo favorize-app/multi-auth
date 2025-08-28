@@ -293,7 +293,7 @@ data class SmsTemplateVariables(
     val alertDetails: String? = null,
     val loginLocation: String? = null,
     val deviceInfo: String? = null,
-    val timestamp: Long = System.currentTimeMillis(),
+    val timestamp: Long = Clock.System.now().epochSeconds(),
     val supportPhone: String? = null,
     val appName: String = "Multi-Auth"
 )

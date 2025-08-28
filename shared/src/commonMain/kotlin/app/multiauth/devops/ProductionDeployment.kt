@@ -5,7 +5,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.datetime.Clock
 
 /**
  * Production Deployment System
@@ -227,7 +226,7 @@ class ProductionDeployment(
         version: String,
         artifacts: List<Artifact>
     ): ValidationResult {
-        logger.info("Validating deployment configuration for environment: $environment, version: $version")
+        logger.info("general", "Validating deployment configuration for environment: $environment, version: $version")
         
         return try {
             val validations = listOf(

@@ -3,13 +3,11 @@ package app.multiauth.performance
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.time.Instant
-import java.time.temporal.ChronoUnit
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.Executors
-import java.util.concurrent.ScheduledExecutorService
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicLong
+import kotlin.collections.MutableMap
+// Replaced with coroutines
+// Replaced with coroutines
+// Replaced with kotlinx.datetime.Duration
+import kotlin.collections.MutableMap
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.sqrt
 
@@ -19,7 +17,7 @@ import kotlin.math.sqrt
  */
 class PerformanceOptimization {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
     
     companion object {
@@ -47,8 +45,8 @@ class PerformanceOptimization {
     private val scheduledExecutor: ScheduledExecutorService = Executors.newScheduledThreadPool(2)
     
     // Performance tracking
-    private val optimizationMetrics = ConcurrentHashMap<String, OptimizationMetric>()
-    private val performanceBaselines = ConcurrentHashMap<String, PerformanceBaseline>()
+    private val optimizationMetrics = mutableMapOf<String, OptimizationMetric>()
+    private val performanceBaselines = mutableMapOf<String, PerformanceBaseline>()
     
     // Configuration
     private val optimizationConfig = OptimizationConfig()
@@ -67,7 +65,7 @@ class PerformanceOptimization {
         return try {
             logger.info("performance", "Starting performance optimization analysis with strategy: $strategy")
             
-            val startTime = Instant.now()
+            val startTime = Clock.System.now()()
             
             // Collect current performance metrics
             val currentMetrics = collectCurrentPerformanceMetrics()
@@ -81,7 +79,7 @@ class PerformanceOptimization {
             // Calculate potential improvements
             val improvements = calculatePotentialImprovements(recommendations)
             
-            val analysisTime = ChronoUnit.MILLIS.between(startTime, Instant.now())
+            val analysisTime = // Duration calculation required(startTime, Clock.System.now()())
             
             val result = OptimizationAnalysisResult(
                 strategy = strategy,
@@ -90,7 +88,7 @@ class PerformanceOptimization {
                 recommendations = recommendations,
                 improvements = improvements,
                 analysisTime = analysisTime,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
             
             logger.info("performance", "Performance optimization analysis completed in ${analysisTime}ms")
@@ -112,7 +110,7 @@ class PerformanceOptimization {
         return try {
             logger.info("performance", "Applying performance optimizations")
             
-            val startTime = Instant.now()
+            val startTime = Clock.System.now()()
             val appliedOptimizations = mutableListOf<AppliedOptimization>()
             val failedOptimizations = mutableListOf<FailedOptimization>()
             
@@ -127,7 +125,7 @@ class PerformanceOptimization {
                             AppliedOptimization(
                                 recommendation = recommendation,
                                 result = result,
-                                timestamp = Instant.now()
+                                timestamp = Clock.System.now()()
                             )
                         )
                     } else {
@@ -135,7 +133,7 @@ class PerformanceOptimization {
                             FailedOptimization(
                                 recommendation = recommendation,
                                 error = result.error,
-                                timestamp = Instant.now()
+                                timestamp = Clock.System.now()()
                             )
                         )
                     }
@@ -145,13 +143,13 @@ class PerformanceOptimization {
                         FailedOptimization(
                             recommendation = recommendation,
                             error = e.message,
-                            timestamp = Instant.now()
+                            timestamp = Clock.System.now()()
                         )
                     )
                 }
             }
             
-            val applicationTime = ChronoUnit.MILLIS.between(startTime, Instant.now())
+            val applicationTime = // Duration calculation required(startTime, Clock.System.now()())
             
             // Measure performance improvement
             val performanceImprovement = measurePerformanceImprovement(analysis.currentMetrics)
@@ -161,10 +159,10 @@ class PerformanceOptimization {
                 failedOptimizations = failedOptimizations,
                 applicationTime = applicationTime,
                 performanceImprovement = performanceImprovement,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
             
-            logger.info("Applied ${appliedOptimizations.size} optimizations, ${failedOptimizations.size} failed")
+            logger.info("general", "Applied ${appliedOptimizations.size} optimizations, ${failedOptimizations.size} failed")
             result
             
         } catch (e: Exception) {
@@ -183,7 +181,7 @@ class PerformanceOptimization {
         return try {
             logger.info("performance", "Starting memory usage optimization to target: ${targetMemoryUsage}%")
             
-            val startTime = Instant.now()
+            val startTime = Clock.System.now()()
             val initialMemoryUsage = getCurrentMemoryUsage()
             
             // Analyze memory usage patterns
@@ -196,7 +194,7 @@ class PerformanceOptimization {
             val finalMemoryUsage = getCurrentMemoryUsage()
             val improvement = initialMemoryUsage - finalMemoryUsage
             
-            val optimizationTime = ChronoUnit.MILLIS.between(startTime, Instant.now())
+            val optimizationTime = // Duration calculation required(startTime, Clock.System.now()())
             
             val result = MemoryOptimizationResult(
                 initialMemoryUsage = initialMemoryUsage,
@@ -204,7 +202,7 @@ class PerformanceOptimization {
                 improvement = improvement,
                 optimizations = optimizations,
                 optimizationTime = optimizationTime,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
             
             logger.info("performance", "Memory optimization completed: ${improvement}% improvement")
@@ -226,7 +224,7 @@ class PerformanceOptimization {
         return try {
             logger.info("performance", "Starting database performance optimization to target: ${targetResponseTime}ms")
             
-            val startTime = Instant.now()
+            val startTime = Clock.System.now()()
             val initialResponseTime = getCurrentDatabaseResponseTime()
             
             // Analyze database performance
@@ -239,7 +237,7 @@ class PerformanceOptimization {
             val finalResponseTime = getCurrentDatabaseResponseTime()
             val improvement = initialResponseTime - finalResponseTime
             
-            val optimizationTime = ChronoUnit.MILLIS.between(startTime, Instant.now())
+            val optimizationTime = // Duration calculation required(startTime, Clock.System.now()())
             
             val result = DatabaseOptimizationResult(
                 initialResponseTime = initialResponseTime,
@@ -247,7 +245,7 @@ class PerformanceOptimization {
                 improvement = improvement,
                 optimizations = optimizations,
                 optimizationTime = optimizationTime,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
             
             logger.info("performance", "Database optimization completed: ${improvement}ms improvement")
@@ -269,7 +267,7 @@ class PerformanceOptimization {
         return try {
             logger.info("performance", "Starting cache optimization to target hit ratio: ${targetHitRatio}")
             
-            val startTime = Instant.now()
+            val startTime = Clock.System.now()()
             val initialHitRatio = getCurrentCacheHitRatio()
             
             // Analyze cache performance
@@ -282,7 +280,7 @@ class PerformanceOptimization {
             val finalHitRatio = getCurrentCacheHitRatio()
             val improvement = finalHitRatio - initialHitRatio
             
-            val optimizationTime = ChronoUnit.MILLIS.between(startTime, Instant.now())
+            val optimizationTime = // Duration calculation required(startTime, Clock.System.now()())
             
             val result = CacheOptimizationResult(
                 initialHitRatio = initialHitRatio,
@@ -290,7 +288,7 @@ class PerformanceOptimization {
                 improvement = improvement,
                 optimizations = optimizations,
                 optimizationTime = optimizationTime,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
             
             logger.info("performance", "Cache optimization completed: ${improvement * 100}% improvement")
@@ -312,7 +310,7 @@ class PerformanceOptimization {
         return try {
             logger.info("performance", "Starting performance profiling for ${profilingDuration} seconds")
             
-            val startTime = Instant.now()
+            val startTime = Clock.System.now()()
             
             // Start profiling
             performanceProfiler.startProfiling()
@@ -326,14 +324,14 @@ class PerformanceOptimization {
             // Analyze profiling data
             val analysis = analyzeProfilingData(profilingData)
             
-            val profilingTime = ChronoUnit.MILLIS.between(startTime, Instant.now())
+            val profilingTime = // Duration calculation required(startTime, Clock.System.now()())
             
             val result = PerformanceProfilingResult(
                 profilingDuration = profilingDuration,
                 profilingData = profilingData,
                 analysis = analysis,
                 profilingTime = profilingTime,
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
             
             logger.info("performance", "Performance profiling completed")
@@ -355,9 +353,9 @@ class PerformanceOptimization {
             logger.info("performance", "Generating optimization status report")
             
             val currentMetrics = collectCurrentPerformanceMetrics()
-            val appliedOptimizations = optimizationManager.getAppliedOptimizations()
+            val appliedOptimizations = optimizationManagerAppliedOptimizations()
             val performanceBaselines = getPerformanceBaselines()
-            val optimizationHistory = optimizationManager.getOptimizationHistory()
+            val optimizationHistory = optimizationManagerOptimizationHistory()
             
             val overallStatus = calculateOverallOptimizationStatus(
                 currentMetrics,
@@ -376,7 +374,7 @@ class PerformanceOptimization {
                     appliedOptimizations,
                     performanceBaselines
                 ),
-                timestamp = Instant.now()
+                timestamp = Clock.System.now()()
             )
             
             logger.info("performance", "Optimization status report generated successfully")
@@ -414,10 +412,10 @@ class PerformanceOptimization {
         // Collect and store performance metrics
         val metrics = collectCurrentPerformanceMetrics()
         optimizationMetrics["current"] = OptimizationMetric(
-            id = "current_${System.currentTimeMillis()}",
+            id = "current_${Clock.System.now().epochSeconds()}",
             type = "PERFORMANCE_METRICS",
             value = calculateOverallPerformanceScore(metrics),
-            timestamp = Instant.now()
+            timestamp = Clock.System.now()()
         )
     }
     
@@ -446,7 +444,7 @@ class PerformanceOptimization {
             errorRate = getCurrentErrorRate(),
             cacheHitRatio = getCurrentCacheHitRatio(),
             databaseResponseTime = getCurrentDatabaseResponseTime(),
-            timestamp = Instant.now()
+            timestamp = Clock.System.now()()
         )
     }
     
@@ -575,7 +573,7 @@ class PerformanceOptimization {
         return try {
             logger.info("performance", "Applying optimization: ${recommendation.type}")
             
-            val startTime = Instant.now()
+            val startTime = Clock.System.now()()
             
             // Apply specific optimization based on type
             val result = when (recommendation.type) {
@@ -586,7 +584,7 @@ class PerformanceOptimization {
                 else -> OptimizationResult(false, "Unknown optimization type")
             }
             
-            val applicationTime = ChronoUnit.MILLIS.between(startTime, Instant.now())
+            val applicationTime = // Duration calculation required(startTime, Clock.System.now()())
             
             // Record optimization
             optimizationManager.recordOptimization(recommendation, result, applicationTime)
@@ -628,7 +626,7 @@ class PerformanceOptimization {
             responseTimeImprovement = initialMetrics.responseTime - currentMetrics.responseTime,
             throughputImprovement = currentMetrics.throughput - initialMetrics.throughput,
             cacheHitRatioImprovement = currentMetrics.cacheHitRatio - initialMetrics.cacheHitRatio,
-            timestamp = Instant.now()
+            timestamp = Clock.System.now()()
         )
     }
     
@@ -781,184 +779,184 @@ data class OptimizationStatusReport(
 )
 
 @Serializable
-data class PerformanceMetrics(
-    val cpuUsage: Double,
-    val memoryUsage: Double,
-    val responseTime: Long,
-    val throughput: Double,
-    val errorRate: Double,
-    val cacheHitRatio: Double,
-    val databaseResponseTime: Long,
-    val timestamp: Instant
-)
-
-@Serializable
-data class PerformanceBottleneck(
-    val type: String,
-    val severity: String,
-    val description: String,
-    val impact: String,
-    val recommendation: String
-)
-
-@Serializable
-data class OptimizationRecommendation(
-    val type: String,
-    val description: String,
-    val recommendation: String,
-    val priority: OptimizationPriority,
-    val impact: String,
-    val estimatedEffort: String,
-    val estimatedImprovement: Double
-)
-
-@Serializable
-data class PerformanceImprovements(
-    val cpuUsageReduction: Double,
-    val memoryUsageReduction: Double,
-    val responseTimeReduction: Double,
-    val throughputIncrease: Double
-)
-
-@Serializable
-data class AppliedOptimization(
-    val recommendation: OptimizationRecommendation,
-    val result: OptimizationResult,
-    val timestamp: Instant
-)
-
-@Serializable
-data class FailedOptimization(
-    val recommendation: OptimizationRecommendation,
-    val error: String?,
-    val timestamp: Instant
-)
-
-@Serializable
-data class OptimizationResult(
-    val success: Boolean,
-    val message: String? = null,
-    val error: String? = null
-)
-
-@Serializable
-data class PerformanceImprovement(
-    val cpuUsageImprovement: Double,
-    val memoryUsageImprovement: Double,
-    val responseTimeImprovement: Long,
-    val throughputImprovement: Double,
-    val cacheHitRatioImprovement: Double,
-    val timestamp: Instant
-)
-
-@Serializable
-data class OptimizationMetric(
-    val id: String,
-    val type: String,
-    val value: Double,
-    val timestamp: Instant
-)
-
-@Serializable
-data class PerformanceBaseline(
-    val id: String,
-    val name: String,
-    val metrics: PerformanceMetrics,
-    val timestamp: Instant
-)
-
-@Serializable
-data class OptimizationStatus(
-    val overallScore: Double = 0.0,
-    val grade: String = "N/A",
-    val status: String = "UNKNOWN"
-)
-
-@Serializable
-data class OptimizationHistoryEntry(
-    val id: String,
-    val type: String,
-    val timestamp: Instant,
-    val result: OptimizationResult
-)
-
-// Placeholder data classes
-
-@Serializable
-data class MemoryAnalysis(
-    val totalMemory: Long = 0,
-    val usedMemory: Long = 0,
-    val freeMemory: Long = 0,
-    val heapUsage: Double = 0.0
-)
-
-@Serializable
-data class DatabaseAnalysis(
-    val queryCount: Long = 0,
-    val slowQueries: Long = 0,
-    val connectionCount: Long = 0,
-    val averageResponseTime: Long = 0
-)
-
-@Serializable
-data class CacheAnalysis(
-    val hitCount: Long = 0,
-    val missCount: Long = 0,
-    val hitRatio: Double = 0.0,
-    val evictionCount: Long = 0
-)
-
-@Serializable
-data class ProfilingData(
-    val methodCalls: List<MethodCall> = emptyList(),
-    val memoryAllocations: List<MemoryAllocation> = emptyList(),
-    val threadStates: List<ThreadState> = emptyList()
-)
-
-@Serializable
-data class ProfilingAnalysis(
-    val hotspots: List<String> = emptyList(),
-    val memoryLeaks: List<String> = emptyList(),
-    val threadContention: List<String> = emptyList()
-)
-
-@Serializable
-data class MethodCall(
-    val methodName: String,
-    val callCount: Long,
-    val totalTime: Long,
-    val averageTime: Long
-)
-
-@Serializable
-data class MemoryAllocation(
-    val className: String,
-    val allocationCount: Long,
-    val totalBytes: Long
-)
-
-@Serializable
-data class ThreadState(
-    val threadName: String,
-    val state: String,
-    val blockedTime: Long
-)
-
-@Serializable
-data class OptimizationConfig(
-    val enabled: Boolean = true,
-    val autoOptimization: Boolean = false,
-    val optimizationInterval: Long = 300000 // 5 minutes
-)
-
-// Enums
-
-enum class OptimizationPriority {
-    LOW,
-    MEDIUM,
-    HIGH,
-    CRITICAL
-}
+// data class PerformanceMetrics(
+//     val cpuUsage: Double,
+//     val memoryUsage: Double,
+//     val responseTime: Long,
+//     val throughput: Double,
+//     val errorRate: Double,
+//     val cacheHitRatio: Double,
+//     val databaseResponseTime: Long,
+//     val timestamp: Instant
+// )
+// 
+// @Serializable
+// data class PerformanceBottleneck(
+//     val type: String,
+//     val severity: String,
+//     val description: String,
+//     val impact: String,
+//     val recommendation: String
+// )
+// 
+// @Serializable
+// data class OptimizationRecommendation(
+//     val type: String,
+//     val description: String,
+//     val recommendation: String,
+//     val priority: OptimizationPriority,
+//     val impact: String,
+//     val estimatedEffort: String,
+//     val estimatedImprovement: Double
+// )
+// 
+// @Serializable
+// data class PerformanceImprovements(
+//     val cpuUsageReduction: Double,
+//     val memoryUsageReduction: Double,
+//     val responseTimeReduction: Double,
+//     val throughputIncrease: Double
+// )
+// 
+// @Serializable
+// data class AppliedOptimization(
+//     val recommendation: OptimizationRecommendation,
+//     val result: OptimizationResult,
+//     val timestamp: Instant
+// )
+// 
+// @Serializable
+// data class FailedOptimization(
+//     val recommendation: OptimizationRecommendation,
+//     val error: String?,
+//     val timestamp: Instant
+// )
+// 
+// @Serializable
+// data class OptimizationResult(
+//     val success: Boolean,
+//     val message: String? = null,
+//     val error: String? = null
+// )
+// 
+// @Serializable
+// data class PerformanceImprovement(
+//     val cpuUsageImprovement: Double,
+//     val memoryUsageImprovement: Double,
+//     val responseTimeImprovement: Long,
+//     val throughputImprovement: Double,
+//     val cacheHitRatioImprovement: Double,
+//     val timestamp: Instant
+// )
+// 
+// @Serializable
+// data class OptimizationMetric(
+//     val id: String,
+//     val type: String,
+//     val value: Double,
+//     val timestamp: Instant
+// )
+// 
+// @Serializable
+// data class PerformanceBaseline(
+//     val id: String,
+//     val name: String,
+//     val metrics: PerformanceMetrics,
+//     val timestamp: Instant
+// )
+// 
+// @Serializable
+// data class OptimizationStatus(
+//     val overallScore: Double = 0.0,
+//     val grade: String = "N/A",
+//     val status: String = "UNKNOWN"
+// )
+// 
+// @Serializable
+// data class OptimizationHistoryEntry(
+//     val id: String,
+//     val type: String,
+//     val timestamp: Instant,
+//     val result: OptimizationResult
+// )
+// 
+// // Placeholder data classes
+// 
+// @Serializable
+// data class MemoryAnalysis(
+//     val totalMemory: Long = 0,
+//     val usedMemory: Long = 0,
+//     val freeMemory: Long = 0,
+//     val heapUsage: Double = 0.0
+// )
+// 
+// @Serializable
+// data class DatabaseAnalysis(
+//     val queryCount: Long = 0,
+//     val slowQueries: Long = 0,
+//     val connectionCount: Long = 0,
+//     val averageResponseTime: Long = 0
+// )
+// 
+// @Serializable
+// data class CacheAnalysis(
+//     val hitCount: Long = 0,
+//     val missCount: Long = 0,
+//     val hitRatio: Double = 0.0,
+//     val evictionCount: Long = 0
+// )
+// 
+// @Serializable
+// data class ProfilingData(
+//     val methodCalls: List<MethodCall> = emptyList(),
+//     val memoryAllocations: List<MemoryAllocation> = emptyList(),
+//     val threadStates: List<ThreadState> = emptyList()
+// )
+// 
+// @Serializable
+// data class ProfilingAnalysis(
+//     val hotspots: List<String> = emptyList(),
+//     val memoryLeaks: List<String> = emptyList(),
+//     val threadContention: List<String> = emptyList()
+// )
+// 
+// @Serializable
+// data class MethodCall(
+//     val methodName: String,
+//     val callCount: Long,
+//     val totalTime: Long,
+//     val averageTime: Long
+// )
+// 
+// @Serializable
+// data class MemoryAllocation(
+//     val className: String,
+//     val allocationCount: Long,
+//     val totalBytes: Long
+// )
+// 
+// @Serializable
+// data class ThreadState(
+//     val threadName: String,
+//     val state: String,
+//     val blockedTime: Long
+// )
+// 
+// @Serializable
+// data class OptimizationConfig(
+//     val enabled: Boolean = true,
+//     val autoOptimization: Boolean = false,
+//     val optimizationInterval: Long = 300000 // 5 minutes
+// )
+// 
+// // Enums
+// 
+// enum class OptimizationPriority {
+//     LOW,
+//     MEDIUM,
+//     HIGH,
+//     CRITICAL
+// }
 
 // Placeholder classes
 

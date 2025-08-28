@@ -16,80 +16,114 @@ interface EmailService {
      * @return true if initialization successful, false otherwise
      */
     suspend fun initialize(config: EmailConfig): Boolean
-    
+
     /**
-     * Sends a verification email to a user.
-     * 
-     * @param email The recipient email address
-     * @param verificationCode The verification code
-     * @param userId The user ID for tracking
-     * @return true if email sent successfully, false otherwise
+     * Sends an email verification email to a user's address.
+     *
+     * This function constructs and dispatches an email containing a verification code
+     * required to confirm the user's email address. It can use a predefined template
+     * or generate a default email if no template is provided.
+     *
+     * @param to The recipient's email address.
+     * @param verificationCode The unique code for the user to verify their email.
+     * @param userId The ID of the user for tracking and logging purposes.
+     * @param template An optional [EmailTemplate] to use for the email body and subject.
+     *                 If null, a default verification email format will be used.
+     * @param variables Optional [EmailTemplateVariables] to personalize the template.
+     *                  These variables will be substituted into the template content.
+     * @return An [EmailSendResult] indicating the outcome of the send operation,
+     *         which can be [EmailSendResult.Success], [EmailSendResult.Failure], or
+     *         [EmailSendResult.RateLimited].
      */
     suspend fun sendVerificationEmail(
-        email: String,
+        to: String,
         verificationCode: String,
-        userId: String
-    ): Boolean
+        userId: String,
+        template: EmailTemplate?,
+        variables: EmailTemplateVariables?
+    ): EmailSendResult
     
     /**
-     * Sends a password reset email to a user.
-     * 
-     * @param email The recipient email address
-     * @param resetToken The password reset token
-     * @param userId The user ID for tracking
-     * @return true if email sent successfully, false otherwise
+     * Sends a password reset email to a user, optionally using a template.
+     * This function can be used to send a standard password reset link or a more complex,
+     * templated email with additional variables for personalization.
+     *
+     * @param email The recipient's email address.
+     * @param resetToken The unique token generated for the password reset request.
+     * @param userId The ID of the user requesting the reset, for logging and tracking.
+     * @param template An optional [EmailTemplate] to use for the email body and subject.
+     *                 If null, a default, non-templated email will be sent.
+     * @param variables Optional [EmailTemplateVariables] for personalizing the template.
+     *                  These are only used if a `template` is also provided.
+     * @return An [EmailSendResult] indicating the outcome of the send operation,
+     *         which can be [EmailSendResult.Success], [EmailSendResult.Failure], or [EmailSendResult.RateLimited].
      */
     suspend fun sendPasswordResetEmail(
-        email: String,
+        to: String,
         resetToken: String,
-        userId: String
-    ): Boolean
+        userId: String,
+        template: EmailTemplate?,
+        variables: EmailTemplateVariables?
+    ): EmailSendResult
     
     /**
-     * Sends a welcome email to a new user.
-     * 
-     * @param email The recipient email address
-     * @param username The username
-     * @param userId The user ID for tracking
-     * @return true if email sent successfully, false otherwise
+     * Sends a welcome email to a newly registered user.
+     *
+     * This function is typically called after a user successfully completes the registration process.
+     * It sends a friendly welcome message, which can include helpful links or next steps for the user.
+     *
+     * @param email The recipient's email address.
+     * @param username The user's chosen name or username to personalize the email.
+     * @param userId A unique identifier for the user, used for logging and tracking purposes.
+     * @return `true` if the email was successfully dispatched, `false` otherwise.
      */
     suspend fun sendWelcomeEmail(
-        email: String,
-        username: String,
-        userId: String
-    ): Boolean
+        to: String,
+        displayName: String,
+        userId: String,
+        template: EmailTemplate?,
+        variables: EmailTemplateVariables?
+    ): EmailSendResult
     
     /**
-     * Sends a security alert email.
-     * 
-     * @param email The recipient email address
-     * @param alertType The type of security alert
-     * @param details Additional details about the alert
-     * @param userId The user ID for tracking
-     * @return true if email sent successfully, false otherwise
+     * Dispatches a security alert email to a user's registered address.
+     * This is used to notify the user about important, security-sensitive events
+     * related to their account, such as a password change or a login from a new device.
+     *
+     * @param email The recipient's email address.
+     * @param alertType The specific type of security alert, defined by the [SecurityAlertType] enum.
+     * @param details A string containing specific, contextual information about the alert (e.g., IP address, location).
+     * @param userId The unique identifier of the user account for logging and tracking purposes.
+     * @return `true` if the email was successfully dispatched, `false` otherwise.
      */
     suspend fun sendSecurityAlertEmail(
-        email: String,
+        to: String,
         alertType: SecurityAlertType,
-        details: String,
-        userId: String
-    ): Boolean
+        alertDetails: String,
+        userId: String,
+        template: EmailTemplate?,
+        variables: EmailTemplateVariables?
+    ): EmailSendResult
     
     /**
-     * Sends a custom email with HTML content.
-     * 
-     * @param email The recipient email address
-     * @param subject The email subject
-     * @param htmlContent The HTML content of the email
-     * @param userId The user ID for tracking
-     * @return true if email sent successfully, false otherwise
+     * Sends a custom email with specified HTML content and subject.
+     *
+     * This function is useful for sending one-off or ad-hoc emails that do not
+     * have a predefined template. It allows for full control over the email's
+     * body and subject line.
+     *
+     * @param email The recipient's email address.
+     * @param subject The subject line of the email.
+     * @param htmlContent The main body of the email in HTML format.
+     * @param userId A unique identifier for the user, used for logging and tracking purposes.
+     * @return `true` if the email was sent successfully, `false` otherwise.
      */
     suspend fun sendCustomEmail(
-        email: String,
+        to: String,
         subject: String,
-        htmlContent: String,
-        userId: String
-    ): Boolean
+        body: String,
+        metadata: Map<String, String>?
+    ): EmailSendResult
     
     /**
      * Gets the delivery status of an email.
@@ -97,7 +131,7 @@ interface EmailService {
      * @param emailId The email ID to check
      * @return EmailDeliveryStatus for the email
      */
-    suspend fun getEmailDeliveryStatus(emailId: String): EmailDeliveryStatus?
+    suspend fun getDeliveryStatus(emailId: String): EmailDeliveryStatus
     
     /**
      * Gets email statistics and metrics.
@@ -269,7 +303,7 @@ data class EmailTemplateVariables(
     val alertDetails: String? = null,
     val loginLocation: String? = null,
     val deviceInfo: String? = null,
-    val timestamp: Long = System.currentTimeMillis(),
+    val timestamp: Long = Clock.System.now().epochSeconds(),
     val supportEmail: String? = null,
     val appName: String = "Multi-Auth",
     val appUrl: String? = null

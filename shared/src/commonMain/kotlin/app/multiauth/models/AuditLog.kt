@@ -1,7 +1,6 @@
 package app.multiauth.models
 
 import kotlinx.serialization.Serializable
-import java.time.Instant
 
 /**
  * Represents an audit log entry in the multi-auth system.

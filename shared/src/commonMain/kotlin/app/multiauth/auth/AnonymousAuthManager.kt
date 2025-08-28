@@ -12,7 +12,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import java.util.UUID
 import kotlin.time.Duration.Companion.hours
 
@@ -23,10 +22,10 @@ import kotlin.time.Duration.Companion.hours
  */
 class AnonymousAuthManager(
     private val authEngine: AuthEngine,
-    private val eventBus: EventBus = EventBus.getInstance()
+    private val eventBus: EventBus = EventBusInstance()
 ) {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     private val scope = CoroutineScope(Dispatchers.Main)
     
     companion object {

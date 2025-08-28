@@ -1,7 +1,6 @@
 package app.multiauth.oauth
 
 import kotlinx.serialization.Serializable
-import kotlinx.datetime.Instant
 
 /**
  * User information returned from OAuth providers.

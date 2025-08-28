@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.security.SecureRandom
+// Platform-specific implementation required
 import kotlin.math.pow
 
 /**
@@ -20,10 +20,10 @@ import kotlin.math.pow
  */
 class MfaManager(
     private val authEngine: AuthEngine,
-    private val eventBus: EventBus = EventBus.getInstance()
+    private val eventBus: EventBus = EventBusInstance()
 ) {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     private val scope = CoroutineScope(Dispatchers.Main)
     
     private val _mfaState = MutableStateFlow<MfaState>(MfaState.Idle)

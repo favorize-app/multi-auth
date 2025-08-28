@@ -1,7 +1,6 @@
 package app.multiauth.events
 
 import app.multiauth.models.*
-import kotlinx.datetime.Clock
 
 /**
  * Base class for all authentication events.

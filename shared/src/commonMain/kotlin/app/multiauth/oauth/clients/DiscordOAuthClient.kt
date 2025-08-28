@@ -20,7 +20,7 @@ class DiscordOAuthClient(
     private val httpClient: HttpClient
 ) : OAuthClient {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
     
     companion object {
@@ -167,7 +167,7 @@ class DiscordOAuthClient(
             logger.debug("oath", "Fetching Discord user info")
             
             val response = withContext(Dispatchers.IO) {
-                httpClient.get(USER_INFO_URL) {
+                httpClient(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                 }
             }
@@ -240,7 +240,7 @@ class DiscordOAuthClient(
             logger.debug("oath", "Validating Discord OAuth token")
             
             val response = withContext(Dispatchers.IO) {
-                httpClient.get(USER_INFO_URL) {
+                httpClient(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                 }
             }

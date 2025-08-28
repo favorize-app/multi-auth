@@ -1,7 +1,6 @@
 package app.multiauth.models
 
 import kotlinx.serialization.Serializable
-import kotlinx.datetime.Instant
 
 /**
  * Represents a user in the multi-auth system.

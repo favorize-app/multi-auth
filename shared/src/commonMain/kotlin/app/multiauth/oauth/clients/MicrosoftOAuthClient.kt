@@ -20,7 +20,7 @@ class MicrosoftOAuthClient(
     private val httpClient: HttpClient
 ) : OAuthClient {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
     
     companion object {
@@ -167,7 +167,7 @@ class MicrosoftOAuthClient(
             logger.debug("oath", "Fetching Microsoft user info")
             
             val response = withContext(Dispatchers.IO) {
-                httpClient.get(USER_INFO_URL) {
+                httpClient(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                     header("Accept", "application/json")
                 }
@@ -232,7 +232,7 @@ class MicrosoftOAuthClient(
             logger.debug("oath", "Validating Microsoft OAuth token")
             
             val response = withContext(Dispatchers.IO) {
-                httpClient.get(USER_INFO_URL) {
+                httpClient(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                     header("Accept", "application/json")
                 }

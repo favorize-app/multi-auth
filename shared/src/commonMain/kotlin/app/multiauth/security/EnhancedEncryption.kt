@@ -3,7 +3,7 @@ package app.multiauth.security
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.security.SecureRandom
+// Platform-specific implementation required
 import java.util.Base64
 
 /**
@@ -12,7 +12,7 @@ import java.util.Base64
  */
 class EnhancedEncryption {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
     private val secureRandom = SecureRandom()
     
@@ -187,7 +187,7 @@ class EnhancedEncryption {
         return EncryptedDataWithMetadata(
             encryptedData = encryptedResult,
             metadata = metadataJson,
-            timestamp = System.currentTimeMillis(),
+            timestamp = Clock.System.now().epochSeconds(),
             version = "1.0"
         )
     }

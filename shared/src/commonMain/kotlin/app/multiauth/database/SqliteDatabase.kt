@@ -16,7 +16,6 @@ import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.ResultSet
 import java.sql.Timestamp
-import java.time.Instant
 
 /**
  * SQLite database implementation for the Multi-Auth system.
@@ -26,7 +25,7 @@ class SqliteDatabase(
     private val config: DatabaseConfig
 ) : Database {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
     
     private var connection: Connection? = null
@@ -132,7 +131,7 @@ class SqliteDatabase(
             
             // Create database connection
             val dbPath = config.name
-            connection = DriverManager.getConnection("$JDBC_PREFIX$dbPath")
+            connection = DriverManagerConnection("$JDBC_PREFIX$dbPath")
             
             // Enable foreign keys
             if (config.enableForeignKeys) {
@@ -460,7 +459,7 @@ class SqliteDatabase(
                 val stmt = connection?.createStatement()
                 val rs = stmt?.executeQuery(sql)
                 
-                val count = rs?.getLong(1) ?: 0
+                val count = rs?Long(1) ?: 0
                 
                 rs?.close()
                 stmt?.close()
@@ -507,23 +506,23 @@ class SqliteDatabase(
     private fun resultSetToUser(rs: ResultSet): User? {
         return try {
             User(
-                id = rs.getString("id"),
-                username = rs.getString("username"),
-                email = rs.getString("email"),
-                passwordHash = rs.getString("password_hash"),
-                phoneNumber = rs.getString("phone_number"),
-                phoneVerified = rs.getBoolean("phone_verified"),
-                isAnonymous = rs.getBoolean("is_anonymous"),
-                anonymousSessionId = rs.getString("anonymous_session_id"),
-                createdAt = rs.getTimestamp("created_at").toInstant(),
-                updatedAt = rs.getTimestamp("updated_at").toInstant(),
-                lastSignInAt = rs.getTimestamp("last_sign_in_at")?.toInstant(),
-                emailVerified = rs.getBoolean("email_verified"),
-                mfaEnabled = rs.getBoolean("mfa_enabled"),
-                accountLocked = rs.getBoolean("account_locked"),
-                failedLoginAttempts = rs.getInt("failed_login_attempts"),
-                lockedUntil = rs.getTimestamp("locked_until")?.toInstant(),
-                metadata = rs.getString("metadata")?.let { json.decodeFromString(it) }
+                id = rsString("id"),
+                username = rsString("username"),
+                email = rsString("email"),
+                passwordHash = rsString("password_hash"),
+                phoneNumber = rsString("phone_number"),
+                phoneVerified = rsBoolean("phone_verified"),
+                isAnonymous = rsBoolean("is_anonymous"),
+                anonymousSessionId = rsString("anonymous_session_id"),
+                createdAt = rsTimestamp("created_at").toInstant(),
+                updatedAt = rsTimestamp("updated_at").toInstant(),
+                lastSignInAt = rsTimestamp("last_sign_in_at")?.toInstant(),
+                emailVerified = rsBoolean("email_verified"),
+                mfaEnabled = rsBoolean("mfa_enabled"),
+                accountLocked = rsBoolean("account_locked"),
+                failedLoginAttempts = rsInt("failed_login_attempts"),
+                lockedUntil = rsTimestamp("locked_until")?.toInstant(),
+                metadata = rsString("metadata")?.let { json.decodeFromString(it) }
             )
         } catch (e: Exception) {
             logger.error("db", "Error converting result set to user", e)
@@ -534,17 +533,17 @@ class SqliteDatabase(
     private fun resultSetToOAuthAccount(rs: ResultSet): OAuthAccount? {
         return try {
             OAuthAccount(
-                id = rs.getString("id"),
-                userId = rs.getString("user_id"),
-                providerId = rs.getString("provider_id"),
-                externalUserId = rs.getString("external_user_id"),
-                accessToken = rs.getString("access_token"),
-                refreshToken = rs.getString("refresh_token"),
-                expiresAt = rs.getTimestamp("expires_at")?.toInstant(),
-                scope = rs.getString("scope"),
-                createdAt = rs.getTimestamp("created_at").toInstant(),
-                updatedAt = rs.getTimestamp("updated_at").toInstant(),
-                metadata = rs.getString("metadata")?.let { json.decodeFromString(it) }
+                id = rsString("id"),
+                userId = rsString("user_id"),
+                providerId = rsString("provider_id"),
+                externalUserId = rsString("external_user_id"),
+                accessToken = rsString("access_token"),
+                refreshToken = rsString("refresh_token"),
+                expiresAt = rsTimestamp("expires_at")?.toInstant(),
+                scope = rsString("scope"),
+                createdAt = rsTimestamp("created_at").toInstant(),
+                updatedAt = rsTimestamp("updated_at").toInstant(),
+                metadata = rsString("metadata")?.let { json.decodeFromString(it) }
             )
         } catch (e: Exception) {
             logger.error("db", "Error converting result set to OAuth account", e)
@@ -555,18 +554,18 @@ class SqliteDatabase(
     private fun resultSetToSession(rs: ResultSet): Session? {
         return try {
             Session(
-                id = rs.getString("id"),
-                userId = rs.getString("user_id"),
-                accessToken = rs.getString("access_token"),
-                refreshToken = rs.getString("refresh_token"),
-                expiresAt = rs.getTimestamp("expires_at").toInstant(),
-                createdAt = rs.getTimestamp("created_at").toInstant(),
-                lastUsedAt = rs.getTimestamp("last_used_at").toInstant(),
-                deviceInfo = rs.getString("device_info")?.let { json.decodeFromString(it) },
-                ipAddress = rs.getString("ip_address"),
-                userAgent = rs.getString("user_agent"),
-                isActive = rs.getBoolean("is_active"),
-                metadata = rs.getString("metadata")?.let { json.decodeFromString(it) }
+                id = rsString("id"),
+                userId = rsString("user_id"),
+                accessToken = rsString("access_token"),
+                refreshToken = rsString("refresh_token"),
+                expiresAt = rsTimestamp("expires_at").toInstant(),
+                createdAt = rsTimestamp("created_at").toInstant(),
+                lastUsedAt = rsTimestamp("last_used_at").toInstant(),
+                deviceInfo = rsString("device_info")?.let { json.decodeFromString(it) },
+                ipAddress = rsString("ip_address"),
+                userAgent = rsString("user_agent"),
+                isActive = rsBoolean("is_active"),
+                metadata = rsString("metadata")?.let { json.decodeFromString(it) }
             )
         } catch (e: Exception) {
             logger.error("db", "Error converting result set to session", e)
@@ -577,15 +576,15 @@ class SqliteDatabase(
     private fun resultSetToAuditLog(rs: ResultSet): AuditLog? {
         return try {
             AuditLog(
-                id = rs.getString("id"),
-                userId = rs.getString("user_id"),
-                eventType = rs.getString("event_type"),
-                eventData = rs.getString("event_data")?.let { json.decodeFromString(it) },
-                ipAddress = rs.getString("ip_address"),
-                userAgent = rs.getString("user_agent"),
-                timestamp = rs.getTimestamp("timestamp").toInstant(),
-                severity = rs.getString("severity"),
-                metadata = rs.getString("metadata")?.let { json.decodeFromString(it) }
+                id = rsString("id"),
+                userId = rsString("user_id"),
+                eventType = rsString("event_type"),
+                eventData = rsString("event_data")?.let { json.decodeFromString(it) },
+                ipAddress = rsString("ip_address"),
+                userAgent = rsString("user_agent"),
+                timestamp = rsTimestamp("timestamp").toInstant(),
+                severity = rsString("severity"),
+                metadata = rsString("metadata")?.let { json.decodeFromString(it) }
             )
         } catch (e: Exception) {
             logger.error("db", "Error converting result set to audit log", e)
@@ -600,7 +599,7 @@ class SqliteDatabase(
                 val stmt = connection?.createStatement()
                 val rs = stmt?.executeQuery(sql)
                 
-                val count = rs?.getLong(1) ?: 0
+                val count = rs?Long(1) ?: 0
                 
                 rs?.close()
                 stmt?.close()
@@ -620,7 +619,7 @@ class SqliteDatabase(
                 val stmt = connection?.createStatement()
                 val rs = stmt?.executeQuery(sql)
                 
-                val count = rs?.getLong(1) ?: 0
+                val count = rs?Long(1) ?: 0
                 
                 rs?.close()
                 stmt?.close()
@@ -969,7 +968,7 @@ class SqliteDatabase(
             try {
                 val sql = "DELETE FROM sessions WHERE expires_at < ?"
                 val stmt = connection?.prepareStatement(sql)
-                stmt?.setTimestamp(1, Timestamp.from(Instant.now()))
+                stmt?.setTimestamp(1, Timestamp.from(Clock.System.now()()))
                 
                 val result = stmt?.executeUpdate()
                 stmt?.close()

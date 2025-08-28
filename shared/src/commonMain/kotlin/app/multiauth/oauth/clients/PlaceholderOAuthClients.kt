@@ -18,7 +18,7 @@ class TwitchOAuthClient(
     private val httpClient: HttpClient
 ) : OAuthClient {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     
     override suspend fun getAuthorizationUrl(
         state: String,
@@ -90,7 +90,7 @@ class RedditOAuthClient(
     private val httpClient: HttpClient
 ) : OAuthClient {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     
     override suspend fun getAuthorizationUrl(
         state: String,
@@ -163,7 +163,7 @@ class SteamOAuthClient(
     private val httpClient: HttpClient
 ) : OAuthClient {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     
     override suspend fun getAuthorizationUrl(
         state: String,
@@ -171,7 +171,7 @@ class SteamOAuthClient(
         codeChallengeMethod: String
     ): String {
         // Steam uses OpenID, not standard OAuth 2.0
-        logger.warn("Steam uses OpenID, not OAuth 2.0 - using placeholder")
+        logger.warn("general", "Steam uses OpenID, not OAuth 2.0 - using placeholder")
         return "https://steamcommunity.com/openid/login?openid.ns=http://specs.openid.net/auth/2.0&openid.mode=checkid_setup&openid.return_to=${config.redirectUri}&openid.realm=${config.redirectUri}&openid.identity=http://specs.openid.net/auth/2.0/identifier_select&openid.claimed_id=http://specs.openid.net/auth/2.0/identifier_select"
     }
     
@@ -225,7 +225,7 @@ class EpicGamesOAuthClient(
     private val httpClient: HttpClient
 ) : OAuthClient {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     
     override suspend fun getAuthorizationUrl(
         state: String,
@@ -297,7 +297,7 @@ class SpotifyOAuthClient(
     private val httpClient: HttpClient
 ) : OAuthClient {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     
     override suspend fun getAuthorizationUrl(
         state: String,
@@ -369,7 +369,7 @@ class FacebookOAuthClient(
     private val httpClient: HttpClient
 ) : OAuthClient {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     
     override suspend fun getAuthorizationUrl(
         state: String,
@@ -441,7 +441,7 @@ class AppleOAuthClient(
     private val httpClient: HttpClient
 ) : OAuthClient {
     
-    private val logger = Logger.getLogger(this::class)
+    private val logger = LoggerLogger(this::class)
     
     override suspend fun getAuthorizationUrl(
         state: String,
