@@ -247,7 +247,7 @@ class AuthStateManager private constructor(
     
     private fun addToHistory(newState: AuthState, previousState: AuthState?) {
         val entry = AuthHistoryEntry(
-            timestamp = Clock.System.now,
+            timestamp = Clock.System.now(),
             state = newState,
             previousState = previousState
         )
