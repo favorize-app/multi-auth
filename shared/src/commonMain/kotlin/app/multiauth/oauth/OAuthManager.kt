@@ -1,5 +1,6 @@
 package app.multiauth.oauth
 
+import kotlinx.datetime.Clock
 import app.multiauth.core.AuthEngine
 import app.multiauth.events.AuthEvent
 import app.multiauth.events.EventBus
@@ -22,7 +23,7 @@ class OAuthManager(
     private val eventBus: EventBus = EventBusInstance()
 ) {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     private val scope = CoroutineScope(Dispatchers.Main)
     
     private val _oauthState = MutableStateFlow<OAuthState>(OAuthState.Idle)
@@ -276,8 +277,8 @@ class OAuthManager(
                 email = "user@example.com",
                 displayName = "OAuth User",
                 isEmailVerified = true,
-                createdAt = Clock.System.now().epochSeconds(),
-                lastSignInAt = Clock.System.now().epochSeconds()
+                createdAt = Clock.System.now().epochSeconds,
+                lastSignInAt = Clock.System.now().epochSeconds
             )
             Result.success(user)
         } catch (e: Exception) {

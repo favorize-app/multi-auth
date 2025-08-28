@@ -1,5 +1,7 @@
 package app.multiauth.security
 
+import kotlinx.datetime.Instant
+import kotlinx.datetime.Clock
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -10,7 +12,7 @@ import kotlinx.serialization.json.Json
  */
 class ComplianceFramework {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
     
     companion object {
@@ -59,7 +61,7 @@ class ComplianceFramework {
                     isCompliant = false,
                     issues = validationResult.issues,
                     recommendations = validationResult.recommendations,
-                    timestamp = Clock.System.now()()
+                    timestamp = Clock.System.now()
                 )
             }
             
@@ -72,7 +74,7 @@ class ComplianceFramework {
                 type = ComplianceEventType.DATA_PROCESSING,
                 standard = record.complianceStandards.firstOrNull() ?: GDPR,
                 description = "Data processing recorded: ${record.purpose}",
-                timestamp = Clock.System.now()(),
+                timestamp = Clock.System.now(),
                 metadata = mapOf(
                     "recordId" to record.id,
                     "dataCategory" to record.dataCategory,
@@ -87,7 +89,7 @@ class ComplianceFramework {
                 isCompliant = true,
                 issues = emptyList(),
                 recommendations = listOf("Continue monitoring data processing activities"),
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
         } catch (e: Exception) {
@@ -96,7 +98,7 @@ class ComplianceFramework {
                 isCompliant = false,
                 issues = listOf("Recording failed: ${e.message}"),
                 recommendations = listOf("Investigate recording failure"),
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
         }
     }
@@ -120,7 +122,7 @@ class ComplianceFramework {
                     isCompliant = false,
                     issues = validationResult.issues,
                     recommendations = validationResult.recommendations,
-                    timestamp = Clock.System.now()()
+                    timestamp = Clock.System.now()
                 )
             }
             
@@ -133,7 +135,7 @@ class ComplianceFramework {
                 type = ComplianceEventType.CONSENT_RECORDED,
                 standard = GDPR,
                 description = "User consent recorded: ${consent.purpose}",
-                timestamp = Clock.System.now()(),
+                timestamp = Clock.System.now(),
                 metadata = mapOf(
                     "consentId" to consent.id,
                     "userId" to consent.userId,
@@ -148,7 +150,7 @@ class ComplianceFramework {
                 isCompliant = true,
                 issues = emptyList(),
                 recommendations = listOf("Monitor consent expiration dates"),
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
         } catch (e: Exception) {
@@ -157,7 +159,7 @@ class ComplianceFramework {
                 isCompliant = false,
                 issues = listOf("Recording failed: ${e.message}"),
                 recommendations = listOf("Investigate recording failure"),
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
         }
     }
@@ -179,7 +181,7 @@ class ComplianceFramework {
                     status = DSARStatus.REJECTED,
                     reason = "Invalid user ID",
                     dataProvided = null,
-                    timestamp = Clock.System.now()()
+                    timestamp = Clock.System.now()
                 )
             }
             
@@ -198,7 +200,7 @@ class ComplianceFramework {
                 type = ComplianceEventType.DSAR_PROCESSED,
                 standard = GDPR,
                 description = "DSAR processed for user: ${request.userId}",
-                timestamp = Clock.System.now()(),
+                timestamp = Clock.System.now(),
                 metadata = mapOf(
                     "requestId" to request.id,
                     "userId" to request.userId,
@@ -214,7 +216,7 @@ class ComplianceFramework {
                 status = DSARStatus.COMPLETED,
                 reason = "Request processed successfully",
                 dataProvided = report,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
         } catch (e: Exception) {
@@ -224,7 +226,7 @@ class ComplianceFramework {
                 status = DSARStatus.FAILED,
                 reason = "Processing failed: ${e.message}",
                 dataProvided = null,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
         }
     }
@@ -257,7 +259,7 @@ class ComplianceFramework {
                 sections = reportSections,
                 overallCompliance = calculateOverallCompliance(reportSections),
                 recommendations = generateComplianceRecommendations(reportSections),
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
             logger.info("security", "Compliance report generated successfully")
@@ -284,7 +286,7 @@ class ComplianceFramework {
             userData.forEach { record ->
                 val policy = dataRetentionPolicies[record.dataCategory]
                 if (policy != null) {
-                    val age = // Duration calculation required(record.timestamp, Clock.System.now()())
+                    val age = // Duration calculation required(record.timestamp, Clock.System.now())
                     if (age > policy.retentionPeriodDays) {
                         issues.add("Data category ${record.dataCategory} exceeds retention period")
                         recommendations.add("Review and potentially delete expired data")
@@ -297,7 +299,7 @@ class ComplianceFramework {
                 isCompliant = issues.isEmpty(),
                 issues = issues,
                 recommendations = recommendations,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
         } catch (e: Exception) {
@@ -307,7 +309,7 @@ class ComplianceFramework {
                 isCompliant = false,
                 issues = listOf("Check failed: ${e.message}"),
                 recommendations = listOf("Investigate compliance check failure"),
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
         }
     }
@@ -433,7 +435,7 @@ class ComplianceFramework {
             personalData = personalData,
             processingRecords = processingRecords,
             consentRecords = consentRecords,
-            timestamp = Clock.System.now()()
+            timestamp = Clock.System.now()
         )
     }
     
@@ -453,7 +455,7 @@ class ComplianceFramework {
             processingRecords = userData.processingRecords,
             consentRecords = userData.consentRecords,
             retentionCompliance = retentionCheck,
-            timestamp = Clock.System.now()()
+            timestamp = Clock.System.now()
         )
     }
     
@@ -633,8 +635,8 @@ class ComplianceFramework {
         )
     }
     
-    private fun generateEventId(): String = "event_${Clock.System.now().epochSeconds()}_${(0..9999).random()}"
-    private fun generateReportId(): String = "report_${Clock.System.now().epochSeconds()}_${(0..9999).random()}"
+    private fun generateEventId(): String = "event_${Clock.System.now().epochSeconds}_${(0..9999).random()}"
+    private fun generateReportId(): String = "report_${Clock.System.now().epochSeconds}_${(0..9999).random()}"
 }
 
 // Data classes for compliance framework

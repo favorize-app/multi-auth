@@ -1,7 +1,10 @@
 package app.multiauth.services
 
+import kotlinx.datetime.Instant
 import app.multiauth.util.Logger
 import kotlinx.coroutines.flow.Flow
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 
 /**
  * Service for sending SMS messages in the Multi-Auth system.
@@ -293,7 +296,7 @@ data class SmsTemplateVariables(
     val alertDetails: String? = null,
     val loginLocation: String? = null,
     val deviceInfo: String? = null,
-    val timestamp: Long = Clock.System.now().epochSeconds(),
+    val timestamp: Long = Clock.System.now().epochSeconds,
     val supportPhone: String? = null,
     val appName: String = "Multi-Auth"
 )

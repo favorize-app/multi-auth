@@ -1,5 +1,6 @@
 package app.multiauth.models
 
+import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 
 /**

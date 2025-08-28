@@ -1,5 +1,7 @@
 package app.multiauth.services
 
+import kotlinx.datetime.Instant
+import kotlinx.datetime.Clock
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -12,7 +14,7 @@ class SimpleEmailService(
     private val config: EmailConfig = EmailConfig()
 ) : EmailService {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
     
     private var isInitialized = false
@@ -189,7 +191,7 @@ class SimpleEmailService(
         }
         
         val emailId = generateEmailId()
-        val timestamp = Clock.System.now().epochSeconds()
+        val timestamp = Clock.System.now().epochSeconds
         
         val email = QueuedEmail(
             id = emailId,
@@ -323,7 +325,7 @@ class SimpleEmailService(
                 <h2>Security Alert: ${alertType.displayName}</h2>
                 <p><strong>Alert Type:</strong> ${alertType.displayName}</p>
                 <p><strong>Details:</strong> $alertDetails</p>
-                <p><strong>Time:</strong> ${java.time.Clock.System.now()()}</p>
+                <p><strong>Time:</strong> ${java.time.Clock.System.now()}</p>
                 <p>If this activity was not authorized by you, please contact support immediately.</p>
             </body>
             </html>
@@ -382,7 +384,7 @@ class SimpleEmailService(
     }
     
     private fun generateEmailId(): String {
-        return "email_${Clock.System.now().epochSeconds()}_${(0..9999).random()}"
+        return "email_${Clock.System.now().epochSeconds}_${(0..9999).random()}"
     }
     
     private fun calculateAverageDeliveryTime(): Long {

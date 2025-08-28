@@ -1,5 +1,7 @@
 package app.multiauth.core
 
+import kotlinx.datetime.Instant
+import kotlinx.datetime.Clock
 import app.multiauth.events.*
 import app.multiauth.models.*
 import app.multiauth.util.Logger
@@ -245,7 +247,7 @@ class AuthStateManager private constructor(
     
     private fun addToHistory(newState: AuthState, previousState: AuthState?) {
         val entry = AuthHistoryEntry(
-            timestamp = Clock.System.now(),
+            timestamp = Clock.System.now,
             state = newState,
             previousState = previousState
         )
@@ -315,7 +317,7 @@ data class NotificationPreferences(
  * Authentication history entry.
  */
 data class AuthHistoryEntry(
-    val timestamp: kotlinx.datetime.Instant,
+    val timestamp: Instant,
     val state: AuthState,
     val previousState: AuthState?
 )
@@ -328,5 +330,5 @@ data class AuthStats(
     val successfulAuths: Int,
     val failedAttempts: Int,
     val verificationRequired: Int,
-    val lastActivityAt: kotlinx.datetime.Instant?
+    val lastActivityAt: Instant?
 )

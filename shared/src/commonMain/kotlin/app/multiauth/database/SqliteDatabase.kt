@@ -1,5 +1,7 @@
 package app.multiauth.database
 
+import kotlinx.datetime.Instant
+import kotlinx.datetime.Clock
 import app.multiauth.models.User
 import app.multiauth.models.OAuthAccount
 import app.multiauth.models.Session
@@ -25,7 +27,7 @@ class SqliteDatabase(
     private val config: DatabaseConfig
 ) : Database {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
     
     private var connection: Connection? = null
@@ -968,7 +970,7 @@ class SqliteDatabase(
             try {
                 val sql = "DELETE FROM sessions WHERE expires_at < ?"
                 val stmt = connection?.prepareStatement(sql)
-                stmt?.setTimestamp(1, Timestamp.from(Clock.System.now()()))
+                stmt?.setTimestamp(1, Timestamp.from(Clock.System.now()))
                 
                 val result = stmt?.executeUpdate()
                 stmt?.close()

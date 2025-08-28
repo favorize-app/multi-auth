@@ -1,5 +1,7 @@
 package app.multiauth.mfa
 
+import kotlinx.datetime.Instant
+import kotlinx.datetime.Clock
 import app.multiauth.models.User
 import app.multiauth.util.Logger
 import kotlinx.coroutines.CoroutineScope
@@ -8,8 +10,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.plus
+import kotlinx.datetime.DurationUnit
 // Platform-specific implementation required
 
 /**
@@ -18,7 +19,7 @@ import kotlinx.datetime.plus
  */
 class SmsVerificationService {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     private val scope = CoroutineScope(Dispatchers.Main)
     
     companion object {
@@ -55,7 +56,7 @@ class SmsVerificationService {
             
             // Generate verification code
             val code = generateSmsCode()
-            val expiryTime = Clock.System.now()
+            val expiryTime = Clock.System.now
                 .plus(SMS_CODE_EXPIRY_MINUTES, DateTimeUnit.MINUTE)
             
             val verification = SmsVerification(
@@ -64,7 +65,7 @@ class SmsVerificationService {
                 code = code,
                 expiryTime = expiryTime,
                 attempts = 0,
-                createdAt = Clock.System.now()
+                createdAt = Clock.System.now
             )
             
             _pendingVerifications[user.id] = verification
@@ -107,7 +108,7 @@ class SmsVerificationService {
             }
             
             // Check if code has expired
-            if (Clock.System.now() > verification.expiryTime) {
+            if (Clock.System.now > verification.expiryTime) {
                 _pendingVerifications.remove(user.id)
                 return Result.failure(SmsVerificationException("Verification code has expired"))
             }
@@ -170,7 +171,7 @@ class SmsVerificationService {
             }
             
             // Check cooldown period
-            val timeSinceLastSend = Clock.System.now() - verification.createdAt
+            val timeSinceLastSend = Clock.System.now - verification.createdAt
 
             if (timeSinceLastSend.inWholeSeconds < SMS_RESEND_COOLDOWN_SECONDS) {
                 val remainingTime = SMS_RESEND_COOLDOWN_SECONDS - timeSinceLastSend.inWholeSeconds
@@ -185,7 +186,7 @@ class SmsVerificationService {
             
             verification.code = newCode
             verification.expiryTime = newExpiryTime
-            verification.createdAt = Clock.System.now()
+            verification.createdAt = Clock.System.now
             
             // Simulate sending SMS
             val sendResult = sendSms(verification.phoneNumber, newCode)
@@ -227,7 +228,7 @@ class SmsVerificationService {
     fun getTimeRemaining(user: User): Long? {
         val verification = _pendingVerifications[user.id] ?: return null
         
-        val remaining = verification.expiryTime - Clock.System.now()
+        val remaining = verification.expiryTime - Clock.System.now
         return if (remaining.inWholeSeconds > 0) remaining.inWholeSeconds else 0
     }
     

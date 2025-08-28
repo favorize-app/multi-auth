@@ -23,7 +23,7 @@ class MfaManager(
     private val eventBus: EventBus = EventBusInstance()
 ) {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     private val scope = CoroutineScope(Dispatchers.Main)
     
     private val _mfaState = MutableStateFlow<MfaState>(MfaState.Idle)

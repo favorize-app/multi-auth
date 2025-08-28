@@ -1,5 +1,6 @@
 package app.multiauth.database
 
+import kotlinx.datetime.Clock
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -12,7 +13,7 @@ class DatabaseMigrationManager(
     private val database: Database
 ) {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     
     companion object {
         private const val MIGRATIONS_TABLE = "schema_migrations"
@@ -334,7 +335,7 @@ class DatabaseMigrationManager(
         val migrationData = Json.encodeToString(MigrationData.serializer(), MigrationData(
             version = version,
             description = migration.description,
-            timestamp = Clock.System.now().epochSeconds()
+            timestamp = Clock.System.now().epochSeconds
         ))
         
         database.executeUpdate(insertSql, listOf(version.toString(), migration.description, migrationData))

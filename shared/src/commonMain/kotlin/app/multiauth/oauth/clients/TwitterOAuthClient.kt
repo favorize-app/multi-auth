@@ -21,7 +21,7 @@ class TwitterOAuthClient(
     private val httpClient: HttpClient
 ) : OAuthClient {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
     
     companion object {

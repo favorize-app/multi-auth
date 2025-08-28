@@ -1,13 +1,13 @@
 package app.multiauth.performance
 
+import kotlinx.datetime.Instant
+import kotlinx.datetime.Clock
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlin.collections.MutableMap
 // Replaced with coroutines
 // Replaced with coroutines
-// Replaced with kotlinx.datetime.Duration
-import kotlin.collections.MutableMap
+// Replaced with kotlin.time.Duration
 import java.util.concurrent.atomic.AtomicDouble
 import kotlin.math.sqrt
 
@@ -17,7 +17,7 @@ import kotlin.math.sqrt
  */
 class PerformanceMonitoring {
     
-    private val logger = LoggerLogger(this::class)
+    private val logger = Logger.getLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
     
     companion object {
@@ -82,7 +82,7 @@ class PerformanceMonitoring {
                     metricId = metric.id,
                     success = false,
                     issues = validationResult.issues,
-                    timestamp = Clock.System.now()()
+                    timestamp = Clock.System.now()
                 )
             }
             
@@ -100,7 +100,7 @@ class PerformanceMonitoring {
             MetricRecordingResult(
                 metricId = metric.id,
                 success = true,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
         } catch (e: Exception) {
@@ -109,7 +109,7 @@ class PerformanceMonitoring {
                 metricId = metric.id,
                 success = false,
                 issues = listOf("Recording failed: ${e.message}"),
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
         }
     }
@@ -163,7 +163,7 @@ class PerformanceMonitoring {
                         severity = ALERT_SEVERITY_MEDIUM,
                         message = "Request duration exceeded threshold: ${duration}ms",
                         metric = timerMetric,
-                        timestamp = Clock.System.now()()
+                        timestamp = Clock.System.now()
                     )
                 )
             }
@@ -172,7 +172,7 @@ class PerformanceMonitoring {
                 requestId = requestId,
                 duration = duration,
                 recorded = true,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
         } catch (e: Exception) {
@@ -182,7 +182,7 @@ class PerformanceMonitoring {
                 duration = 0,
                 recorded = false,
                 error = e.message,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
         }
     }
@@ -207,7 +207,7 @@ class PerformanceMonitoring {
                 type = METRIC_TYPE_COUNTER,
                 value = 1.0,
                 unit = "count",
-                timestamp = Clock.System.now()(),
+                timestamp = Clock.System.now(),
                 tags = mapOf(
                     "error_type" to error.type,
                     "severity" to error.severity
@@ -227,7 +227,7 @@ class PerformanceMonitoring {
                         severity = ALERT_SEVERITY_HIGH,
                         message = "Error rate exceeded threshold: ${currentErrorRate}%",
                         metric = errorRateMetric,
-                        timestamp = Clock.System.now()()
+                        timestamp = Clock.System.now()
                     )
                 )
             }
@@ -235,7 +235,7 @@ class PerformanceMonitoring {
             ErrorRecordingResult(
                 errorId = error.id,
                 recorded = true,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
         } catch (e: Exception) {
@@ -244,7 +244,7 @@ class PerformanceMonitoring {
                 errorId = error.id,
                 recorded = false,
                 error = e.message,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
         }
     }
@@ -274,7 +274,7 @@ class PerformanceMonitoring {
                 type = METRIC_TYPE_GAUGE,
                 value = utilization,
                 unit = "percentage",
-                timestamp = Clock.System.now()(),
+                timestamp = Clock.System.now(),
                 tags = mapOf(
                     "resource_type" to resourceType,
                     "usage" to usage.toString(),
@@ -300,7 +300,7 @@ class PerformanceMonitoring {
                                 severity = ALERT_SEVERITY_MEDIUM,
                                 message = "CPU usage exceeded threshold: ${utilization}%",
                                 metric = resourceMetric,
-                                timestamp = Clock.System.now()()
+                                timestamp = Clock.System.now()
                             )
                         )
                     }
@@ -314,7 +314,7 @@ class PerformanceMonitoring {
                                 severity = ALERT_SEVERITY_MEDIUM,
                                 message = "Memory usage exceeded threshold: ${utilization}%",
                                 metric = resourceMetric,
-                                timestamp = Clock.System.now()()
+                                timestamp = Clock.System.now()
                             )
                         )
                     }
@@ -325,7 +325,7 @@ class PerformanceMonitoring {
                 resourceType = resourceType,
                 utilization = utilization,
                 recorded = true,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
         } catch (e: Exception) {
@@ -335,7 +335,7 @@ class PerformanceMonitoring {
                 utilization = 0.0,
                 recorded = false,
                 error = e.message,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
         }
     }
@@ -361,7 +361,7 @@ class PerformanceMonitoring {
             CurrentMetricsResult(
                 metrics = metrics,
                 summary = summary,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
         } catch (e: Exception) {
@@ -392,7 +392,7 @@ class PerformanceMonitoring {
                 timeRange = timeRange,
                 metrics = aggregatedMetrics,
                 trends = trends,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
         } catch (e: Exception) {
@@ -438,7 +438,7 @@ class PerformanceMonitoring {
                     requestStatus,
                     errorStatus
                 ),
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
             logger.info("performance", "Performance status report generated successfully")
@@ -472,7 +472,7 @@ class PerformanceMonitoring {
             ConfigurationResult(
                 component = "PerformanceMonitoring",
                 success = true,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
         } catch (e: Exception) {
@@ -482,7 +482,7 @@ class PerformanceMonitoring {
                 component = "PerformanceMonitoring",
                 success = false,
                 error = e.message,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
         }
     }
@@ -496,7 +496,7 @@ class PerformanceMonitoring {
         return try {
             logger.info("performance", "Cleaning up old metrics")
             
-            val cutoffTime = Clock.System.now()().minus(monitoringConfig.retentionPeriod, ChronoUnit.MILLIS)
+            val cutoffTime = Clock.System.now().minus(monitoringConfig.retentionPeriod, ChronoUnit.MILLIS)
             val removedCount = metricsCollector.removeMetricsBefore(cutoffTime)
             
             logger.info("performance", "Cleaned up $removedCount old metrics")
@@ -504,7 +504,7 @@ class PerformanceMonitoring {
             CleanupResult(
                 removedCount = removedCount,
                 cutoffTime = cutoffTime,
-                timestamp = Clock.System.now()()
+                timestamp = Clock.System.now()
             )
             
         } catch (e: Exception) {
@@ -572,7 +572,7 @@ class PerformanceMonitoring {
             issues.add("Metric value cannot be negative for type: ${metric.type}")
         }
         
-        if (metric.timestamp.isAfter(Clock.System.now()().plus(1, ChronoUnit.MINUTES))) {
+        if (metric.timestamp.isAfter(Clock.System.now().plus(1, ChronoUnit.MINUTES))) {
             issues.add("Metric timestamp cannot be in the future")
         }
         
@@ -594,7 +594,7 @@ class PerformanceMonitoring {
                         severity = threshold.severity,
                         message = "Metric ${metric.name} exceeded threshold: ${metric.value} > ${threshold.value}",
                         metric = metric,
-                        timestamp = Clock.System.now()()
+                        timestamp = Clock.System.now()
                     )
                 )
             }
@@ -618,7 +618,7 @@ class PerformanceMonitoring {
             averageValue = metrics.map { it.value }.average(),
             minValue = metrics.map { it.value }.minOrNull() ?: 0.0,
             maxValue = metrics.map { it.value }.maxOrNull() ?: 0.0,
-            timestamp = Clock.System.now()()
+            timestamp = Clock.System.now()
         )
     }
     
@@ -773,8 +773,8 @@ class PerformanceMonitoring {
         return recommendations
     }
     
-    private fun generateMetricId(): String = "metric_${Clock.System.now().epochSeconds()}_${(0..9999).random()}"
-    private fun generateAlertId(): String = "alert_${Clock.System.now().epochSeconds()}_${(0..9999).random()}"
+    private fun generateMetricId(): String = "metric_${Clock.System.now().epochSeconds}_${(0..9999).random()}"
+    private fun generateAlertId(): String = "alert_${Clock.System.now().epochSeconds}_${(0..9999).random()}"
 }
 
 // Data classes for performance monitoring
@@ -875,7 +875,7 @@ data class MetricsSummary(
     val averageValue: Double = 0.0,
     val minValue: Double = 0.0,
     val maxValue: Double = 0.0,
-    val timestamp: Instant = Clock.System.now()()
+    val timestamp: Instant = Clock.System.now()
 )
 
 @Serializable
