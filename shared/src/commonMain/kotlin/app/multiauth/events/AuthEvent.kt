@@ -157,6 +157,19 @@ sealed class AuthEvent {
         object ErrorCleared : State()
         data class PreferencesUpdated(val preferences: app.multiauth.core.UserPreferences) : State()
     }
+
+    /**
+     * Events related to biometric authentication.
+     */
+    sealed class Biometric : AuthEvent() {
+        data class BiometricAvailable(val supportedTypes: List<app.multiauth.biometric.BiometricType>) : Biometric()
+        data class BiometricAuthenticationCompleted(val user: app.multiauth.models.User) : Biometric()
+        data class BiometricAuthenticationFailed(val error: Throwable) : Biometric()
+        data class BiometricEnabled(val user: app.multiauth.models.User) : Biometric()
+        data class BiometricEnableFailed(val error: Throwable) : Biometric()
+        data class BiometricDisabled(val user: app.multiauth.models.User) : Biometric()
+        data class BiometricDisableFailed(val error: Throwable) : Biometric()
+    }
 }
 
 /**
