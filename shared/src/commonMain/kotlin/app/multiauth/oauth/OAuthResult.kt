@@ -22,7 +22,7 @@ sealed class OAuthResult {
         val tokenType: String = "Bearer",
         val scope: String? = null,
         val userInfo: OAuthUserInfo? = null,
-        val timestamp: @kotlinx.serialization.Contextual Instant = Clock.System.now
+        val timestamp: @kotlinx.serialization.Contextual Instant = Clock.System.now()
     ) : OAuthResult()
     
     /**
@@ -31,7 +31,7 @@ sealed class OAuthResult {
     @Serializable
     data class Failure(
         val error: OAuthError,
-        val timestamp: @kotlinx.serialization.Contextual Instant = Clock.System.now
+        val timestamp: @kotlinx.serialization.Contextual Instant = Clock.System.now()
     ) : OAuthResult()
     
     /**
@@ -40,7 +40,7 @@ sealed class OAuthResult {
     @Serializable
     data class Cancelled(
         val reason: String? = null,
-        val timestamp: @kotlinx.serialization.Contextual Instant = Clock.System.now
+        val timestamp: @kotlinx.serialization.Contextual Instant = Clock.System.now()
     ) : OAuthResult()
     
     /**
@@ -49,7 +49,7 @@ sealed class OAuthResult {
     @Serializable
     data class InProgress(
         val step: String,
-        val timestamp: @kotlinx.serialization.Contextual Instant = Clock.System.now
+        val timestamp: @kotlinx.serialization.Contextual Instant = Clock.System.now()
     ) : OAuthResult()
     
     /**
@@ -59,7 +59,7 @@ sealed class OAuthResult {
     data class RequiresAction(
         val actionType: String,
         val actionData: Map<String, String> = emptyMap(),
-        val timestamp: @kotlinx.serialization.Contextual Instant = Clock.System.now
+        val timestamp: @kotlinx.serialization.Contextual Instant = Clock.System.now()
     ) : OAuthResult()
 }
 

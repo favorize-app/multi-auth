@@ -245,7 +245,7 @@ class ThreatDetection {
         // Check for unusual time gaps
         val lastEvent = getLastEvent(event.userId)
         if (lastEvent != null) {
-            val timeGap = // Duration calculation required(lastEvent.timestamp, event.timestamp)
+            val timeGap = event.timestamp - lastEvent.timestamp
             val isUnusualGap = timeGap < profile.minTimeBetweenActions || timeGap > profile.maxTimeBetweenActions
             
             if (isUnusualGap) {

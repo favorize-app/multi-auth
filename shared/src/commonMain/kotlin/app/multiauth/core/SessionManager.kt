@@ -11,8 +11,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Duration.Companion.minutes
-import kotlinx.datetime.Duration.Companion.seconds
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Manages user sessions, tokens, and authentication state persistence.
@@ -47,8 +47,8 @@ class SessionManager private constructor(
             userId = user.id,
             user = user,
             tokens = tokens,
-            createdAt = Clock.System.now,
-            lastActivityAt = Clock.System.now,
+            createdAt = Clock.System.now(),
+            lastActivityAt = Clock.System.now(),
             expiresAt = tokens.expiresAt,
             isActive = true
         )
@@ -74,7 +74,7 @@ class SessionManager private constructor(
         
         val updatedSession = currentSession.copy(
             tokens = tokens,
-            lastActivityAt = Clock.System.now,
+            lastActivityAt = Clock.System.now(),
             expiresAt = tokens.expiresAt
         )
         
@@ -103,7 +103,7 @@ class SessionManager private constructor(
         // Mark session as inactive
         val endedSession = currentSession.copy(
             isActive = false,
-            endedAt = Clock.System.now
+            endedAt = Clock.System.now()
         )
         
         _currentSession.value = null
@@ -120,7 +120,7 @@ class SessionManager private constructor(
         val session = _currentSession.value ?: return false
         if (!session.isActive) return false
         
-        val now = Clock.System.now
+        val now = Clock.System.now()
         return session.expiresAt > now
     }
     
@@ -131,7 +131,7 @@ class SessionManager private constructor(
         val session = _currentSession.value ?: return true
         if (!session.isActive) return true
         
-        val now = Clock.System.now
+        val now = Clock.System.now()
         return session.expiresAt <= now
     }
     
@@ -156,7 +156,7 @@ class SessionManager private constructor(
         val currentSession = _currentSession.value ?: return
         
         val updatedSession = currentSession.copy(
-            lastActivityAt = Clock.System.now
+            lastActivityAt = Clock.System.now()
         )
         
         _currentSession.value = updatedSession
@@ -232,7 +232,7 @@ class SessionManager private constructor(
     private fun scheduleTokenRefresh(session: Session) {
         refreshJob?.cancel()
         
-        val timeUntilRefresh = session.expiresAt - Clock.System.now
+        val timeUntilRefresh = session.expiresAt - Clock.System.now()
         val refreshDelay = timeUntilRefresh - REFRESH_BUFFER_TIME
         
         if (refreshDelay.isPositive()) {
@@ -258,7 +258,7 @@ class SessionManager private constructor(
      * Create mock tokens for development/testing.
      */
     private fun createMockTokens(userId: String): TokenPair {
-        val now = Clock.System.now
+        val now = Clock.System.now()
         val expiresAt = now + 30.minutes // 30 minutes
         
         return TokenPair(

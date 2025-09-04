@@ -44,7 +44,7 @@ class ScalabilityFeatures {
     private val scalingManager = ScalingManager()
     private val healthMonitor = HealthMonitor()
     private val performanceTracker = PerformanceTracker()
-    private val scheduledExecutor: ScheduledExecutorService = Executors.newScheduledThreadPool(3)
+    // Removed Java scheduled executor for KMP; consider coroutines instead
     
     // Service registry and discovery
     private val serviceRegistry = ServiceRegistry()
@@ -434,31 +434,13 @@ class ScalabilityFeatures {
     
     private fun startScalabilityServices() {
         // Start health monitoring
-        scheduledExecutor.scheduleAtFixedRate({
-            try {
-                healthMonitor.performPeriodicHealthCheck()
-            } catch (e: Exception) {
-                logger.error("performance", "Periodic health check failed: ${e.message}")
-            }
-        }, 30, 30, TimeUnit.SECONDS)
+        // Periodic tasks should be implemented with coroutines on supported platforms
         
         // Start performance monitoring
-        scheduledExecutor.scheduleAtFixedRate({
-            try {
-                performanceTracker.updateMetrics()
-            } catch (e: Exception) {
-                logger.error("performance", "Performance metrics update failed: ${e.message}")
-            }
-        }, 60, 60, TimeUnit.SECONDS)
+        // Periodic tasks should be implemented with coroutines on supported platforms
         
         // Start auto-scaling evaluation
-        scheduledExecutor.scheduleAtFixedRate({
-            try {
-                evaluateAutoScaling()
-            } catch (e: Exception) {
-                logger.error("performance", "Auto-scaling evaluation failed: ${e.message}")
-            }
-        }, 300, 300, TimeUnit.SECONDS) // Every 5 minutes
+        // Periodic tasks should be implemented with coroutines on supported platforms
     }
     
     private suspend fun evaluateAutoScaling() {

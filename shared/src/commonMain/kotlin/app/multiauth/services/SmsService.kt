@@ -1,10 +1,7 @@
 package app.multiauth.services
 
 import kotlinx.datetime.Instant
-import app.multiauth.util.Logger
-import kotlinx.coroutines.flow.Flow
 import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 
 /**
  * Service for sending SMS messages in the Multi-Auth system.

@@ -19,8 +19,6 @@ class DiscordOAuthClient(
     private val config: OAuthConfig,
     private val httpClient: HttpClient
 ) : OAuthClient {
-    
-    private val logger = Logger.getLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
     
     companion object {
