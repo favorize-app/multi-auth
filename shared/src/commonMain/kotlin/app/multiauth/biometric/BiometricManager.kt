@@ -127,7 +127,7 @@ class BiometricManager(
                 // Dispatch failure event
                 eventBus.dispatch(AuthEvent.Biometric.BiometricAuthenticationFailed(error))
                 
-                Result.failure(error)
+                Result.failure<User>(error)
             }
             
         } catch (e: Exception) {
@@ -174,7 +174,7 @@ class BiometricManager(
                 // Dispatch failure event
                 eventBus.dispatch(AuthEvent.Biometric.BiometricEnableFailed(error))
                 
-                Result.failure(error)
+                Result.failure<Unit>(error)
             }
             
         } catch (e: Exception) {
@@ -216,7 +216,7 @@ class BiometricManager(
                 // Dispatch failure event
                 eventBus.dispatch(AuthEvent.Biometric.BiometricDisableFailed(error))
                 
-                Result.failure(error)
+                Result.failure<Unit>(error)
             }
             
         } catch (e: Exception) {

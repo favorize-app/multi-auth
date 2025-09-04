@@ -468,8 +468,8 @@ class ComplianceFramework {
     ): ComplianceReportSection {
         val events = complianceEvents.filter { 
             it.standard == standard && 
-            it.timestamp.isAfter(timeRange.start) && 
-            it.timestamp.isBefore(timeRange.end)
+            it.timestamp > timeRange.start && 
+            it.timestamp < timeRange.end
         }
         
         val metrics = calculateComplianceMetrics(events, standard)

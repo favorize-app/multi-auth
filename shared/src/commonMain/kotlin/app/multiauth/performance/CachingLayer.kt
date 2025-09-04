@@ -5,9 +5,10 @@ import kotlinx.datetime.Clock
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-// Replaced with coroutines
-// Replaced with coroutines
-// Replaced with kotlin.time.Duration
+import kotlinx.coroutines.*
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * Comprehensive caching layer for performance optimization.
@@ -40,7 +41,9 @@ class CachingLayer {
     private val memoryCache = mutableMapOf<String, CacheEntry>()
     private val cacheStats = mutableMapOf<String, CacheStatistics>()
     private val cachePolicies = mutableMapOf<String, CachePolicy>()
-    private val scheduledExecutor: ScheduledExecutorService = Executors.newScheduledThreadPool(2)
+    // private val scheduledExecutor: ScheduledExecutorService = Executors.newScheduledThreadPool(2)
+    // Use coroutines for scheduling instead
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     
     // Redis client (placeholder for now)
     private var redisClient: RedisClient? = null
@@ -70,7 +73,7 @@ class CachingLayer {
             
             val serializedValue = serializeValue(value)
             val expirationTime = if (ttlSeconds > 0) {
-                Clock.System.now().plus(ttlSeconds.toLong(), ChronoUnit.SECONDS)
+                Clock.System.now() + ttlSeconds.seconds
             } else {
                 null
             }
@@ -452,7 +455,7 @@ class CachingLayer {
         val entry = memoryCache[key] ?: return null
         
         // Check expiration
-        if (entry.expirationTime != null && entry.expirationTime.isBefore(Clock.System.now())) {
+        if (entry.expirationTime != null && entry.expirationTime < Clock.System.now()) {
             memoryCache.remove(key)
             return null
         }
@@ -490,7 +493,7 @@ class CachingLayer {
         val entry = memoryCache[key] ?: return false
         
         // Check expiration
-        if (entry.expirationTime != null && entry.expirationTime.isBefore(Clock.System.now())) {
+        if (entry.expirationTime != null && entry.expirationTime < Clock.System.now()) {
             memoryCache.remove(key)
             return false
         }
@@ -579,7 +582,7 @@ class CachingLayer {
     private fun evictExpired() {
         val now = Clock.System.now()
         val expiredKeys = memoryCache.entries
-            .filter { it.value.expirationTime?.isBefore(now) == true }
+            .filter { it.value.expirationTime?.let { exp -> exp < now } == true }
             .map { it.key }
         
         expiredKeys.forEach { key ->
@@ -709,22 +712,28 @@ class CachingLayer {
     
     private fun startCacheMaintenance() {
         // Clean up expired entries every minute
-        scheduledExecutor.scheduleAtFixedRate({
-            try {
-                evictExpired()
-            } catch (e: Exception) {
-                logger.error("performance", "Cache maintenance failed: ${e.message}")
+        scope.launch {
+            while (isActive) {
+                try {
+                    evictExpired()
+                } catch (e: Exception) {
+                    logger.error("performance", "Cache maintenance failed: ${e.message}")
+                }
+                delay(60000) // Every minute
             }
-        }, 1, 1, TimeUnit.MINUTES)
+        }
         
         // Update statistics every 5 minutes
-        scheduledExecutor.scheduleAtFixedRate({
-            try {
-                updateGlobalStatistics()
-            } catch (e: Exception) {
-                logger.error("performance", "Statistics update failed: ${e.message}")
+        scope.launch {
+            while (isActive) {
+                try {
+                    updateGlobalStatistics()
+                } catch (e: Exception) {
+                    logger.error("performance", "Statistics update failed: ${e.message}")
+                }
+                delay(300000) // Every 5 minutes
             }
-        }, 5, 5, TimeUnit.MINUTES)
+        }
     }
     
     private fun updateGlobalStatistics() {

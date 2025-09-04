@@ -5,9 +5,11 @@ import kotlinx.datetime.Clock
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-// Replaced with coroutines
-// Replaced with coroutines
-// Replaced with kotlin.time.Duration
+import kotlinx.coroutines.*
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.days
 
 /**
  * Database optimization layer for performance improvement.
@@ -94,7 +96,7 @@ class DatabaseOptimizer {
                     executeQuery(connection, optimizedQuery, parameters)
                 }
                 
-                val executionTime = // Duration calculation required(startTime, Clock.System.now())
+                val executionTime = (Clock.System.now() - startTime).inWholeMilliseconds
                 
                 // Cache result if appropriate
                 if (shouldCacheQuery(query, executionTime)) {
@@ -164,7 +166,7 @@ class DatabaseOptimizer {
                 results.addAll(batchResults)
             }
             
-            val totalExecutionTime = // Duration calculation required(startTime, Clock.System.now())
+            val totalExecutionTime = (Clock.System.now() - startTime).inWholeMilliseconds
             val successfulQueries = results.count { it.error == null }
             val failedQueries = results.size - successfulQueries
             
@@ -408,7 +410,7 @@ class DatabaseOptimizer {
             key = cacheKey,
             result = result,
             timestamp = Clock.System.now(),
-            expirationTime = Clock.System.now().plus(ttl.toLong(), ChronoUnit.SECONDS),
+            expirationTime = Clock.System.now() + ttl.seconds,
             executionTime = executionTime
         )
         
@@ -670,7 +672,7 @@ class DatabaseOptimizer {
     
     private fun generateConservativeRecommendation(index: DatabaseIndex, usage: IndexUsage?): IndexRecommendation? {
         // Conservative optimization - only remove clearly unused indexes
-        return if (usage?.usageCount == 0L && usage.lastUsed?.isBefore(Clock.System.now().minus(30, ChronoUnit.DAYS)) == true) {
+        return if (usage?.usageCount == 0L && usage.lastUsed?.let { it < Clock.System.now() - 30.days } == true) {
             IndexRecommendation(
                 action = IndexActionType.DROP,
                 indexName = index.name,
@@ -682,7 +684,7 @@ class DatabaseOptimizer {
     
     private fun generateBalancedRecommendation(index: DatabaseIndex, usage: IndexUsage?): IndexRecommendation? {
         // Balanced optimization - moderate approach
-        return if (usage?.usageCount == 0L && usage.lastUsed?.isBefore(Clock.System.now().minus(7, ChronoUnit.DAYS)) == true) {
+        return if (usage?.usageCount == 0L && usage.lastUsed?.let { it < Clock.System.now() - 7.days } == true) {
             IndexRecommendation(
                 action = IndexActionType.DROP,
                 indexName = index.name,
@@ -861,7 +863,7 @@ data class QueryCacheEntry(
     val expirationTime: Instant,
     val executionTime: Long
 ) {
-    fun isExpired(): Boolean = expirationTime.isBefore(Clock.System.now())
+    fun isExpired(): Boolean = expirationTime < Clock.System.now()
 }
 
 @Serializable
