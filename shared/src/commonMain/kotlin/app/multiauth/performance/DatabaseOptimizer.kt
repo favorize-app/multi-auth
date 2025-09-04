@@ -39,8 +39,10 @@ class DatabaseOptimizer {
     private val connectionPool = ConnectionPool()
     private val queryCache = mutableMapOf<String, QueryCacheEntry>()
     private val queryStats = mutableMapOf<String, QueryStatistics>()
-    private val performanceMetrics = mutableMapOf<String, PerformanceMetric>()
-    private val scheduledExecutor: ScheduledExecutorService = Executors.newScheduledThreadPool(2)
+    private val performanceMetrics = mutableMapOf<String, DatabasePerformanceMetric>()
+    // private val scheduledExecutor: ScheduledExecutorService = Executors.newScheduledThreadPool(2)
+    // Use coroutines for scheduling instead
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     
     // Query optimization
     private val queryOptimizer = QueryOptimizer()
@@ -418,7 +420,7 @@ class DatabaseOptimizer {
     }
     
     private fun updateQueryStats(query: String, operation: QueryOperation, executionTime: Long) {
-        val stats = queryStatsOrPut(query) { QueryStatistics() }
+        val stats = queryStats.getOrPut(query) { QueryStatistics() }
         
         when (operation) {
             QueryOperation.EXECUTION -> {
@@ -440,7 +442,7 @@ class DatabaseOptimizer {
     }
     
     private fun updatePerformanceMetrics(executionTime: Long) {
-        val metric = performanceMetricsOrPut("query_execution") { PerformanceMetric() }
+        val metric = performanceMetrics.getOrPut("query_execution") { DatabasePerformanceMetric() }
         metric.addValue(executionTime.toDouble())
     }
     
@@ -750,22 +752,28 @@ class DatabaseOptimizer {
     
     private fun startPerformanceMonitoring() {
         // Monitor performance metrics every minute
-        scheduledExecutor.scheduleAtFixedRate({
-            try {
-                updatePerformanceMetrics()
-            } catch (e: Exception) {
-                logger.error("performance", "Performance monitoring failed: ${e.message}")
+        scope.launch {
+            while (isActive) {
+                try {
+                    updatePerformanceMetrics()
+                } catch (e: Exception) {
+                    logger.error("performance", "Performance monitoring failed: ${e.message}")
+                }
+                delay(60000) // Every minute
             }
-        }, 1, 1, TimeUnit.MINUTES)
+        }
         
         // Clean up expired cache entries every 5 minutes
-        scheduledExecutor.scheduleAtFixedRate({
-            try {
-                cleanupExpiredCache()
-            } catch (e: Exception) {
-                logger.error("performance", "Cache cleanup failed: ${e.message}")
+        scope.launch {
+            while (isActive) {
+                try {
+                    cleanupExpiredCache()
+                } catch (e: Exception) {
+                    logger.error("performance", "Cache cleanup failed: ${e.message}")
+                }
+                delay(300000) // Every 5 minutes
             }
-        }, 5, 5, TimeUnit.MINUTES)
+        }
     }
     
     private fun updatePerformanceMetrics() {
@@ -880,7 +888,7 @@ data class QueryStatistics(
 )
 
 @Serializable
-data class PerformanceMetric(
+data class DatabasePerformanceMetric(
     val values: MutableList<Double> = mutableListOf(),
     val count: Long = 0,
     val sum: Double = 0.0,
@@ -974,7 +982,9 @@ class QueryPlanner {
 // Placeholder data classes
 
 @Serializable
-data class DatabaseConnection
+data class DatabaseConnection(
+    val id: String = ""
+)
 
 @Serializable
 data class ConnectionPoolMetrics(
@@ -1017,16 +1027,12 @@ data class OverallPerformance(
     val grade: String
 )
 
-@Serializable
-data class PerformanceRecommendation(
-    val category: String,
-    val description: String,
-    val priority: RecommendationPriority,
-    val impact: String
-)
+// PerformanceRecommendation is defined in PerformanceMonitoring.kt
 
 @Serializable
-data class QueryStructure
+data class QueryStructure(
+    val type: String = ""
+)
 
 @Serializable
 data class IndexAnalysis(
@@ -1040,7 +1046,9 @@ data class QueryOptimization(
 )
 
 @Serializable
-data class ExecutionPlan
+data class ExecutionPlan(
+    val plan: String = ""
+)
 
 @Serializable
 data class DatabaseIndex(

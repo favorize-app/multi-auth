@@ -324,7 +324,7 @@ class SimpleEmailService(
                 <h2>Security Alert: ${alertType.displayName}</h2>
                 <p><strong>Alert Type:</strong> ${alertType.displayName}</p>
                 <p><strong>Details:</strong> $alertDetails</p>
-                <p><strong>Time:</strong> ${java.time.Clock.System.now()}</p>
+                <p><strong>Time:</strong> ${Clock.System.now()}</p>
                 <p>If this activity was not authorized by you, please contact support immediately.</p>
             </body>
             </html>
@@ -351,7 +351,7 @@ class SimpleEmailService(
             To: ${email.to}
             Subject: ${email.subject}
             Type: ${email.type}
-            Timestamp: ${java.time.Instant.ofEpochMilli(email.timestamp)}
+            Timestamp: ${Instant.fromEpochMilliseconds(email.timestamp)}
             Body: ${email.body.take(200)}${if (email.body.length > 200) "..." else ""}
             =====================
         """.trimIndent())
