@@ -779,184 +779,184 @@ data class OptimizationStatusReport(
 )
 
 @Serializable
-// data class PerformanceMetrics(
-//     val cpuUsage: Double,
-//     val memoryUsage: Double,
-//     val responseTime: Long,
-//     val throughput: Double,
-//     val errorRate: Double,
-//     val cacheHitRatio: Double,
-//     val databaseResponseTime: Long,
-//     val timestamp: Instant
-// )
-// 
-// @Serializable
-// data class PerformanceBottleneck(
-//     val type: String,
-//     val severity: String,
-//     val description: String,
-//     val impact: String,
-//     val recommendation: String
-// )
-// 
-// @Serializable
-// data class OptimizationRecommendation(
-//     val type: String,
-//     val description: String,
-//     val recommendation: String,
-//     val priority: OptimizationPriority,
-//     val impact: String,
-//     val estimatedEffort: String,
-//     val estimatedImprovement: Double
-// )
-// 
-// @Serializable
-// data class PerformanceImprovements(
-//     val cpuUsageReduction: Double,
-//     val memoryUsageReduction: Double,
-//     val responseTimeReduction: Double,
-//     val throughputIncrease: Double
-// )
-// 
-// @Serializable
-// data class AppliedOptimization(
-//     val recommendation: OptimizationRecommendation,
-//     val result: OptimizationResult,
-//     val timestamp: Instant
-// )
-// 
-// @Serializable
-// data class FailedOptimization(
-//     val recommendation: OptimizationRecommendation,
-//     val error: String?,
-//     val timestamp: Instant
-// )
-// 
-// @Serializable
-// data class OptimizationResult(
-//     val success: Boolean,
-//     val message: String? = null,
-//     val error: String? = null
-// )
-// 
-// @Serializable
-// data class PerformanceImprovement(
-//     val cpuUsageImprovement: Double,
-//     val memoryUsageImprovement: Double,
-//     val responseTimeImprovement: Long,
-//     val throughputImprovement: Double,
-//     val cacheHitRatioImprovement: Double,
-//     val timestamp: Instant
-// )
-// 
-// @Serializable
-// data class OptimizationMetric(
-//     val id: String,
-//     val type: String,
-//     val value: Double,
-//     val timestamp: Instant
-// )
-// 
-// @Serializable
-// data class PerformanceBaseline(
-//     val id: String,
-//     val name: String,
-//     val metrics: PerformanceMetrics,
-//     val timestamp: Instant
-// )
-// 
-// @Serializable
-// data class OptimizationStatus(
-//     val overallScore: Double = 0.0,
-//     val grade: String = "N/A",
-//     val status: String = "UNKNOWN"
-// )
-// 
-// @Serializable
-// data class OptimizationHistoryEntry(
-//     val id: String,
-//     val type: String,
-//     val timestamp: Instant,
-//     val result: OptimizationResult
-// )
-// 
-// // Placeholder data classes
-// 
-// @Serializable
-// data class MemoryAnalysis(
-//     val totalMemory: Long = 0,
-//     val usedMemory: Long = 0,
-//     val freeMemory: Long = 0,
-//     val heapUsage: Double = 0.0
-// )
-// 
-// @Serializable
-// data class DatabaseAnalysis(
-//     val queryCount: Long = 0,
-//     val slowQueries: Long = 0,
-//     val connectionCount: Long = 0,
-//     val averageResponseTime: Long = 0
-// )
-// 
-// @Serializable
-// data class CacheAnalysis(
-//     val hitCount: Long = 0,
-//     val missCount: Long = 0,
-//     val hitRatio: Double = 0.0,
-//     val evictionCount: Long = 0
-// )
-// 
-// @Serializable
-// data class ProfilingData(
-//     val methodCalls: List<MethodCall> = emptyList(),
-//     val memoryAllocations: List<MemoryAllocation> = emptyList(),
-//     val threadStates: List<ThreadState> = emptyList()
-// )
-// 
-// @Serializable
-// data class ProfilingAnalysis(
-//     val hotspots: List<String> = emptyList(),
-//     val memoryLeaks: List<String> = emptyList(),
-//     val threadContention: List<String> = emptyList()
-// )
-// 
-// @Serializable
-// data class MethodCall(
-//     val methodName: String,
-//     val callCount: Long,
-//     val totalTime: Long,
-//     val averageTime: Long
-// )
-// 
-// @Serializable
-// data class MemoryAllocation(
-//     val className: String,
-//     val allocationCount: Long,
-//     val totalBytes: Long
-// )
-// 
-// @Serializable
-// data class ThreadState(
-//     val threadName: String,
-//     val state: String,
-//     val blockedTime: Long
-// )
-// 
-// @Serializable
-// data class OptimizationConfig(
-//     val enabled: Boolean = true,
-//     val autoOptimization: Boolean = false,
-//     val optimizationInterval: Long = 300000 // 5 minutes
-// )
-// 
-// // Enums
-// 
-// enum class OptimizationPriority {
-//     LOW,
-//     MEDIUM,
-//     HIGH,
-//     CRITICAL
-// }
+data class PerformanceMetrics(
+    val cpuUsage: Double,
+    val memoryUsage: Double,
+    val responseTime: Long,
+    val throughput: Double,
+    val errorRate: Double,
+    val cacheHitRatio: Double,
+    val databaseResponseTime: Long,
+    val timestamp: Instant
+)
+
+@Serializable
+data class PerformanceBottleneck(
+    val type: String,
+    val severity: String,
+    val description: String,
+    val impact: String,
+    val recommendation: String
+)
+
+@Serializable
+data class OptimizationRecommendation(
+    val type: String,
+    val description: String,
+    val recommendation: String,
+    val priority: OptimizationPriority,
+    val impact: String,
+    val estimatedEffort: String,
+    val estimatedImprovement: Double
+)
+
+@Serializable
+data class PerformanceImprovements(
+    val cpuUsageReduction: Double,
+    val memoryUsageReduction: Double,
+    val responseTimeReduction: Double,
+    val throughputIncrease: Double
+)
+
+@Serializable
+data class AppliedOptimization(
+    val recommendation: OptimizationRecommendation,
+    val result: OptimizationResult,
+    val timestamp: Instant
+)
+
+@Serializable
+data class FailedOptimization(
+    val recommendation: OptimizationRecommendation,
+    val error: String?,
+    val timestamp: Instant
+)
+
+@Serializable
+data class OptimizationResult(
+    val success: Boolean,
+    val message: String? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class PerformanceImprovement(
+    val cpuUsageImprovement: Double,
+    val memoryUsageImprovement: Double,
+    val responseTimeImprovement: Long,
+    val throughputImprovement: Double,
+    val cacheHitRatioImprovement: Double,
+    val timestamp: Instant
+)
+
+@Serializable
+data class OptimizationMetric(
+    val id: String,
+    val type: String,
+    val value: Double,
+    val timestamp: Instant
+)
+
+@Serializable
+data class PerformanceBaseline(
+    val id: String,
+    val name: String,
+    val metrics: PerformanceMetrics,
+    val timestamp: Instant
+)
+
+@Serializable
+data class OptimizationStatus(
+    val overallScore: Double = 0.0,
+    val grade: String = "N/A",
+    val status: String = "UNKNOWN"
+)
+
+@Serializable
+data class OptimizationHistoryEntry(
+    val id: String,
+    val type: String,
+    val timestamp: Instant,
+    val result: OptimizationResult
+)
+
+// Placeholder data classes
+
+@Serializable
+data class MemoryAnalysis(
+    val totalMemory: Long = 0,
+    val usedMemory: Long = 0,
+    val freeMemory: Long = 0,
+    val heapUsage: Double = 0.0
+)
+
+@Serializable
+data class DatabaseAnalysis(
+    val queryCount: Long = 0,
+    val slowQueries: Long = 0,
+    val connectionCount: Long = 0,
+    val averageResponseTime: Long = 0
+)
+
+@Serializable
+data class CacheAnalysis(
+    val hitCount: Long = 0,
+    val missCount: Long = 0,
+    val hitRatio: Double = 0.0,
+    val evictionCount: Long = 0
+)
+
+@Serializable
+data class ProfilingData(
+    val methodCalls: List<MethodCall> = emptyList(),
+    val memoryAllocations: List<MemoryAllocation> = emptyList(),
+    val threadStates: List<ThreadState> = emptyList()
+)
+
+@Serializable
+data class ProfilingAnalysis(
+    val hotspots: List<String> = emptyList(),
+    val memoryLeaks: List<String> = emptyList(),
+    val threadContention: List<String> = emptyList()
+)
+
+@Serializable
+data class MethodCall(
+    val methodName: String,
+    val callCount: Long,
+    val totalTime: Long,
+    val averageTime: Long
+)
+
+@Serializable
+data class MemoryAllocation(
+    val className: String,
+    val allocationCount: Long,
+    val totalBytes: Long
+)
+
+@Serializable
+data class ThreadState(
+    val threadName: String,
+    val state: String,
+    val blockedTime: Long
+)
+
+@Serializable
+data class OptimizationConfig(
+    val enabled: Boolean = true,
+    val autoOptimization: Boolean = false,
+    val optimizationInterval: Long = 300000 // 5 minutes
+)
+
+// Enums
+
+enum class OptimizationPriority {
+    LOW,
+    MEDIUM,
+    HIGH,
+    CRITICAL
+}
 
 // Placeholder classes
 

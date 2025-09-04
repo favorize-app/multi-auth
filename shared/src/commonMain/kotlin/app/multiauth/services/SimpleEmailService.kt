@@ -183,10 +183,11 @@ class SimpleEmailService(
         metadata: Map<String, String>
     ): EmailSendResult {
         if (!isInitialized) {
-            return EmailSendResult(
-                success = false,
-                emailId = null,
-                error = "Email service not initialized"
+            return EmailSendResult.Failure(
+                error = "Email service not initialized",
+                errorCode = "NOT_INITIALIZED",
+                retryable = false,
+                attemptedAt = Clock.System.now().toEpochMilliseconds()
             )
         }
         
@@ -210,10 +211,7 @@ class SimpleEmailService(
             // Log email to console
             logEmailToConsole(email)
             
-            // Save email to file if configured
-            if (config.saveToFile) {
-                saveEmailToFile(email)
-            }
+            // TODO: Add file saving functionality if needed
             
             // Mark as delivered (since this is a simple service)
             val deliveryStatus = EmailDeliveryStatus(
@@ -228,10 +226,10 @@ class SimpleEmailService(
             
             logger.info("services", "Email sent successfully: $emailId to $to")
             
-            EmailSendResult(
-                success = true,
+            EmailSendResult.Success(
                 emailId = emailId,
-                error = null
+                providerMessageId = null,
+                sentAt = Clock.System.now().toEpochMilliseconds()
             )
             
         } catch (e: Exception) {
@@ -247,10 +245,11 @@ class SimpleEmailService(
             )
             deliveryStatuses[emailId] = deliveryStatus
             
-            EmailSendResult(
-                success = false,
-                emailId = emailId,
-                error = e.message
+            EmailSendResult.Failure(
+                error = e.message ?: "Unknown error",
+                errorCode = "SEND_FAILED", 
+                retryable = true,
+                attemptedAt = Clock.System.now().toEpochMilliseconds()
             )
         }
     }
@@ -335,9 +334,10 @@ class SimpleEmailService(
     }
     
     private fun applyTemplate(template: EmailTemplate, variables: EmailTemplateVariables?): String {
-        var body = template.htmlBody
+        var body = template.body
         
-        variables?.variables?.forEach { (key, value) ->
+        // Apply variables if provided
+        variables?.let { vars ->
             body = body.replace("{{$key}}", value)
         }
         
@@ -358,29 +358,9 @@ class SimpleEmailService(
     }
     
     private fun saveEmailToFile(email: QueuedEmail) {
-        try {
-            val emailDir = java.io.File("emails")
-            if (!emailDir.exists()) {
-                emailDir.mkdirs()
-            }
-            
-            val emailFile = java.io.File(emailDir, "${email.id}.json")
-            val emailData = EmailFileData(
-                id = email.id,
-                to = email.to,
-                subject = email.subject,
-                body = email.body,
-                type = email.type.name,
-                metadata = email.metadata,
-                timestamp = email.timestamp
-            )
-            
-            emailFile.writeText(json.encodeToString(EmailFileData.serializer(), emailData))
-            logger.debug("services", "Email saved to file: ${emailFile.absolutePath}")
-            
-        } catch (e: Exception) {
-            logger.error("services", "Failed to save email to file: ${e.message}")
-        }
+        // File saving is not available in common code
+        // This would need to be implemented in platform-specific code
+        logger.debug("services", "Email file saving not implemented in common code")
     }
     
     private fun generateEmailId(): String {

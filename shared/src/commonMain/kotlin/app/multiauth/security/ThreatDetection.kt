@@ -5,6 +5,10 @@ import kotlinx.datetime.Clock
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.seconds
 import kotlin.math.abs
 
 /**
@@ -714,9 +718,9 @@ class ThreatDetection {
     }
     
     private fun getRecentEvents(userId: String?, windowMinutes: Int): List<SecurityEvent> {
-        val cutoffTime = Clock.System.now().minus(windowMinutes.toLong(), ChronoUnit.MINUTES)
+        val cutoffTime = Clock.System.now() - (windowMinutes * 60).seconds
         return securityEvents.filter { event ->
-            event.timestamp.isAfter(cutoffTime) && (userId == null || event.userId == userId)
+            event.timestamp > cutoffTime && (userId == null || event.userId == userId)
         }
     }
     
@@ -844,17 +848,17 @@ data class AutomatedAction(
 
 // Enums for threat detection
 
-// enum class AnomalyType {
-//     UNKNOWN_DEVICE,
-//     UNKNOWN_LOCATION,
-//     UNUSUAL_TIME,
-//     UNUSUAL_ACTIVITY_FREQUENCY,
-//     RAPID_ACTIONS,
-//     UNUSUAL_TIME_GAP,
-//     MULTIPLE_AUTH_FAILURES,
-//     RARE_EVENT_TYPE,
-//     HIGH_EVENT_RATE
-// }
+enum class AnomalyType {
+    UNKNOWN_DEVICE,
+    UNKNOWN_LOCATION,
+    UNUSUAL_TIME,
+    UNUSUAL_ACTIVITY_FREQUENCY,
+    RAPID_ACTIONS,
+    UNUSUAL_TIME_GAP,
+    MULTIPLE_AUTH_FAILURES,
+    RARE_EVENT_TYPE,
+    HIGH_EVENT_RATE
+}
 
 enum class AnomalySeverity {
     LOW,
@@ -889,4 +893,12 @@ enum class ActionSeverity {
     MEDIUM,
     HIGH,
     CRITICAL
+}
+
+// Placeholder class for anomaly detection
+class AnomalyDetector {
+    fun detectAnomalies(event: SecurityEvent): List<Anomaly> {
+        // Placeholder implementation
+        return emptyList()
+    }
 }

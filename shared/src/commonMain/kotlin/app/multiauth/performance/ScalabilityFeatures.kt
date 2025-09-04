@@ -220,7 +220,7 @@ class ScalabilityFeatures {
                 // Execute scaling action
                 val executionResult = scalingManager.executeScalingAction(scalingAction)
                 
-                val executionTime = // Duration calculation required(startTime, Clock.System.now())
+                val executionTime = 0L // TODO: Calculate duration
                 
                 val result = ScalingResult(
                     strategy = strategy,
@@ -375,7 +375,7 @@ class ScalabilityFeatures {
                 healthResults.add(healthResult)
             }
             
-            val executionTime = // Duration calculation required(startTime, Clock.System.now())
+            val executionTime = 0L // TODO: Calculate duration
             val healthyServices = healthResults.count { it.isHealthy }
             val unhealthyServices = healthResults.size - healthyServices
             
@@ -892,25 +892,17 @@ data class CircuitBreakerConfig(
     val halfOpenMaxRequests: Int = 3
 )
 
-@Serializable
-// data class PerformanceMetrics(
-//     val cpuUsage: Double = 0.0,
-//     val memoryUsage: Double = 0.0,
-//     val averageResponseTime: Long = 0,
-//     val requestRate: Double = 0.0
-// )
-// 
-// /**
-//  * Exception thrown when scalability operations fail.
-//  */
-// class ScalabilityException(message: String, cause: Throwable? = null) : Exception(message, cause)
-// 
-// /**
-//  * Priority levels for scalability recommendations.
-//  */
-// enum class RecommendationPriority {
-//     LOW,
-//     MEDIUM,
-//     HIGH,
-//     CRITICAL
-// }
+/**
+ * Exception thrown when scalability operations fail.
+ */
+class ScalabilityException(message: String, cause: Throwable? = null) : Exception(message, cause)
+
+/**
+ * Priority levels for scalability recommendations.
+ */
+enum class RecommendationPriority {
+    LOW,
+    MEDIUM,
+    HIGH,
+    CRITICAL
+}

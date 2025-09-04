@@ -27,7 +27,7 @@ sealed class AuthState {
     data class Authenticated(
         val user: User,
         val tokens: TokenPair,
-        val lastActivity: Instant = Clock.System.now
+        val lastActivity: Instant = Clock.System.now()
     ) : AuthState()
     
     /**
@@ -128,7 +128,7 @@ data class TokenPair(
     val tokenType: String = "Bearer"
 ) {
     val isExpired: Boolean
-        get() = Clock.System.now >= expiresAt
+        get() = Clock.System.now() >= expiresAt
     
     val expiresInSeconds: Long
         get() = (expiresAt.toEpochMilliseconds() - Clock.System.now().toEpochMilliseconds()) / 1000

@@ -92,9 +92,9 @@ class ProductionMonitoring(
             
             checks.forEach { (checkName, checkFunction) ->
                 try {
-                    val startTime = Clock.System.now
+                    val startTime = Clock.System.now()
                     val result = checkFunction()
-                    val duration = Clock.System.now - startTime
+                    val duration = Clock.System.now() - startTime
                     
                     val healthStatus = when {
                         result.contains("OK") -> HealthStatus.HEALTHY
@@ -531,7 +531,7 @@ class ProductionMonitoring(
     
     private fun calculateUptime(): Long {
         // Calculate system uptime
-        return (Clock.System.now - (Clock.System.now - 24.hours)).inWholeSeconds // Simulate 24h uptime
+        return (Clock.System.now() - (Clock.System.now() - 24.hours)).inWholeSeconds // Simulate 24h uptime
     }
     
     private fun generateAlertId(): String = "alert_${Clock.System.now().toEpochMilliseconds()}_${(0..9999).random()}"

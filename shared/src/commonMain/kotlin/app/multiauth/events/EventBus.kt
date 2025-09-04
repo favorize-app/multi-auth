@@ -167,6 +167,12 @@ class EventBus private constructor() {
 }
 
 /**
+ * Global instance function for EventBus singleton.
+ * Returns the same instance of EventBus throughout the application.
+ */
+fun EventBusInstance(): EventBus = EventBus.getInstance()
+
+/**
  * Extension function to dispatch events more easily.
  */
 suspend fun AuthEvent.dispatch(

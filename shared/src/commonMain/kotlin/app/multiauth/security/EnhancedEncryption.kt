@@ -410,7 +410,7 @@ data class AESEncryptionResult(
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (javaClass != other?.javaClass) return false
+        if (this::class != other::class) return false
         
         other as AESEncryptionResult
         
@@ -458,7 +458,7 @@ data class DecryptedDataWithMetadata(
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (javaClass != other?.javaClass) return false
+        if (this::class != other::class) return false
         
         other as DecryptedDataWithMetadata
         

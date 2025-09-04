@@ -4,6 +4,7 @@ import kotlinx.datetime.Clock
 import app.multiauth.core.AuthEngine
 import app.multiauth.events.AuthEvent
 import app.multiauth.events.EventBus
+import app.multiauth.events.EventBusInstance
 import app.multiauth.models.User
 import app.multiauth.platform.Platform
 import app.multiauth.platform.PlatformUtils
@@ -277,8 +278,8 @@ class OAuthManager(
                 email = "user@example.com",
                 displayName = "OAuth User",
                 emailVerified = true,
-                createdAt = Clock.System.now().epochSeconds,
-                lastSignInAt = Clock.System.now().epochSeconds
+                createdAt = Clock.System.now(),
+                lastSignInAt = Clock.System.now()
             )
             Result.success(user)
         } catch (e: Exception) {
