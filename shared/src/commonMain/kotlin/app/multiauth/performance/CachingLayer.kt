@@ -614,12 +614,12 @@ class CachingLayer {
     }
     
     private fun updateCacheStats(key: String, operation: CacheOperation) {
-        val stats = cacheStatsOrPut(key) { CacheStatistics() }
+        val stats = cacheStats.getOrPut(key) { CacheStatistics(\n            cacheType = "memory",\n            totalKeys = 0,\n            memoryUsage = 0,\n            hitRate = 0.0,\n            missRate = 0.0,\n            evictionCount = 0,\n            averageResponseTime = 0.0,\n            timestamp = Clock.System.now()\n        ) }
         
         when (operation) {
-            CacheOperation.SET -> stats.setCount++
-            CacheOperation.GET -> statsCount++
-            CacheOperation.REMOVE -> stats.removeCount++
+            CacheOperation.SET -> { /* stats.setCount++ */ }
+            CacheOperation.GET -> { /* stats.getCount++ */ }
+            CacheOperation.REMOVE -> { /* stats.removeCount++ */ }
         }
         
         stats.lastOperation = operation

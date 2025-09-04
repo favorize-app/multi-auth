@@ -25,7 +25,7 @@ class CICDPipeline(
         logger.info("DevOps", "Starting CI pipeline execution")
         
         return try {
-            val steps = listOf(
+            val steps: List<Pair<String, suspend () -> String>> = listOf(
                 "Code Quality Check" to { checkCodeQuality() },
                 "Unit Tests" to { runUnitTests() },
                 "Integration Tests" to { runIntegrationTests() },
@@ -36,7 +36,7 @@ class CICDPipeline(
             
             val results = mutableListOf<CIStepResult>()
             
-            steps.forEach { (stepName, stepFunction) ->
+            for ((stepName, stepFunction) in steps) {
                 logger.info("DevOps", "Executing CI step: $stepName")
                 val startTime = Clock.System.now()
                 
@@ -71,7 +71,7 @@ class CICDPipeline(
             CIResult(
                 status = CIStatus.SUCCESS,
                 steps = results,
-                totalDuration = results.sumOf { it.duration },
+                totalDuration = results.sumOf { it.duration.inWholeMilliseconds },
                 timestamp = Clock.System.now()
             )
             
@@ -94,7 +94,7 @@ class CICDPipeline(
         logger.info("DevOps", "Starting CD pipeline execution for environment: $environment")
         
         return try {
-            val steps = listOf(
+            val steps: List<Pair<String, suspend () -> String>> = listOf(
                 "Environment Validation" to { validateEnvironment(environment) },
                 "Artifact Validation" to { validateArtifacts() },
                 "Database Migration" to { runDatabaseMigrations(environment) },
@@ -106,7 +106,7 @@ class CICDPipeline(
             
             val results = mutableListOf<CDStepResult>()
             
-            steps.forEach { (stepName, stepFunction) ->
+            for ((stepName, stepFunction) in steps) {
                 logger.info("DevOps", "Executing CD step: $stepName")
                 val startTime = Clock.System.now()
                 
@@ -142,7 +142,7 @@ class CICDPipeline(
                 environment = environment,
                 status = CDStatus.SUCCESS,
                 steps = results,
-                totalDuration = results.sumOf { it.duration },
+                totalDuration = results.sumOf { it.duration.inWholeMilliseconds },
                 timestamp = Clock.System.now().toEpochMilliseconds()
             )
             
@@ -204,7 +204,7 @@ class CICDPipeline(
         logger.info("DevOps", "Starting rollback for environment: $environment")
         
         return try {
-            val rollbackSteps = listOf(
+            val rollbackSteps: List<Pair<String, suspend () -> String>> = listOf(
                 "Stop Current Deployment" to { stopCurrentDeployment(environment) },
                 "Restore Previous Version" to { restorePreviousVersion(environment) },
                 "Health Check" to { performHealthCheck(environment) },
@@ -213,7 +213,7 @@ class CICDPipeline(
             
             val results = mutableListOf<RollbackStepResult>()
             
-            rollbackSteps.forEach { (stepName, stepFunction) ->
+            for ((stepName, stepFunction) in rollbackSteps) {
                 logger.info("DevOps", "Executing rollback step: $stepName")
                 val startTime = Clock.System.now()
                 
@@ -249,7 +249,7 @@ class CICDPipeline(
                 environment = environment,
                 status = RollbackStatus.SUCCESS,
                 steps = results,
-                totalDuration = results.sumOf { it.duration },
+                totalDuration = results.sumOf { it.duration.inWholeMilliseconds },
                 timestamp = Clock.System.now().toEpochMilliseconds()
             )
             

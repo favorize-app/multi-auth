@@ -387,13 +387,18 @@ class SimpleSmsService(
             To: ${sms.phoneNumber}
             Type: ${sms.type}
             Message: ${sms.message}
-            Timestamp: ${java.time.Instant.ofEpochMilli(sms.queuedAt)}
+            Timestamp: ${Instant.fromEpochMilliseconds(sms.queuedAt)}
             ===================
         """.trimIndent())
     }
     
     private fun saveSmsToFile(sms: QueuedSms) {
         try {
+            // File operations are platform-specific in KMP
+            // This would need platform-specific implementation
+            logger.debug("services", "SMS file saving is not implemented in KMP common code")
+            
+            /*
             val smsDir = java.io.File("sms")
             if (!smsDir.exists()) {
                 smsDir.mkdirs()

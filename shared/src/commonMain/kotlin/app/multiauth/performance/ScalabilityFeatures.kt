@@ -628,13 +628,7 @@ data class ScalabilityStatusReport(
     val timestamp: Instant
 )
 
-@Serializable
-data class ConfigurationResult(
-    val component: String,
-    val success: Boolean,
-    val error: String? = null,
-    val timestamp: Instant
-)
+// ConfigurationResult is defined in PerformanceMonitoring.kt
 
 @Serializable
 data class HealthCheckResult(
