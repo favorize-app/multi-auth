@@ -2,9 +2,11 @@ package app.multiauth.security
 
 import kotlinx.datetime.Instant
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Duration
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.builtins.ListSerializer
 
 /**
  * Advanced audit logging system with real-time monitoring, structured logging,
@@ -39,7 +41,7 @@ class AdvancedAuditLogger {
     }
     
     private val auditEvents = mutableMapOf<String, AuditEvent>()
-    private val eventCounters = mutableMapOf<String, AtomicLong>()
+    private val eventCounters = mutableMapOf<String, Long>()
     private val realTimeAlerts = mutableListOf<SecurityAlert>()
     private val auditPolicies = mutableMapOf<String, AuditPolicy>()
     private val complianceRules = mutableMapOf<String, ComplianceRule>()
@@ -124,7 +126,7 @@ class AdvancedAuditLogger {
      * @param event The security event to log
      * @return Logging result
      */
-    suspend fun logSecurityEvent(event: SecurityEvent): LoggingResult {
+    suspend fun logSecurityEvent(event: SecurityLogEvent): LoggingResult {
         return try {
             // Convert to audit event
             val auditEvent = AuditEvent(
@@ -143,8 +145,8 @@ class AdvancedAuditLogger {
                     "securityEventType" to event.type.name,
                     "severity" to event.severity.name,
                     "threatScore" to event.threatScore.toString(),
-                    "anomalyType" to event.anomalyType?.name ?: "NONE",
-                    "automatedAction" to event.automatedAction?.name ?: "NONE"
+                    "anomalyType" to (event.anomalyType ?: "NONE"),
+                    "automatedAction" to (event.automatedAction ?: "NONE")
                 ),
                 context = AuditContext(
                     source = event.source,
@@ -241,8 +243,8 @@ class AdvancedAuditLogger {
             
             // Filter events
             val filteredEvents = auditEvents.values.filter { event ->
-                event.timestamp.isAfter(timeRange.start) &&
-                event.timestamp.isBefore(timeRange.end) &&
+                event.timestamp > timeRange.start &&
+                event.timestamp < timeRange.end &&
                 (categories == null || event.category in categories) &&
                 (levels == null || event.level in levels)
             }
@@ -462,19 +464,19 @@ class AdvancedAuditLogger {
     
     private fun updateEventCounters(event: AuditEvent) {
         // Update category counter
-        eventCountersOrPut(event.category) { AtomicLong(0) }++()
+        eventCounters[event.category] = (eventCounters[event.category] ?: 0L) + 1L
         
         // Update level counter
-        eventCountersOrPut(event.level) { AtomicLong(0) }++()
+        eventCounters[event.level] = (eventCounters[event.level] ?: 0L) + 1L
         
         // Update action counter
-        eventCountersOrPut(event.action) { AtomicLong(0) }++()
+        eventCounters[event.action] = (eventCounters[event.action] ?: 0L) + 1L
     }
     
     private fun checkRealTimeAlerts(event: AuditEvent) {
         alertThresholds.forEach { (pattern, threshold) ->
-            if (matchesAlertPattern(event, pattern) && 
-                eventCounters[pattern]?() ?: 0 >= threshold.count) {
+            val count = eventCounters[pattern] ?: 0L
+            if (matchesAlertPattern(event, pattern) && count >= threshold.count) {
                 generateAlert(event, threshold)
             }
         }
@@ -526,7 +528,7 @@ class AdvancedAuditLogger {
             timestamp = Clock.System.now(),
             metadata = mapOf(
                 "threshold" to threshold.count.toString(),
-                "currentCount" to (eventCounters[threshold.pattern]?() ?: 0).toString()
+                "currentCount" to (eventCounters[threshold.pattern] ?: 0L).toString()
             )
         )
         
@@ -558,15 +560,15 @@ class AdvancedAuditLogger {
         val uniqueSessions = events.mapNotNull { it.sessionId }.distinct().size.toLong()
         val uniqueIPs = events.mapNotNull { it.ipAddress }.distinct().size.toLong()
         
+        val minTs = events.minOfOrNull { it.timestamp }
+        val maxTs = events.maxOfOrNull { it.timestamp }
+        val timeSpan = if (minTs != null && maxTs != null) (maxTs - minTs).inWholeSeconds else 0L
         return AuditSummary(
             totalEvents = totalEvents,
             uniqueUsers = uniqueUsers,
             uniqueSessions = uniqueSessions,
             uniqueIPs = uniqueIPs,
-            timeSpan = // Duration calculation required(
-                events.minOfOrNull { it.timestamp } ?: Clock.System.now(),
-                events.maxOfOrNull { it.timestamp } ?: Clock.System.now()
-            )
+            timeSpan = timeSpan
         )
     }
     
@@ -683,15 +685,14 @@ class AdvancedAuditLogger {
         val issues = mutableListOf<String>()
         
         // Check for future timestamps
-        val futureEvents = auditEvents.values.filter { it.timestamp.isAfter(Clock.System.now()) }
+        val futureEvents = auditEvents.values.filter { it.timestamp > Clock.System.now() }
         if (futureEvents.isNotEmpty()) {
             issues.add("Found ${futureEvents.size} events with future timestamps")
         }
         
         // Check for very old timestamps
-        val oldEvents = auditEvents.values.filter { 
-            // Duration calculation required(it.timestamp, Clock.System.now()) > 3650 // 10 years
-        }
+        val tenYears = Duration.parse("P3650D")
+        val oldEvents = auditEvents.values.filter { (Clock.System.now() - it.timestamp) > tenYears }
         if (oldEvents.isNotEmpty()) {
             issues.add("Found ${oldEvents.size} events older than 10 years")
         }
@@ -726,7 +727,7 @@ class AdvancedAuditLogger {
         auditPolicies.forEach { (category, policy) ->
             val expiredEvents = auditEvents.values.filter { event ->
                 event.category == category &&
-                // Duration calculation required(event.timestamp, Clock.System.now()) > policy.retentionPeriodDays
+                (Clock.System.now() - event.timestamp) > Duration.parse("P${policy.retentionPeriodDays}D")
             }
             
             if (expiredEvents.isNotEmpty()) {
@@ -883,7 +884,7 @@ data class AuditContext(
 )
 
 @Serializable
-data class SecurityEvent(
+data class SecurityLogEvent(
     val id: String,
     val timestamp: Instant,
     val type: SecurityEventType,
@@ -895,8 +896,8 @@ data class SecurityEvent(
     val resource: String?,
     val isSuccessful: Boolean,
     val threatScore: Int,
-    val anomalyType: AnomalyType?,
-    val automatedAction: AutomatedAction?,
+    val anomalyType: String?,
+    val automatedAction: String?,
     val source: String,
     val target: String,
     val environment: String,
@@ -1046,24 +1047,27 @@ data class EventPattern(
 
 // Enums for advanced audit logging
 
-// enum class SecurityEventType {
-//     LOGIN_ATTEMPT,
-//     LOGOUT,
-//     PASSWORD_CHANGE,
-//     PERMISSION_CHANGE,
-//     DATA_ACCESS,
-//     SYSTEM_ACCESS,
-//     NETWORK_ACCESS,
-//     FILE_ACCESS
-// }
+@Serializable
+enum class SecurityEventType {
+    LOGIN_ATTEMPT,
+    LOGOUT,
+    PASSWORD_CHANGE,
+    PERMISSION_CHANGE,
+    DATA_ACCESS,
+    SYSTEM_ACCESS,
+    NETWORK_ACCESS,
+    FILE_ACCESS
+}
 
-// enum class SecurityEventSeverity {
-//     LOW,
-//     MEDIUM,
-//     HIGH,
-//     CRITICAL
-// }
+@Serializable
+enum class SecurityEventSeverity {
+    LOW,
+    MEDIUM,
+    HIGH,
+    CRITICAL
+}
 
+@Serializable
 enum class SecurityAlertType {
     THREAT_DETECTED,
     THRESHOLD_EXCEEDED,
@@ -1071,21 +1075,7 @@ enum class SecurityAlertType {
     COMPLIANCE_VIOLATION
 }
 
-// enum class AnomalyType {
-//     UNKNOWN_DEVICE,
-//     UNUSUAL_TIME,
-//     RAPID_ACTIONS,
-//     MULTIPLE_FAILURES,
-//     RARE_EVENTS
-// }
-
-// enum class AutomatedAction {
-//     ACCOUNT_LOCKOUT,
-//     ADDITIONAL_VERIFICATION,
-//     ENHANCED_MONITORING,
-//     ALERT_ADMIN
-// }
-
+@Serializable
 enum class RiskLevel {
     LOW,
     MEDIUM,
@@ -1093,11 +1083,12 @@ enum class RiskLevel {
     CRITICAL
 }
 
-// enum class ExportFormat {
-//     JSON,
-//     CSV,
-//     XML
-// }
+@Serializable
+enum class ExportFormat {
+    JSON,
+    CSV,
+    XML
+}
 
 // Event correlation engine for real-time monitoring
 

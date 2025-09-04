@@ -11,7 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlinx.datetime.DurationUnit
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * Main authentication engine that orchestrates all authentication operations.
@@ -58,7 +58,7 @@ class AuthEngine private constructor(
             
             // TODO: Implement actual email/password authentication
             // For now, simulate successful authentication
-            val user = createMockUser(email, AuthMethod.Email(email, true, Clock.System.now))
+            val user = createMockUser(email, AuthMethod.Email(email, true, Clock.System.now()))
             val tokens = createMockTokens(user.id)
             
             _authState.value = AuthState.Authenticated(user, tokens)
@@ -105,7 +105,7 @@ class AuthEngine private constructor(
             // Send verification email
             val verificationResult = emailProvider.sendVerificationEmail(email)
             if (verificationResult.isFailure()) {
-                Logger.warn("AuthEngine", "Failed to send verification email: ${verificationResultOrNull()}")
+                Logger.warn("AuthEngine", "Failed to send verification email: ${verificationResult.getOrNull()}")
             } else {
                 eventBus.dispatch(AuthEvent.Verification.EmailVerificationCodeSent(email), "AuthEngine")
             }
@@ -143,7 +143,7 @@ class AuthEngine private constructor(
             // For now, simulate successful OAuth authentication
             val user = createMockUser(
                 "oauth-user@example.com",
-                AuthMethod.OAuth(OAuthProvider.GOOGLE, "google-user-123", true, Clock.System.now)
+                AuthMethod.OAuth(OAuthProvider.GOOGLE, "google-user-123", true, Clock.System.now())
             )
             val tokens = createMockTokens(user.id)
             
@@ -187,7 +187,7 @@ class AuthEngine private constructor(
             _isLoading.value = false
             
             if (result.isSuccess()) {
-                val sessionId = resultOrThrow()
+                val sessionId = result.getOrThrow()
                 _authState.value = AuthState.VerificationRequired(
                     VerificationMethod.Phone(phoneNumber)
                 )
@@ -222,7 +222,7 @@ class AuthEngine private constructor(
                 // Create or get user with verified phone number
                 val user = createMockUser(
                     null,
-                    AuthMethod.Phone(phoneNumber, true, Clock.System.now)
+                    AuthMethod.Phone(phoneNumber, true, Clock.System.now())
                 )
                 val tokens = createMockTokens(user.id)
                 
@@ -298,7 +298,7 @@ class AuthEngine private constructor(
     }
     
     private fun createMockUser(email: String?, authMethod: AuthMethod): User {
-        val now = Clock.System.now
+        val now = Clock.System.now()
         return User(
             id = "user_${Clock.System.now().toEpochMilliseconds()}",
             email = email,
@@ -315,7 +315,7 @@ class AuthEngine private constructor(
     }
     
     private fun createNewUser(email: String, displayName: String?, authMethod: AuthMethod): User {
-        val now = Clock.System.now
+        val now = Clock.System.now()
         return User(
             id = "user_${Clock.System.now().toEpochMilliseconds()}",
             email = email,
@@ -329,8 +329,8 @@ class AuthEngine private constructor(
     }
     
     private fun createMockTokens(userId: String): TokenPair {
-        val now = Clock.System.now
-        val expiresAt = Clock.System.now().plus(30, DateTimeUnit.MINUTE) // 30 minutes
+        val now = Clock.System.now()
+        val expiresAt = Clock.System.now() + 30.minutes // 30 minutes
         
         return TokenPair(
             accessToken = "access_token_${userId}_${now.toEpochMilliseconds()}",

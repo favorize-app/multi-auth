@@ -170,8 +170,8 @@ class MockBiometricProvider : PlatformBiometric {
                 email = "mock@example.com",
                 displayName = "Mock User",
                 emailVerified = true,
-                createdAt = Clock.System.now,
-                lastSignInAt = Clock.System.now
+                createdAt = Clock.System.now(),
+                lastSignInAt = Clock.System.now()
             )
             
             logger.debug("biometrics", "Mock biometric: authentication successful for user: ${user.displayName}")

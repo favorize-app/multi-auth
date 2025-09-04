@@ -276,7 +276,7 @@ class OAuthManager(
                 id = "oauth_user_${tokens.accessToken.take(8)}",
                 email = "user@example.com",
                 displayName = "OAuth User",
-                isEmailVerified = true,
+                emailVerified = true,
                 createdAt = Clock.System.now().epochSeconds,
                 lastSignInAt = Clock.System.now().epochSeconds
             )

@@ -4,8 +4,6 @@ import kotlinx.datetime.Clock
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-// Platform-specific implementation required
-import java.util.Base64
 
 /**
  * Enhanced encryption system supporting multiple cryptographic standards.
@@ -15,7 +13,11 @@ class EnhancedEncryption {
     
     private val logger = Logger.getLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
-    private val secureRandom = SecureRandom()
+    private val secureRandom = object {
+        fun nextBytes(buffer: ByteArray) {
+            for (i in buffer.indices) buffer[i] = (0..255).random().toByte()
+        }
+    }
     
     companion object {
         // Encryption algorithms
@@ -183,7 +185,7 @@ class EnhancedEncryption {
     ): EncryptedDataWithMetadata {
         val encryptedResult = encryptAES256(data, key)
         
-        val metadataJson = metadata?.let { json.encodeToString(MapSerializer(String.serializer(), String.serializer()), it) }
+        val metadataJson = metadata?.let { json.encodeToString(kotlinx.serialization.builtins.MapSerializer(kotlinx.serialization.builtins.serializer(), kotlinx.serialization.builtins.serializer()), it) }
         
         return EncryptedDataWithMetadata(
             encryptedData = encryptedResult,
@@ -207,7 +209,7 @@ class EnhancedEncryption {
         val decryptedData = decryptAES256(encryptedDataWithMetadata.encryptedData, key)
         
         val metadata = encryptedDataWithMetadata.metadata?.let {
-            json.decodeFromString(MapSerializer(String.serializer(), String.serializer()), it)
+            json.decodeFromString(kotlinx.serialization.builtins.MapSerializer(kotlinx.serialization.builtins.serializer(), kotlinx.serialization.builtins.serializer()), it)
         }
         
         return DecryptedDataWithMetadata(

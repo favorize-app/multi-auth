@@ -13,7 +13,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
-import kotlin.random.UUID
+import com.benasher44.uuid.uuid4
+import kotlin.time.Duration.Companion.hours
 
 /**
  * Manager for anonymous authentication.
@@ -66,7 +67,7 @@ class AnonymousAuthManager(
             
             // Generate unique anonymous user ID
             val anonymousId = generateAnonymousId()
-            val sessionId = Uuid.randomUUID().toString()
+            val sessionId = uuid4().toString()
             
             // Create anonymous user
             val anonymousUser = AnonymousUser(
@@ -74,7 +75,7 @@ class AnonymousAuthManager(
                 sessionId = sessionId,
                 deviceId = deviceId,
                 createdAt = Clock.System.now(),
-                expiresAt = (Clock.System.now() + ANONYMOUS_SESSION_DURATION_HOURS.hours),
+                expiresAt = (Clock.System.now() + ANONYMOUS_SESSION_DURATION_HOURS),
                 metadata = metadata,
                 isActive = true
             )
@@ -144,7 +145,7 @@ class AnonymousAuthManager(
             
             // Create permanent user account
             val permanentUser = User(
-                id = Uuid.randomUUID().toString(),
+                id = uuid4().toString(),
                 email = email,
                 displayName = displayName,
                 emailVerified = false,
@@ -323,7 +324,7 @@ class AnonymousAuthManager(
     // Private implementation methods
     
     private fun generateAnonymousId(): String {
-        return ANONYMOUS_USER_PREFIX + Uuid.randomUUID().toString().replace("-", "").take(12)
+        return ANONYMOUS_USER_PREFIX + uuid4().toString().replace("-", "").take(12)
     }
     
     private fun updateConversionMetrics(action: AnonymousAction) {

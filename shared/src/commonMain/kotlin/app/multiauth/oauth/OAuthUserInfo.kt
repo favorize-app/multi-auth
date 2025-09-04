@@ -23,7 +23,7 @@ data class OAuthUserInfo(
     val provider: String,
     val providerId: String,
     val rawData: Map<String, String> = emptyMap(),
-    val timestamp: @kotlinx.serialization.Contextual Instant = Clock.System.now
+    val timestamp: @kotlinx.serialization.Contextual Instant = Clock.System.now()
 ) {
     
     /**
@@ -71,7 +71,7 @@ data class OAuthUserInfo(
             return OAuthUserInfo(
                 id = data["id"]?.toString() ?: data["sub"]?.toString() ?: "",
                 email = data["email"]?.toString(),
-                emailVerified = data["email_verified"]?.toString()?.toBooleanOrNull(),
+                emailVerified = data["email_verified"]?.toString()?.toBooleanStrictOrNull(),
                 name = data["name"]?.toString(),
                 givenName = data["given_name"]?.toString(),
                 familyName = data["family_name"]?.toString(),

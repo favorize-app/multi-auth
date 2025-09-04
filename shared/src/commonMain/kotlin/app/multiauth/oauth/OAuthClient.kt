@@ -76,7 +76,7 @@ interface OAuthClient {
  */
 abstract class BaseOAuthClient : OAuthClient {
     
-    override val logger: Logger = LoggerLogger(this::class)
+    override val logger: Logger = Logger.getLogger(this::class)
     
     override suspend fun getAuthorizationUrl(
         state: String,
