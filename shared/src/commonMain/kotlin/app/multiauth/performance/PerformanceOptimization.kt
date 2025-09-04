@@ -5,10 +5,10 @@ import kotlinx.datetime.Clock
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-// Replaced with coroutines
-// Replaced with coroutines
-// Replaced with kotlin.time.Duration
-import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.*
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+// import java.util.concurrent.atomic.AtomicInteger - replaced with regular Int
 import kotlin.math.sqrt
 
 /**
@@ -42,7 +42,9 @@ class PerformanceOptimization {
     private val optimizationManager = OptimizationManager()
     private val performanceProfiler = PerformanceProfiler()
     private val resourceOptimizer = ResourceOptimizer()
-    private val scheduledExecutor: ScheduledExecutorService = Executors.newScheduledThreadPool(2)
+    // private val scheduledExecutor: ScheduledExecutorService = Executors.newScheduledThreadPool(2)
+    // Use coroutines for scheduling instead
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     
     // Performance tracking
     private val optimizationMetrics = mutableMapOf<String, OptimizationMetric>()
@@ -79,7 +81,7 @@ class PerformanceOptimization {
             // Calculate potential improvements
             val improvements = calculatePotentialImprovements(recommendations)
             
-            val analysisTime = // Duration calculation required(startTime, Clock.System.now())
+            val analysisTime = (Clock.System.now() - startTime).inWholeMilliseconds
             
             val result = OptimizationAnalysisResult(
                 strategy = strategy,
@@ -149,7 +151,7 @@ class PerformanceOptimization {
                 }
             }
             
-            val applicationTime = // Duration calculation required(startTime, Clock.System.now())
+            val applicationTime = (Clock.System.now() - startTime).inWholeMilliseconds
             
             // Measure performance improvement
             val performanceImprovement = measurePerformanceImprovement(analysis.currentMetrics)
@@ -194,7 +196,7 @@ class PerformanceOptimization {
             val finalMemoryUsage = getCurrentMemoryUsage()
             val improvement = initialMemoryUsage - finalMemoryUsage
             
-            val optimizationTime = // Duration calculation required(startTime, Clock.System.now())
+            val optimizationTime = (Clock.System.now() - startTime).inWholeMilliseconds
             
             val result = MemoryOptimizationResult(
                 initialMemoryUsage = initialMemoryUsage,
@@ -237,7 +239,7 @@ class PerformanceOptimization {
             val finalResponseTime = getCurrentDatabaseResponseTime()
             val improvement = initialResponseTime - finalResponseTime
             
-            val optimizationTime = // Duration calculation required(startTime, Clock.System.now())
+            val optimizationTime = (Clock.System.now() - startTime).inWholeMilliseconds
             
             val result = DatabaseOptimizationResult(
                 initialResponseTime = initialResponseTime,
@@ -280,7 +282,7 @@ class PerformanceOptimization {
             val finalHitRatio = getCurrentCacheHitRatio()
             val improvement = finalHitRatio - initialHitRatio
             
-            val optimizationTime = // Duration calculation required(startTime, Clock.System.now())
+            val optimizationTime = (Clock.System.now() - startTime).inWholeMilliseconds
             
             val result = CacheOptimizationResult(
                 initialHitRatio = initialHitRatio,
@@ -324,7 +326,7 @@ class PerformanceOptimization {
             // Analyze profiling data
             val analysis = analyzeProfilingData(profilingData)
             
-            val profilingTime = // Duration calculation required(startTime, Clock.System.now())
+            val profilingTime = (Clock.System.now() - startTime).inWholeMilliseconds
             
             val result = PerformanceProfilingResult(
                 profilingDuration = profilingDuration,
@@ -390,22 +392,29 @@ class PerformanceOptimization {
     
     private fun startOptimizationServices() {
         // Start performance monitoring
-        scheduledExecutor.scheduleAtFixedRate({
-            try {
-                monitorPerformanceMetrics()
-            } catch (e: Exception) {
-                logger.error("performance", "Performance monitoring failed: ${e.message}")
+        // Use coroutines for periodic execution
+        scope.launch {
+            while (isActive) {
+                try {
+                    monitorPerformanceMetrics()
+                } catch (e: Exception) {
+                    logger.error("performance", "Performance monitoring failed: ${e.message}")
+                }
+                delay(30000) // Every 30 seconds
             }
-        }, 0, 30000, TimeUnit.MILLISECONDS) // Every 30 seconds
+        }
         
         // Start optimization evaluation
-        scheduledExecutor.scheduleAtFixedRate({
-            try {
-                evaluateOptimizationOpportunities()
-            } catch (e: Exception) {
-                logger.error("performance", "Optimization evaluation failed: ${e.message}")
+        scope.launch {
+            while (isActive) {
+                try {
+                    evaluateOptimizationOpportunities()
+                } catch (e: Exception) {
+                    logger.error("performance", "Optimization evaluation failed: ${e.message}")
+                }
+                delay(300000) // Every 5 minutes
             }
-        }, 300000, 300000, TimeUnit.MILLISECONDS) // Every 5 minutes
+        }
     }
     
     private suspend fun monitorPerformanceMetrics() {
@@ -584,7 +593,7 @@ class PerformanceOptimization {
                 else -> OptimizationResult(false, "Unknown optimization type")
             }
             
-            val applicationTime = // Duration calculation required(startTime, Clock.System.now())
+            val applicationTime = (Clock.System.now() - startTime).inWholeMilliseconds
             
             // Record optimization
             optimizationManager.recordOptimization(recommendation, result, applicationTime)

@@ -5,7 +5,7 @@ import app.multiauth.util.Logger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.datetime.Instant
-import kotlinx.datetime.Duration
+import kotlin.time.Duration
 
 /**
  * CI/CD Pipeline Configuration and Automation

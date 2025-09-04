@@ -5,10 +5,10 @@ import kotlinx.datetime.Clock
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-// Replaced with coroutines
-// Replaced with coroutines
-// Replaced with kotlin.time.Duration
-import java.util.concurrent.atomic.AtomicDouble
+import kotlinx.coroutines.*
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+// import java.util.concurrent.atomic.AtomicDouble - replaced with regular Double
 import kotlin.math.sqrt
 
 /**
@@ -19,6 +19,7 @@ class PerformanceMonitoring {
     
     private val logger = Logger.getLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     
     companion object {
         // Metric types
@@ -50,7 +51,8 @@ class PerformanceMonitoring {
     private val alertManager = AlertManager()
     private val performanceAnalyzer = PerformanceAnalyzer()
     private val resourceMonitor = ResourceMonitor()
-    private val scheduledExecutor: ScheduledExecutorService = Executors.newScheduledThreadPool(2)
+    // private val scheduledExecutor: ScheduledExecutorService = Executors.newScheduledThreadPool(2)
+    // Use coroutines for scheduling instead
     
     // Performance tracking
     private val requestTracker = RequestTracker()
@@ -132,7 +134,7 @@ class PerformanceMonitoring {
         metadata: Map<String, String> = emptyMap()
     ): RequestPerformanceResult {
         return try {
-            val duration = // Duration calculation required(startTime, endTime)
+            val duration = (endTime - startTime).inWholeMilliseconds
             
             // Create timer metric
             val timerMetric = PerformanceMetric(
@@ -496,7 +498,7 @@ class PerformanceMonitoring {
         return try {
             logger.info("performance", "Cleaning up old metrics")
             
-            val cutoffTime = Clock.System.now().minus(monitoringConfig.retentionPeriod, ChronoUnit.MILLIS)
+            val cutoffTime = Clock.System.now() - monitoringConfig.retentionPeriod.milliseconds
             val removedCount = metricsCollector.removeMetricsBefore(cutoffTime)
             
             logger.info("performance", "Cleaned up $removedCount old metrics")
@@ -517,31 +519,41 @@ class PerformanceMonitoring {
     
     private fun startMonitoringServices() {
         // Start metrics collection
-        scheduledExecutor.scheduleAtFixedRate({
-            try {
-                collectSystemMetrics()
-            } catch (e: Exception) {
-                logger.error("performance", "System metrics collection failed: ${e.message}")
+        // Use coroutines for periodic execution
+        scope.launch {
+            while (isActive) {
+                try {
+                    collectSystemMetrics()
+                } catch (e: Exception) {
+                    logger.error("performance", "System metrics collection failed: ${e.message}")
+                }
+                delay(monitoringConfig.samplingInterval)
             }
-        }, 0, monitoringConfig.samplingInterval, TimeUnit.MILLISECONDS)
+        }
         
         // Start metrics aggregation
-        scheduledExecutor.scheduleAtFixedRate({
-            try {
-                aggregateMetrics()
-            } catch (e: Exception) {
-                logger.error("performance", "Metrics aggregation failed: ${e.message}")
+        scope.launch {
+            while (isActive) {
+                try {
+                    aggregateMetrics()
+                } catch (e: Exception) {
+                    logger.error("performance", "Metrics aggregation failed: ${e.message}")
+                }
+                delay(monitoringConfig.aggregationInterval)
             }
-        }, 0, monitoringConfig.aggregationInterval, TimeUnit.MILLISECONDS)
+        }
         
         // Start cleanup
-        scheduledExecutor.scheduleAtFixedRate({
-            try {
-                cleanupOldMetrics()
-            } catch (e: Exception) {
-                logger.error("performance", "Metrics cleanup failed: ${e.message}")
+        scope.launch {
+            while (isActive) {
+                try {
+                    cleanupOldMetrics()
+                } catch (e: Exception) {
+                    logger.error("performance", "Metrics cleanup failed: ${e.message}")
+                }
+                delay(3600000) // Every hour
             }
-        }, 3600000, 3600000, TimeUnit.MILLISECONDS) // Every hour
+        }
     }
     
     private suspend fun collectSystemMetrics() {
@@ -572,7 +584,7 @@ class PerformanceMonitoring {
             issues.add("Metric value cannot be negative for type: ${metric.type}")
         }
         
-        if (metric.timestamp.isAfter(Clock.System.now().plus(1, ChronoUnit.MINUTES))) {
+        if (metric.timestamp > Clock.System.now() + 1.minutes) {
             issues.add("Metric timestamp cannot be in the future")
         }
         

@@ -6,8 +6,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.datetime.Duration
-import kotlinx.datetime.Duration.Companion.hours
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.hours
 
 /**
  * Production Monitoring and Alerting System

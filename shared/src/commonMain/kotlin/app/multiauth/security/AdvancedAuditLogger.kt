@@ -2,7 +2,8 @@ package app.multiauth.security
 
 import kotlinx.datetime.Instant
 import kotlinx.datetime.Clock
-import kotlinx.datetime.Duration
+import kotlin.time.Duration
+import kotlinx.datetime.DateTimePeriod
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -397,8 +398,8 @@ class AdvancedAuditLogger {
             logger.info("security", "Exporting audit data in $format format")
             
             val events = auditEvents.values.filter { event ->
-                event.timestamp.isAfter(timeRange.start) &&
-                event.timestamp.isBefore(timeRange.end)
+                event.timestamp > timeRange.start &&
+                event.timestamp < timeRange.end
             }
             
             val exportData = when (format) {
@@ -691,7 +692,7 @@ class AdvancedAuditLogger {
         }
         
         // Check for very old timestamps
-        val tenYears = Duration.parse("P3650D")
+        val tenYears = DateTimePeriod(years = 10)
         val oldEvents = auditEvents.values.filter { (Clock.System.now() - it.timestamp) > tenYears }
         if (oldEvents.isNotEmpty()) {
             issues.add("Found ${oldEvents.size} events older than 10 years")
