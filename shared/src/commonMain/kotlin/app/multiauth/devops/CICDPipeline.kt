@@ -38,11 +38,11 @@ class CICDPipeline(
             
             steps.forEach { (stepName, stepFunction) ->
                 logger.info("DevOps", "Executing CI step: $stepName")
-                val startTime = Clock.System.now
+                val startTime = Clock.System.now()
                 
                 try {
                     val result = stepFunction()
-                    val duration = Clock.System.now - startTime
+                    val duration = Clock.System.now() - startTime
                     
                     results.add(CIStepResult(
                         stepName = stepName,
@@ -53,7 +53,7 @@ class CICDPipeline(
                     
                     logger.info("DevOps", "CI step '$stepName' completed successfully in ${duration}ms")
                 } catch (e: Exception) {
-                    val duration = Clock.System.now - startTime
+                    val duration = Clock.System.now() - startTime
                     
                     results.add(CIStepResult(
                         stepName = stepName,
@@ -72,7 +72,7 @@ class CICDPipeline(
                 status = CIStatus.SUCCESS,
                 steps = results,
                 totalDuration = results.sumOf { it.duration },
-                timestamp = Clock.System.now
+                timestamp = Clock.System.now()
             )
             
         } catch (e: Exception) {
@@ -81,7 +81,7 @@ class CICDPipeline(
                 status = CIStatus.FAILED,
                 steps = emptyList(),
                 totalDuration = 0,
-                timestamp = Clock.System.now,
+                timestamp = Clock.System.now(),
                 error = e
             )
         }
@@ -108,11 +108,11 @@ class CICDPipeline(
             
             steps.forEach { (stepName, stepFunction) ->
                 logger.info("DevOps", "Executing CD step: $stepName")
-                val startTime = Clock.System.now
+                val startTime = Clock.System.now()
                 
                 try {
                     val result = stepFunction()
-                    val duration = Clock.System.now - startTime
+                    val duration = Clock.System.now() - startTime
                     
                     results.add(CDStepResult(
                         stepName = stepName,
@@ -123,7 +123,7 @@ class CICDPipeline(
                     
                     logger.info("DevOps", "CD step '$stepName' completed successfully in ${duration}ms")
                 } catch (e: Exception) {
-                    val duration = Clock.System.now - startTime
+                    val duration = Clock.System.now() - startTime
                     
                     results.add(CDStepResult(
                         stepName = stepName,
@@ -215,11 +215,11 @@ class CICDPipeline(
             
             rollbackSteps.forEach { (stepName, stepFunction) ->
                 logger.info("DevOps", "Executing rollback step: $stepName")
-                val startTime = Clock.System.now
+                val startTime = Clock.System.now()
                 
                 try {
                     val result = stepFunction()
-                    val duration = Clock.System.now - startTime
+                    val duration = Clock.System.now() - startTime
                     
                     results.add(RollbackStepResult(
                         stepName = stepName,
@@ -230,7 +230,7 @@ class CICDPipeline(
                     
                     logger.info("DevOps", "Rollback step '$stepName' completed successfully in ${duration}ms")
                 } catch (e: Exception) {
-                    val duration = Clock.System.now - startTime
+                    val duration = Clock.System.now() - startTime
                     
                     results.add(RollbackStepResult(
                         stepName = stepName,

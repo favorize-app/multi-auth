@@ -3,6 +3,7 @@ package app.multiauth.mfa
 import app.multiauth.core.AuthEngine
 import app.multiauth.events.AuthEvent
 import app.multiauth.events.EventBus
+import app.multiauth.events.EventBusInstance
 import app.multiauth.models.User
 import app.multiauth.util.Logger
 import kotlinx.coroutines.CoroutineScope

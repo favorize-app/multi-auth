@@ -54,7 +54,7 @@ class SecurityAuditLogger {
         scope.launch {
             try {
                 val entry = SecurityAuditEntry(
-                    timestamp = Clock.System.now,
+                    timestamp = Clock.System.now(),
                     event = event,
                     userId = user?.id,
                     userEmail = user?.email,
@@ -91,7 +91,7 @@ class SecurityAuditLogger {
     ) {
         val event = SecurityEventType.LOGIN_ATTEMPT
         val entry = SecurityAuditEntry(
-            timestamp = Clock.System.now,
+            timestamp = Clock.System.now(),
             event = event,
             userId = null,
             userEmail = userEmail,
@@ -123,7 +123,7 @@ class SecurityAuditLogger {
     ) {
         val event = SecurityEventType.LOGIN_ATTEMPT
         val entry = SecurityAuditEntry(
-            timestamp = Clock.System.now,
+            timestamp = Clock.System.now(),
             event = event,
             userId = user.id,
             userEmail = user.email,
@@ -152,7 +152,7 @@ class SecurityAuditLogger {
     ) {
         val event = SecurityEventType.LOGIN_ATTEMPT
         val entry = SecurityAuditEntry(
-            timestamp = Clock.System.now,
+            timestamp = Clock.System.now(),
             event = event,
             userId = user?.id,
             userEmail = user?.email,
@@ -311,7 +311,7 @@ class SecurityAuditLogger {
     
     private fun checkUserActivity(userId: String) {
         val userActivities = _userActivityCountsOrPut(userId) { mutableListOf() }
-        val now = Clock.System.now
+        val now = Clock.System.now()
         val cutoffTime = now.minus(Duration.parse("PT${SUSPICIOUS_ACTIVITY_WINDOW_MINUTES}M"))
         
         // Remove old activities
@@ -338,7 +338,7 @@ class SecurityAuditLogger {
     
     private fun checkIpActivity(ipAddress: String) {
         val ipActivities = _ipActivityCountsOrPut(ipAddress) { mutableListOf() }
-        val now = Clock.System.now
+        val now = Clock.System.now()
         val cutoffTime = now.minus(Duration.parse("PT${SUSPICIOUS_ACTIVITY_WINDOW_MINUTES}M"))
         
         // Remove old activities
@@ -451,7 +451,7 @@ data class SecurityMetrics(
     val failedAuthentications: Long = 0,
     val accountsLocked: Long = 0,
     val suspiciousActivitiesDetected: Long = 0,
-    val lastUpdated: Instant = Clock.System.now
+    val lastUpdated: Instant = Clock.System.now()
 )
 
 /**

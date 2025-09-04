@@ -477,7 +477,7 @@ sealed class RateLimitState {
 data class RateLimitMetrics(
     val successfulRequests: Long = 0,
     val blockedRequests: Long = 0,
-    val lastUpdated: Instant = Clock.System.now
+    val lastUpdated: Instant = Clock.System.now()
 )
 
 /**

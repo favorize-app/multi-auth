@@ -3,6 +3,7 @@ package app.multiauth.biometric
 import app.multiauth.core.AuthEngine
 import app.multiauth.events.AuthEvent
 import app.multiauth.events.EventBus
+import app.multiauth.events.EventBusInstance
 import app.multiauth.models.User
 import app.multiauth.platform.Platform
 import app.multiauth.platform.PlatformUtils
