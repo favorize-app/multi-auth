@@ -1,5 +1,7 @@
 package app.multiauth.core
 
+import kotlinx.datetime.Instant
+import kotlinx.datetime.Clock
 import app.multiauth.events.*
 import app.multiauth.models.*
 import app.multiauth.util.Logger
@@ -8,14 +10,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 
 /**
  * Centralized state manager for authentication system.
  * Manages authentication state, user preferences, and provides state synchronization.
  */
 class AuthStateManager private constructor(
-    private val eventBus: EventBus = EventBus.getInstance()
+    private val eventBus: EventBus = EventBusInstance()
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     
@@ -316,7 +317,7 @@ data class NotificationPreferences(
  * Authentication history entry.
  */
 data class AuthHistoryEntry(
-    val timestamp: kotlinx.datetime.Instant,
+    val timestamp: Instant,
     val state: AuthState,
     val previousState: AuthState?
 )
@@ -329,5 +330,5 @@ data class AuthStats(
     val successfulAuths: Int,
     val failedAttempts: Int,
     val verificationRequired: Int,
-    val lastActivityAt: kotlinx.datetime.Instant?
+    val lastActivityAt: Instant?
 )

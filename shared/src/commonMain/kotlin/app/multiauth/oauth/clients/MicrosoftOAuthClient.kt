@@ -1,5 +1,6 @@
 package app.multiauth.oauth.clients
 
+import app.multiauth.oauth.HttpClient
 import app.multiauth.oauth.OAuthClient
 import app.multiauth.oauth.OAuthConfig
 import app.multiauth.oauth.OAuthResult
@@ -17,10 +18,8 @@ import kotlinx.serialization.json.Json
  */
 class MicrosoftOAuthClient(
     private val config: OAuthConfig,
-    private val httpClient: HttpClient
+    private val httpClient: HttpClient, override val logger: Logger
 ) : OAuthClient {
-    
-    private val logger = Logger.getLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
     
     companion object {
@@ -51,7 +50,7 @@ class MicrosoftOAuthClient(
         }
         
         val authUrl = "$AUTH_URL$params"
-        logger.debug("Generated Microsoft OAuth authorization URL: $authUrl")
+        logger.debug("oath", "Generated Microsoft OAuth authorization URL: $authUrl")
         return authUrl
     }
     
@@ -60,7 +59,7 @@ class MicrosoftOAuthClient(
         codeVerifier: String
     ): OAuthResult {
         return try {
-            logger.debug("Exchanging authorization code for Microsoft tokens")
+            logger.debug("oath", "Exchanging authorization code for Microsoft tokens")
             
             val tokenRequest = MicrosoftTokenRequest(
                 clientId = config.clientId,
@@ -71,16 +70,16 @@ class MicrosoftOAuthClient(
                 codeVerifier = codeVerifier
             )
             
-            val response = withContext(Dispatchers.IO) {
+            val response = withContext(Dispatchers.Default) {
                 httpClient.post(TOKEN_URL) {
                     setBody(tokenRequest.toFormData())
                     header("Content-Type", "application/x-www-form-urlencoded")
                 }
             }
             
-            if (response.status.isSuccess()) {
+            if (response.status.isSuccess) {
                 val tokenResponse = json.decodeFromString<MicrosoftTokenResponse>(response.bodyAsText())
-                logger.debug("Successfully exchanged code for Microsoft tokens")
+                logger.debug("oath", "Successfully exchanged code for Microsoft tokens")
                 
                 OAuthResult.Success(
                     accessToken = tokenResponse.accessToken,
@@ -91,19 +90,19 @@ class MicrosoftOAuthClient(
                 )
             } else {
                 val errorResponse = json.decodeFromString<MicrosoftErrorResponse>(response.bodyAsText())
-                logger.error("Failed to exchange code for Microsoft tokens: ${errorResponse.error}")
+                logger.error("oath", "Failed to exchange code for Microsoft tokens: ${errorResponse.error}")
                 
-                OAuthResult.Error(
-                    OAuthError.TokenExchangeFailed(
+                OAuthResult.Failure(
+                    OAuthError.fromOAuthResponse(
                         error = errorResponse.error,
                         errorDescription = errorResponse.errorDescription
                     )
                 )
             }
         } catch (e: Exception) {
-            logger.error("Exception during Microsoft token exchange", e)
-            OAuthResult.Error(
-                OAuthError.TokenExchangeFailed(
+            logger.error("microsoft", "Exception during Microsoft token exchange", e)
+            OAuthResult.Failure(
+                OAuthError.fromOAuthResponse(
                     error = "token_exchange_failed",
                     errorDescription = e.message ?: "Unknown error"
                 )
@@ -113,7 +112,7 @@ class MicrosoftOAuthClient(
     
     override suspend fun refreshAccessToken(refreshToken: String): OAuthResult {
         return try {
-            logger.debug("Refreshing Microsoft access token")
+            logger.debug("oath", "Refreshing Microsoft access token")
             
             val refreshRequest = MicrosoftRefreshRequest(
                 clientId = config.clientId,
@@ -122,16 +121,16 @@ class MicrosoftOAuthClient(
                 grantType = GRANT_TYPE_REFRESH
             )
             
-            val response = withContext(Dispatchers.IO) {
+            val response = withContext(Dispatchers.Default) {
                 httpClient.post(TOKEN_URL) {
                     setBody(refreshRequest.toFormData())
                     header("Content-Type", "application/x-www-form-urlencoded")
                 }
             }
             
-            if (response.status.isSuccess()) {
+            if (response.status.isSuccess) {
                 val tokenResponse = json.decodeFromString<MicrosoftTokenResponse>(response.bodyAsText())
-                logger.debug("Successfully refreshed Microsoft access token")
+                logger.debug("oath", "Successfully refreshed Microsoft access token")
                 
                 OAuthResult.Success(
                     accessToken = tokenResponse.accessToken,
@@ -142,21 +141,21 @@ class MicrosoftOAuthClient(
                 )
             } else {
                 val errorResponse = json.decodeFromString<MicrosoftErrorResponse>(response.bodyAsText())
-                logger.error("Failed to refresh Microsoft access token: ${errorResponse.error}")
+                logger.error("oath", "Failed to refresh Microsoft access token: ${errorResponse.error}")
                 
-                OAuthResult.Error(
-                    OAuthError.TokenRefreshFailed(
-                        error = errorResponse.error,
-                        errorDescription = errorResponse.errorDescription
+                OAuthResult.Failure(
+                    OAuthError.networkError(
+                        message = "Token refresh failed: ${errorResponse.error} - ${errorResponse.errorDescription}",
+                        cause = null
                     )
                 )
             }
         } catch (e: Exception) {
-            logger.error("Exception during Microsoft token refresh", e)
-            OAuthResult.Error(
-                OAuthError.TokenRefreshFailed(
-                    error = "token_refresh_failed",
-                    errorDescription = e.message ?: "Unknown error"
+            logger.error("microsoft", "Exception during Microsoft token refresh", e)
+            OAuthResult.Failure(
+                OAuthError.networkError(
+                    message = e.message ?: "Unknown error during token refresh",
+                    cause = e
                 )
             )
         }
@@ -164,46 +163,52 @@ class MicrosoftOAuthClient(
     
     override suspend fun getUserInfo(accessToken: String): OAuthResult {
         return try {
-            logger.debug("Fetching Microsoft user info")
+            logger.debug("oath", "Fetching Microsoft user info")
             
-            val response = withContext(Dispatchers.IO) {
+            val response = withContext(Dispatchers.Default) {
                 httpClient.get(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                     header("Accept", "application/json")
                 }
             }
             
-            if (response.status.isSuccess()) {
+            if (response.status.isSuccess) {
                 val userInfo = json.decodeFromString<MicrosoftUserInfo>(response.bodyAsText())
-                logger.debug("Successfully fetched Microsoft user info: ${userInfo.displayName}")
+                logger.debug("oath", "Successfully fetched Microsoft user info: ${userInfo.displayName}")
                 
                 OAuthResult.Success(
+                    accessToken = accessToken,
+                    refreshToken = null,
+                    expiresIn = null,
                     userInfo = OAuthUserInfo(
                         id = userInfo.id,
                         email = userInfo.mail ?: userInfo.userPrincipalName,
                         name = userInfo.displayName,
-                        firstName = userInfo.givenName,
-                        lastName = userInfo.surname,
+                        givenName = userInfo.givenName,
+                        familyName = userInfo.surname,
+                        displayName = userInfo.displayName,
                         picture = null, // Microsoft Graph doesn't provide profile picture in basic profile
                         locale = userInfo.preferredLanguage,
-                        verifiedEmail = true // Microsoft accounts are verified
+                        emailVerified = true, // Microsoft accounts are verified
+                        provider = "microsoft",
+                        providerId = userInfo.id
                     )
                 )
             } else {
                 val errorResponse = json.decodeFromString<MicrosoftErrorResponse>(response.bodyAsText())
-                logger.error("Failed to fetch Microsoft user info: ${errorResponse.error}")
+                logger.error("oath", "Failed to fetch Microsoft user info: ${errorResponse.error}")
                 
-                OAuthResult.Error(
-                    OAuthError.UserInfoFetchFailed(
+                OAuthResult.Failure(
+                    OAuthError.fromOAuthResponse(
                         error = errorResponse.error,
                         errorDescription = errorResponse.errorDescription
                     )
                 )
             }
         } catch (e: Exception) {
-            logger.error("Exception during Microsoft user info fetch", e)
-            OAuthResult.Error(
-                OAuthError.UserInfoFetchFailed(
+            logger.error("microsoft", "Exception during Microsoft user info fetch", e)
+            OAuthResult.Failure(
+                OAuthError.fromOAuthResponse(
                     error = "user_info_fetch_failed",
                     errorDescription = e.message ?: "Unknown error"
                 )
@@ -213,37 +218,37 @@ class MicrosoftOAuthClient(
     
     override suspend fun revokeToken(token: String): Boolean {
         return try {
-            logger.debug("Revoking Microsoft OAuth token")
+            logger.debug("oath", "Revoking Microsoft OAuth token")
             
             // Microsoft doesn't have a standard token revocation endpoint
             // The token will expire naturally based on the expires_in value
-            logger.warn("Microsoft OAuth does not support token revocation. Token will expire naturally.")
+            logger.warn("microsoft", "Microsoft OAuth does not support token revocation. Token will expire naturally.")
             
             // Return true to indicate "success" since we can't actually revoke
             true
         } catch (e: Exception) {
-            logger.error("Exception during Microsoft token revocation", e)
+            logger.error("microsoft", "Exception during Microsoft token revocation", e)
             false
         }
     }
     
     override suspend fun validateToken(accessToken: String): Boolean {
         return try {
-            logger.debug("Validating Microsoft OAuth token")
+            logger.debug("oath", "Validating Microsoft OAuth token")
             
-            val response = withContext(Dispatchers.IO) {
+            val response = withContext(Dispatchers.Default) {
                 httpClient.get(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                     header("Accept", "application/json")
                 }
             }
             
-            val isValid = response.status.isSuccess()
-            logger.debug("Microsoft OAuth token validation result: $isValid")
+            val isValid = response.status.isSuccess
+            logger.debug("oath", "Microsoft OAuth token validation result: $isValid")
             
             isValid
         } catch (e: Exception) {
-            logger.error("Exception during Microsoft token validation", e)
+            logger.error("microsoft", "Exception during Microsoft token validation", e)
             false
         }
     }

@@ -1,24 +1,20 @@
 package app.multiauth.core
 
+import kotlinx.datetime.Instant
+import kotlinx.datetime.Clock
 import app.multiauth.events.*
-import app.multiauth.models.*
 import app.multiauth.util.Logger
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
-import kotlinx.datetime.minus
-import kotlinx.datetime.DateTimeUnit
 
 /**
  * Handles validation of tokens, permissions, and authentication state.
  * Provides utilities for token validation, permission checking, and security validation.
  */
 class ValidationEngine private constructor(
-    private val eventBus: EventBus = EventBus.getInstance()
+    private val eventBus: EventBus = EventBusInstance()
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     
@@ -348,7 +344,7 @@ sealed class ValidationResult {
     data class Success<T>(val data: T) : ValidationResult()
     data class Failure(val error: ValidationError) : ValidationResult()
     
-    fun isSuccess(): Boolean = this is Success
+    fun isSuccess(): Boolean = this is Success<*> // ?
     fun isFailure(): Boolean = this is Failure
     
             fun getOrNull(): Any? = when (this) {

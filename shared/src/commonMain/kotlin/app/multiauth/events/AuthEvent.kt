@@ -1,7 +1,8 @@
 package app.multiauth.events
 
-import app.multiauth.models.*
 import kotlinx.datetime.Clock
+import app.multiauth.models.*
+import app.multiauth.oauth.OAuthProvider
 
 /**
  * Base class for all authentication events.
@@ -65,19 +66,6 @@ sealed class AuthEvent {
     /**
      * Events related to OAuth authentication.
      */
-    sealed class OAuth : AuthEvent() {
-        data class OAuthSignInRequested(val provider: OAuthProvider) : OAuth()
-        data class OAuthSignInCompleted(val user: User, val tokens: TokenPair) : OAuth()
-        data class OAuthSignInFailed(val error: AuthError) : OAuth()
-        
-        data class OAuthLinkRequested(val provider: OAuthProvider) : OAuth()
-        data class OAuthLinkCompleted(val user: User) : OAuth()
-        data class OAuthLinkFailed(val error: AuthError) : OAuth()
-        
-        data class OAuthUnlinkRequested(val provider: OAuthProvider) : OAuth()
-        data class OAuthUnlinkCompleted(val user: User) : OAuth()
-        data class OAuthUnlinkFailed(val error: AuthError) : OAuth()
-    }
     
     /**
      * Events related to user profile management.
@@ -156,6 +144,55 @@ sealed class AuthEvent {
         data class ErrorOccurred(val error: AuthError) : State()
         object ErrorCleared : State()
         data class PreferencesUpdated(val preferences: app.multiauth.core.UserPreferences) : State()
+    }
+
+    /**
+     * Events related to OAuth authentication.
+     */
+    sealed class OAuth : AuthEvent() {
+        data class OAuthFlowStarted(val provider: app.multiauth.oauth.OAuthProvider, val state: String) : OAuth()
+        data class OAuthFlowCompleted(val provider: app.multiauth.oauth.OAuthProvider, val user: User, val tokens: TokenPair) : OAuth()
+        data class OAuthFlowFailed(val provider: app.multiauth.oauth.OAuthProvider, val error: AuthError) : OAuth()
+        
+        data class AccountLinked(val user: User, val provider: app.multiauth.oauth.OAuthProvider) : OAuth()
+        data class AccountLinkFailed(val user: User, val provider: app.multiauth.oauth.OAuthProvider, val error: AuthError) : OAuth()
+        data class AccountUnlinked(val user: User, val provider: app.multiauth.oauth.OAuthProvider) : OAuth()
+        data class AccountUnlinkFailed(val user: User, val provider: app.multiauth.oauth.OAuthProvider, val error: AuthError) : OAuth()
+        
+        data class OAuthTokenRefreshRequested(val provider: app.multiauth.oauth.OAuthProvider) : OAuth()
+        data class OAuthTokenRefreshCompleted(val provider: app.multiauth.oauth.OAuthProvider, val tokens: TokenPair) : OAuth()
+        data class OAuthTokenRefreshFailed(val provider: app.multiauth.oauth.OAuthProvider, val error: AuthError) : OAuth()
+    }
+
+    /**
+     * Events related to biometric authentication.
+     */
+    sealed class Biometric : AuthEvent() {
+        data class BiometricAvailable(val supportedTypes: List<app.multiauth.biometric.BiometricType>) : Biometric()
+        data class BiometricAuthenticationCompleted(val user: app.multiauth.models.User) : Biometric()
+        data class BiometricAuthenticationFailed(val error: Throwable) : Biometric()
+        data class BiometricEnabled(val user: app.multiauth.models.User) : Biometric()
+        data class BiometricEnableFailed(val error: Throwable) : Biometric()
+        data class BiometricDisabled(val user: app.multiauth.models.User) : Biometric()
+        data class BiometricDisableFailed(val error: Throwable) : Biometric()
+    }
+    
+    /**
+     * Events related to Multi-Factor Authentication (MFA).
+     */
+    sealed class Mfa : AuthEvent() {
+        data class MfaMethodEnabled(val user: User, val method: app.multiauth.mfa.MfaMethod) : Mfa()
+        data class MfaMethodDisabled(val user: User, val method: app.multiauth.mfa.MfaMethod) : Mfa()
+        data class MfaMethodEnabledFailed(val user: User, val method: app.multiauth.mfa.MfaMethod, val error: AuthError) : Mfa()
+        data class MfaMethodDisabledFailed(val user: User, val method: app.multiauth.mfa.MfaMethod, val error: AuthError) : Mfa()
+        
+        data class MfaVerificationRequested(val user: User, val method: app.multiauth.mfa.MfaMethod) : Mfa()
+        data class MfaVerificationCompleted(val user: User, val method: app.multiauth.mfa.MfaMethod) : Mfa()
+        data class MfaVerificationFailed(val user: User, val method: app.multiauth.mfa.MfaMethod, val error: AuthError) : Mfa()
+        
+        data class MfaBackupCodesGenerated(val user: User, val codes: List<String>) : Mfa()
+        data class MfaBackupCodeUsed(val user: User, val code: String) : Mfa()
+        data class MfaBackupCodeUsedFailed(val user: User, val code: String, val error: AuthError) : Mfa()
     }
 }
 

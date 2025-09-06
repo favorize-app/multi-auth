@@ -1,5 +1,6 @@
 plugins {
     kotlin("multiplatform")
+    kotlin("plugin.compose")
     id("org.jetbrains.compose")
     id("com.android.application")
 }
@@ -7,8 +8,8 @@ plugins {
 kotlin {
     androidTarget {
         compilations.all {
-            kotlinOptions {
-                jvmTarget = "1.8"
+            compilerOptions.configure {
+                jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
             }
         }
     }
@@ -54,7 +55,7 @@ kotlin {
         
         val androidUnitTest by getting {
             dependencies {
-                implementation("org.jetbrains.kotlin:kotlin-test-junit:1.9.20")
+                implementation("org.jetbrains.kotlin:kotlin-test-junit:2.1.0")
             }
         }
         
@@ -81,7 +82,7 @@ kotlin {
         val jsMain by getting
         val jsTest by getting {
             dependencies {
-                implementation("org.jetbrains.kotlin:kotlin-test-js:1.9.20")
+                implementation("org.jetbrains.kotlin:kotlin-test-js:2.1.0")
             }
         }
     }

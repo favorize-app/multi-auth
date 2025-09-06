@@ -3,6 +3,7 @@ package app.multiauth.biometric
 import app.multiauth.core.AuthEngine
 import app.multiauth.events.AuthEvent
 import app.multiauth.events.EventBus
+import app.multiauth.events.EventBusInstance
 import app.multiauth.models.User
 import app.multiauth.platform.Platform
 import app.multiauth.platform.PlatformUtils
@@ -20,7 +21,7 @@ import kotlinx.coroutines.launch
  */
 class BiometricManager(
     private val authEngine: AuthEngine,
-    private val eventBus: EventBus = EventBus.getInstance()
+    private val eventBus: EventBus = EventBusInstance()
 ) {
     
     private val logger = Logger.getLogger(this::class)
@@ -48,10 +49,10 @@ class BiometricManager(
      */
     suspend fun checkBiometricAvailability(): Result<BiometricAvailability> {
         return try {
-            logger.info("Checking biometric availability")
+            logger.info("biometrics", "Checking biometric availability")
             
             if (!PlatformUtils.supportsFeature(app.multiauth.platform.PlatformFeature.BIOMETRICS)) {
-                logger.info("Biometrics not supported on current platform: ${PlatformUtils.currentPlatform}")
+                logger.info("biometrics", "Biometrics not supported on current platform: ${PlatformUtils.currentPlatform}")
                 _isBiometricAvailable.value = false
                 _biometricType.value = null
                 return Result.success(BiometricAvailability.NotSupported)
@@ -64,13 +65,13 @@ class BiometricManager(
                 _isBiometricAvailable.value = result.isAvailable
                 _biometricType.value = result.supportedTypes.firstOrNull()
                 
-                logger.info("Biometric availability: ${result.isAvailable}, types: ${result.supportedTypes}")
+                logger.info("biometrics", "Biometric availability: ${result.isAvailable}, types: ${result.supportedTypes}")
                 
                 if (result.isAvailable) {
                     eventBus.dispatch(AuthEvent.Biometric.BiometricAvailable(result.supportedTypes))
                 }
             }.onFailure { error ->
-                logger.error("Failed to check biometric availability", error)
+                logger.error("biometrics", "Failed to check biometric availability", error)
                 _isBiometricAvailable.value = false
                 _biometricType.value = null
             }
@@ -78,10 +79,10 @@ class BiometricManager(
             availability
             
         } catch (e: Exception) {
-            logger.error("Unexpected error checking biometric availability", e)
+            logger.error("biometrics", "Unexpected error checking biometric availability", e)
             _isBiometricAvailable.value = false
             _biometricType.value = null
-            Result.failure(e)
+            Result.failure<BiometricAvailability>(e)
         }
     }
     
@@ -97,10 +98,10 @@ class BiometricManager(
         cancelMessage: String = "Cancel"
     ): Result<User> {
         return try {
-            logger.info("Starting biometric authentication")
+            logger.info("biometrics", "Starting biometric authentication")
             
             if (!_isBiometricAvailable.value) {
-                logger.warn("Biometric authentication not available")
+                logger.warn("biometrics", "Biometric authentication not available")
                 return Result.failure(IllegalStateException("Biometric authentication not available"))
             }
             
@@ -110,7 +111,7 @@ class BiometricManager(
             val result = platformBiometric.authenticate(promptMessage, cancelMessage)
             
             result.onSuccess { user ->
-                logger.info("Biometric authentication successful for user: ${user.displayName}")
+                logger.info("biometrics", "Biometric authentication successful for user: ${user.displayName}")
                 _biometricState.value = BiometricState.Success(user)
                 _biometricState.value = BiometricState.Idle
                 
@@ -119,21 +120,21 @@ class BiometricManager(
                 
                 Result.success(user)
             }.onFailure { error ->
-                logger.error("Biometric authentication failed", error)
+                logger.error("biometrics", "Biometric authentication failed", error)
                 _biometricState.value = BiometricState.Error(error)
                 _biometricState.value = BiometricState.Idle
                 
                 // Dispatch failure event
                 eventBus.dispatch(AuthEvent.Biometric.BiometricAuthenticationFailed(error))
                 
-                Result.failure(error)
+                Result.failure<User>(error)
             }
             
         } catch (e: Exception) {
-            logger.error("Unexpected error during biometric authentication", e)
+            logger.error("biometrics", "Unexpected error during biometric authentication", e)
             _biometricState.value = BiometricState.Error(e)
             _biometricState.value = BiometricState.Idle
-            Result.failure(e)
+            Result.failure<User>(e)
         }
     }
     
@@ -145,10 +146,10 @@ class BiometricManager(
      */
     suspend fun enableBiometric(user: User): Result<Unit> {
         return try {
-            logger.info("Enabling biometric authentication for user: ${user.displayName}")
+            logger.info("biometrics", "Enabling biometric authentication for user: ${user.displayName}")
             
             if (!_isBiometricAvailable.value) {
-                logger.warn("Biometric authentication not available")
+                logger.warn("biometrics", "Biometric authentication not available")
                 return Result.failure(IllegalStateException("Biometric authentication not available"))
             }
             
@@ -158,7 +159,7 @@ class BiometricManager(
             val result = platformBiometric.enableBiometric(user)
             
             result.onSuccess {
-                logger.info("Biometric authentication enabled successfully for user: ${user.displayName}")
+                logger.info("biometrics", "Biometric authentication enabled successfully for user: ${user.displayName}")
                 _biometricState.value = BiometricState.Idle
                 
                 // Dispatch success event
@@ -166,21 +167,21 @@ class BiometricManager(
                 
                 Result.success(Unit)
             }.onFailure { error ->
-                logger.error("Failed to enable biometric authentication", error)
+                logger.error("biometrics", "Failed to enable biometric authentication", error)
                 _biometricState.value = BiometricState.Error(error)
                 _biometricState.value = BiometricState.Idle
                 
                 // Dispatch failure event
                 eventBus.dispatch(AuthEvent.Biometric.BiometricEnableFailed(error))
                 
-                Result.failure(error)
+                Result.failure<Unit>(error)
             }
             
         } catch (e: Exception) {
-            logger.error("Unexpected error enabling biometric authentication", e)
+            logger.error("biometrics", "Unexpected error enabling biometric authentication", e)
             _biometricState.value = BiometricState.Error(e)
             _biometricState.value = BiometricState.Idle
-            Result.failure(e)
+            Result.failure<Unit>(e)
         }
     }
     
@@ -192,7 +193,7 @@ class BiometricManager(
      */
     suspend fun disableBiometric(user: User): Result<Unit> {
         return try {
-            logger.info("Disabling biometric authentication for user: ${user.displayName}")
+            logger.info("biometrics", "Disabling biometric authentication for user: ${user.displayName}")
             
             _biometricState.value = BiometricState.Disabling
             
@@ -200,7 +201,7 @@ class BiometricManager(
             val result = platformBiometric.disableBiometric(user)
             
             result.onSuccess {
-                logger.info("Biometric authentication disabled successfully for user: ${user.displayName}")
+                logger.info("biometrics", "Biometric authentication disabled successfully for user: ${user.displayName}")
                 _biometricState.value = BiometricState.Idle
                 
                 // Dispatch success event
@@ -208,21 +209,21 @@ class BiometricManager(
                 
                 Result.success(Unit)
             }.onFailure { error ->
-                logger.error("Failed to disable biometric authentication", error)
+                logger.error("biometrics", "Failed to disable biometric authentication", error)
                 _biometricState.value = BiometricState.Error(error)
                 _biometricState.value = BiometricState.Idle
                 
                 // Dispatch failure event
                 eventBus.dispatch(AuthEvent.Biometric.BiometricDisableFailed(error))
                 
-                Result.failure(error)
+                Result.failure<Unit>(error)
             }
             
         } catch (e: Exception) {
-            logger.error("Unexpected error disabling biometric authentication", e)
+            logger.error("biometrics", "Unexpected error disabling biometric authentication", e)
             _biometricState.value = BiometricState.Error(e)
             _biometricState.value = BiometricState.Idle
-            Result.failure(e)
+            Result.failure<Unit>(e)
         }
     }
     

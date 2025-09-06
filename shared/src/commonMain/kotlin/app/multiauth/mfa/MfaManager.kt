@@ -3,7 +3,9 @@ package app.multiauth.mfa
 import app.multiauth.core.AuthEngine
 import app.multiauth.events.AuthEvent
 import app.multiauth.events.EventBus
+import app.multiauth.events.EventBusInstance
 import app.multiauth.models.User
+import app.multiauth.models.AuthError
 import app.multiauth.util.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -11,7 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.security.SecureRandom
+// Platform-specific implementation required
 import kotlin.math.pow
 
 /**
@@ -20,7 +22,7 @@ import kotlin.math.pow
  */
 class MfaManager(
     private val authEngine: AuthEngine,
-    private val eventBus: EventBus = EventBus.getInstance()
+    private val eventBus: EventBus = EventBusInstance()
 ) {
     
     private val logger = Logger.getLogger(this::class)
@@ -44,7 +46,7 @@ class MfaManager(
      */
     suspend fun enableMfa(user: User, method: MfaMethod): Result<Unit> {
         return try {
-            logger.info("Enabling MFA method ${method.name} for user: ${user.displayName}")
+            logger.info("mfa", "Enabling MFA method ${method.name} for user: ${user.displayName}")
             
             _mfaState.value = MfaState.Enabling(method)
             
@@ -61,20 +63,21 @@ class MfaManager(
                 // Dispatch success event
                 eventBus.dispatch(AuthEvent.Mfa.MfaMethodEnabled(user, method))
                 
-                logger.info("MFA method ${method.name} enabled successfully for user: ${user.displayName}")
+                logger.info("mfa", "MFA method ${method.name} enabled successfully for user: ${user.displayName}")
             }.onFailure { error ->
-                logger.error("Failed to enable MFA method ${method.name}", error)
+                logger.error("mfa", "Failed to enable MFA method ${method.name}", error)
                 _mfaState.value = MfaState.Error(error)
                 _mfaState.value = MfaState.Idle
                 
                 // Dispatch failure event
-                eventBus.dispatch(AuthEvent.Mfa.MfaMethodEnableFailed(user, method, error))
+                val authError = if (error is AuthError) error else AuthError.UnknownError(error.message ?: "MFA enable failed", error)
+                eventBus.dispatch(AuthEvent.Mfa.MfaMethodEnabledFailed(user, method, authError))
             }
             
             result
             
         } catch (e: Exception) {
-            logger.error("Unexpected error enabling MFA", e)
+            logger.error("mfa", "Unexpected error enabling MFA", e)
             _mfaState.value = MfaState.Error(e)
             _mfaState.value = MfaState.Idle
             Result.failure(e)
@@ -90,7 +93,7 @@ class MfaManager(
      */
     suspend fun disableMfa(user: User, method: MfaMethod): Result<Unit> {
         return try {
-            logger.info("Disabling MFA method ${method.name} for user: ${user.displayName}")
+            logger.info("mfa", "Disabling MFA method ${method.name} for user: ${user.displayName}")
             
             _mfaState.value = MfaState.Disabling(method)
             
@@ -107,20 +110,21 @@ class MfaManager(
                 // Dispatch success event
                 eventBus.dispatch(AuthEvent.Mfa.MfaMethodDisabled(user, method))
                 
-                logger.info("MFA method ${method.name} disabled successfully for user: ${user.displayName}")
+                logger.info("mfa", "MFA method ${method.name} disabled successfully for user: ${user.displayName}")
             }.onFailure { error ->
-                logger.error("Failed to disable MFA method ${method.name}", error)
+                logger.error("mfa", "Failed to disable MFA method ${method.name}", error)
                 _mfaState.value = MfaState.Error(error)
                 _mfaState.value = MfaState.Idle
                 
                 // Dispatch failure event
-                eventBus.dispatch(AuthEvent.Mfa.MfaMethodDisableFailed(user, method, error))
+                val authError = if (error is AuthError) error else AuthError.UnknownError(error.message ?: "MFA disable failed", error)
+                eventBus.dispatch(AuthEvent.Mfa.MfaMethodDisabledFailed(user, method, authError))
             }
             
             result
             
         } catch (e: Exception) {
-            logger.error("Unexpected error disabling MFA", e)
+            logger.error("mfa", "Unexpected error disabling MFA", e)
             _mfaState.value = MfaState.Error(e)
             _mfaState.value = MfaState.Idle
             Result.failure(e)
@@ -141,7 +145,7 @@ class MfaManager(
         code: String
     ): Result<Unit> {
         return try {
-            logger.info("Verifying MFA code for method ${method.name} and user: ${user.displayName}")
+            logger.info("mfa", "Verifying MFA code for method ${method.name} and user: ${user.displayName}")
             
             _mfaState.value = MfaState.Verifying(method)
             
@@ -157,20 +161,21 @@ class MfaManager(
                 // Dispatch success event
                 eventBus.dispatch(AuthEvent.Mfa.MfaVerificationCompleted(user, method))
                 
-                logger.info("MFA verification successful for method ${method.name} and user: ${user.displayName}")
+                logger.info("mfa", "MFA verification successful for method ${method.name} and user: ${user.displayName}")
             }.onFailure { error ->
-                logger.error("MFA verification failed for method ${method.name}", error)
+                logger.error("mfa", "MFA verification failed for method ${method.name}", error)
                 _mfaState.value = MfaState.Error(error)
                 _mfaState.value = MfaState.Idle
                 
                 // Dispatch failure event
-                eventBus.dispatch(AuthEvent.Mfa.MfaVerificationFailed(user, method, error))
+                val authError = if (error is AuthError) error else AuthError.UnknownError(error.message ?: "MFA verification failed", error)
+                eventBus.dispatch(AuthEvent.Mfa.MfaVerificationFailed(user, method, authError))
             }
             
             result
             
         } catch (e: Exception) {
-            logger.error("Unexpected error during MFA verification", e)
+            logger.error("mfa", "Unexpected error during MFA verification", e)
             _mfaState.value = MfaState.Error(e)
             _mfaState.value = MfaState.Idle
             Result.failure(e)
@@ -185,7 +190,7 @@ class MfaManager(
      */
     suspend fun generateBackupCodes(user: User): Result<List<String>> {
         return try {
-            logger.info("Generating new backup codes for user: ${user.displayName}")
+            logger.info("mfa", "Generating new backup codes for user: ${user.displayName}")
             
             _mfaState.value = MfaState.GeneratingBackupCodes
             
@@ -195,13 +200,13 @@ class MfaManager(
             _mfaState.value = MfaState.Idle
             
             // Dispatch success event
-            eventBus.dispatch(AuthEvent.Mfa.BackupCodesGenerated(user, codes))
+            eventBus.dispatch(AuthEvent.Mfa.MfaBackupCodesGenerated(user, codes))
             
-            logger.info("Backup codes generated successfully for user: ${user.displayName}")
+            logger.info("mfa", "Backup codes generated successfully for user: ${user.displayName}")
             Result.success(codes)
             
         } catch (e: Exception) {
-            logger.error("Failed to generate backup codes", e)
+            logger.error("mfa", "Failed to generate backup codes", e)
             _mfaState.value = MfaState.Error(e)
             _mfaState.value = MfaState.Idle
             Result.failure(e)
@@ -379,13 +384,13 @@ class MfaManager(
     }
     
     private fun generateSecureBackupCodes(): List<String> {
-        val random = SecureRandom()
         val codes = mutableListOf<String>()
+        val charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
         
         repeat(10) {
             val code = buildString {
                 repeat(8) {
-                    append("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[random.nextInt(36)])
+                    append(charset.random())
                 }
             }
             codes.add(code)

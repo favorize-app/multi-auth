@@ -1,5 +1,6 @@
 package app.multiauth.oauth.clients
 
+import app.multiauth.oauth.HttpClient
 import app.multiauth.oauth.OAuthClient
 import app.multiauth.oauth.OAuthConfig
 import app.multiauth.oauth.OAuthResult
@@ -10,8 +11,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * Real Google OAuth client implementation.
@@ -19,10 +18,10 @@ import kotlinx.serialization.json.jsonPrimitive
  */
 class GoogleOAuthClient(
     private val config: OAuthConfig,
-    private val httpClient: HttpClient
+    private val httpClient: HttpClient,
+    override val logger: Logger
 ) : OAuthClient {
-    
-    private val logger = Logger.getLogger(this::class)
+
     private val json = Json { ignoreUnknownKeys = true }
     
     companion object {
@@ -55,7 +54,7 @@ class GoogleOAuthClient(
         }
         
         val authUrl = "$AUTH_URL$params"
-        logger.debug("Generated Google OAuth authorization URL: $authUrl")
+        logger.debug("oath", "Generated Google OAuth authorization URL: $authUrl")
         return authUrl
     }
     
@@ -64,7 +63,7 @@ class GoogleOAuthClient(
         codeVerifier: String
     ): OAuthResult {
         return try {
-            logger.debug("Exchanging authorization code for tokens")
+            logger.debug("oath", "Exchanging authorization code for tokens")
             
             val tokenRequest = GoogleTokenRequest(
                 clientId = config.clientId,
@@ -75,16 +74,16 @@ class GoogleOAuthClient(
                 codeVerifier = codeVerifier
             )
             
-            val response = withContext(Dispatchers.IO) {
+            val response = withContext(Dispatchers.Default) {
                 httpClient.post(TOKEN_URL) {
                     setBody(tokenRequest.toFormData())
                     header("Content-Type", "application/x-www-form-urlencoded")
                 }
             }
             
-            if (response.status.isSuccess()) {
+            if (response.status.isSuccess) {
                 val tokenResponse = json.decodeFromString<GoogleTokenResponse>(response.bodyAsText())
-                logger.debug("Successfully exchanged code for tokens")
+                logger.debug("oath", "Successfully exchanged code for tokens")
                 
                 OAuthResult.Success(
                     accessToken = tokenResponse.accessToken,
@@ -95,19 +94,19 @@ class GoogleOAuthClient(
                 )
             } else {
                 val errorResponse = json.decodeFromString<GoogleErrorResponse>(response.bodyAsText())
-                logger.error("Failed to exchange code for tokens: ${errorResponse.error}")
+                logger.error("oath", "Failed to exchange code for tokens: ${errorResponse.error}")
                 
-                OAuthResult.Error(
-                    OAuthError.TokenExchangeFailed(
+                OAuthResult.Failure(
+                    OAuthError.fromOAuthResponse(
                         error = errorResponse.error,
                         errorDescription = errorResponse.errorDescription
                     )
                 )
             }
         } catch (e: Exception) {
-            logger.error("Exception during token exchange", e)
-            OAuthResult.Error(
-                OAuthError.TokenExchangeFailed(
+            logger.error("google", "Exception during token exchange", e)
+            OAuthResult.Failure(
+                OAuthError.fromOAuthResponse(
                     error = "token_exchange_failed",
                     errorDescription = e.message ?: "Unknown error"
                 )
@@ -117,7 +116,7 @@ class GoogleOAuthClient(
     
     override suspend fun refreshAccessToken(refreshToken: String): OAuthResult {
         return try {
-            logger.debug("Refreshing access token")
+            logger.debug("oath", "Refreshing access token")
             
             val refreshRequest = GoogleRefreshRequest(
                 clientId = config.clientId,
@@ -126,16 +125,16 @@ class GoogleOAuthClient(
                 grantType = GRANT_TYPE_REFRESH
             )
             
-            val response = withContext(Dispatchers.IO) {
+            val response = withContext(Dispatchers.Default) {
                 httpClient.post(TOKEN_URL) {
                     setBody(refreshRequest.toFormData())
                     header("Content-Type", "application/x-www-form-urlencoded")
                 }
             }
             
-            if (response.status.isSuccess()) {
+            if (response.status.isSuccess) {
                 val tokenResponse = json.decodeFromString<GoogleTokenResponse>(response.bodyAsText())
-                logger.debug("Successfully refreshed access token")
+                logger.debug("oath", "Successfully refreshed access token")
                 
                 OAuthResult.Success(
                     accessToken = tokenResponse.accessToken,
@@ -146,21 +145,21 @@ class GoogleOAuthClient(
                 )
             } else {
                 val errorResponse = json.decodeFromString<GoogleErrorResponse>(response.bodyAsText())
-                logger.error("Failed to refresh access token: ${errorResponse.error}")
+                logger.error("oath", "Failed to refresh access token: ${errorResponse.error}")
                 
-                OAuthResult.Error(
-                    OAuthError.TokenRefreshFailed(
-                        error = errorResponse.error,
-                        errorDescription = errorResponse.errorDescription
+                OAuthResult.Failure(
+                    OAuthError.networkError(
+                        message = "Token refresh failed: ${errorResponse.error} - ${errorResponse.errorDescription}",
+                        cause = null
                     )
                 )
             }
         } catch (e: Exception) {
-            logger.error("Exception during token refresh", e)
-            OAuthResult.Error(
-                OAuthError.TokenRefreshFailed(
-                    error = "token_refresh_failed",
-                    errorDescription = e.message ?: "Unknown error"
+            logger.error("google", "Exception during token refresh", e)
+            OAuthResult.Failure(
+                OAuthError.networkError(
+                    message = e.message ?: "Unknown error during token refresh",
+                    cause = e
                 )
             )
         }
@@ -168,45 +167,51 @@ class GoogleOAuthClient(
     
     override suspend fun getUserInfo(accessToken: String): OAuthResult {
         return try {
-            logger.debug("Fetching user info from Google")
+            logger.debug("oath", "Fetching user info from Google")
             
-            val response = withContext(Dispatchers.IO) {
+            val response = withContext(Dispatchers.Default) {
                 httpClient.get(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                 }
             }
             
-            if (response.status.isSuccess()) {
+            if (response.status.isSuccess) {
                 val userInfo = json.decodeFromString<GoogleUserInfo>(response.bodyAsText())
-                logger.debug("Successfully fetched user info: ${userInfo.email}")
+                logger.debug("oath", "Successfully fetched user info: ${userInfo.email}")
                 
                 OAuthResult.Success(
+                    accessToken = accessToken,
+                    refreshToken = null,
+                    expiresIn = null,
                     userInfo = OAuthUserInfo(
                         id = userInfo.id,
                         email = userInfo.email,
                         name = userInfo.name,
-                        firstName = userInfo.givenName,
-                        lastName = userInfo.familyName,
+                        givenName = userInfo.givenName,
+                        familyName = userInfo.familyName,
+                        displayName = userInfo.name,
                         picture = userInfo.picture,
                         locale = userInfo.locale,
-                        verifiedEmail = userInfo.verifiedEmail
+                        emailVerified = userInfo.verifiedEmail,
+                        provider = "google",
+                        providerId = userInfo.id
                     )
                 )
             } else {
                 val errorResponse = json.decodeFromString<GoogleErrorResponse>(response.bodyAsText())
-                logger.error("Failed to fetch user info: ${errorResponse.error}")
+                logger.error("oath", "Failed to fetch user info: ${errorResponse.error}")
                 
-                OAuthResult.Error(
-                    OAuthError.UserInfoFetchFailed(
+                OAuthResult.Failure(
+                    OAuthError.fromOAuthResponse(
                         error = errorResponse.error,
                         errorDescription = errorResponse.errorDescription
                     )
                 )
             }
         } catch (e: Exception) {
-            logger.error("Exception during user info fetch", e)
-            OAuthResult.Error(
-                OAuthError.UserInfoFetchFailed(
+            logger.error("google", "Exception during user info fetch", e)
+            OAuthResult.Failure(
+                OAuthError.fromOAuthResponse(
                     error = "user_info_fetch_failed",
                     errorDescription = e.message ?: "Unknown error"
                 )
@@ -216,45 +221,45 @@ class GoogleOAuthClient(
     
     override suspend fun revokeToken(token: String): Boolean {
         return try {
-            logger.debug("Revoking Google OAuth token")
+            logger.debug("oath", "Revoking Google OAuth token")
             
-            val response = withContext(Dispatchers.IO) {
+            val response = withContext(Dispatchers.Default) {
                 httpClient.post(REVOKE_URL) {
                     setBody("token=$token")
                     header("Content-Type", "application/x-www-form-urlencoded")
                 }
             }
             
-            val success = response.status.isSuccess()
+            val success = response.status.isSuccess
             if (success) {
-                logger.debug("Successfully revoked Google OAuth token")
+                logger.debug("oath", "Successfully revoked Google OAuth token")
             } else {
-                logger.warn("Failed to revoke Google OAuth token: ${response.status}")
+                logger.warn("google", "Failed to revoke Google OAuth token: ${response.status}")
             }
             
             success
         } catch (e: Exception) {
-            logger.error("Exception during token revocation", e)
+            logger.error("google", "Exception during token revocation", e)
             false
         }
     }
     
     override suspend fun validateToken(accessToken: String): Boolean {
         return try {
-            logger.debug("Validating Google OAuth token")
+            logger.debug("oath", "Validating Google OAuth token")
             
-            val response = withContext(Dispatchers.IO) {
+            val response = withContext(Dispatchers.Default) {
                 httpClient.get(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                 }
             }
             
-            val isValid = response.status.isSuccess()
-            logger.debug("Google OAuth token validation result: $isValid")
+            val isValid = response.status.isSuccess
+            logger.debug("oath", "Google OAuth token validation result: $isValid")
             
             isValid
         } catch (e: Exception) {
-            logger.error("Exception during token validation", e)
+            logger.error("google", "Exception during token validation", e)
             false
         }
     }

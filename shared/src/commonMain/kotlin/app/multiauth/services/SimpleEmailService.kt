@@ -1,5 +1,7 @@
 package app.multiauth.services
 
+import kotlinx.datetime.Instant
+import kotlinx.datetime.Clock
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -9,7 +11,12 @@ import kotlinx.serialization.json.Json
  * Logs emails to console and can optionally save them to files.
  */
 class SimpleEmailService(
-    private val config: EmailConfig = EmailConfig()
+    private val config: EmailConfig = EmailConfig(
+        provider = EmailProvider.SMTP,
+        apiKey = "test-key",
+        fromEmail = "noreply@example.com",
+        fromName = "Test App"
+    )
 ) : EmailService {
     
     private val logger = Logger.getLogger(this::class)
@@ -19,14 +26,14 @@ class SimpleEmailService(
     private val emailQueue = mutableListOf<QueuedEmail>()
     private val deliveryStatuses = mutableMapOf<String, EmailDeliveryStatus>()
     
-    override suspend fun initialize(): Boolean {
+    override suspend fun initialize(config: EmailConfig): Boolean {
         return try {
-            logger.info("Initializing Simple Email Service")
+            logger.info("SimpleEmailService", "Initializing Simple Email Service")
             isInitialized = true
-            logger.info("Simple Email Service initialized successfully")
+            logger.info("SimpleEmailService", "Simple Email Service initialized successfully")
             true
         } catch (e: Exception) {
-            logger.error("Failed to initialize Simple Email Service: ${e.message}")
+            logger.error("SimpleEmailService", "Failed to initialize Simple Email Service: ${e.message}")
             false
         }
     }
@@ -46,7 +53,7 @@ class SimpleEmailService(
             metadata = mapOf(
                 "userId" to userId,
                 "verificationCode" to verificationCode,
-                "template" to (template?.id ?: "default")
+                "template" to (template?.name ?: "default")
             )
         )
     }
@@ -66,7 +73,7 @@ class SimpleEmailService(
             metadata = mapOf(
                 "userId" to userId,
                 "resetToken" to resetToken,
-                "template" to (template?.id ?: "default")
+                "template" to (template?.name ?: "default")
             )
         )
     }
@@ -86,7 +93,7 @@ class SimpleEmailService(
             metadata = mapOf(
                 "userId" to userId,
                 "displayName" to displayName,
-                "template" to (template?.id ?: "default")
+                "template" to (template?.name ?: "default")
             )
         )
     }
@@ -108,7 +115,7 @@ class SimpleEmailService(
                 "userId" to userId,
                 "alertType" to alertType.name,
                 "alertDetails" to alertDetails,
-                "template" to (template?.id ?: "default")
+                "template" to (template?.name ?: "default")
             )
         )
     }
@@ -128,24 +135,41 @@ class SimpleEmailService(
         )
     }
     
-    override suspend fun getDeliveryStatus(emailId: String): EmailDeliveryStatus? {
-        return deliveryStatuses[emailId]
+    override suspend fun getDeliveryStatus(emailId: String): EmailDeliveryStatus {
+        return deliveryStatuses[emailId] ?: EmailDeliveryStatus(
+            emailId = emailId,
+            status = DeliveryStatus.PENDING,
+            sentAt = Clock.System.now().toEpochMilliseconds(),
+            deliveredAt = null,
+            openedAt = null,
+            clickedAt = null,
+            bouncedAt = null,
+            bounceReason = null,
+            recipientEmail = "",
+            subject = "Unknown",
+            providerMessageId = null
+        )
     }
     
     override suspend fun getEmailStats(): EmailStats {
         val totalSent = emailQueue.size
         val delivered = deliveryStatuses.values.count { it.status == DeliveryStatus.DELIVERED }
         val failed = deliveryStatuses.values.count { it.status == DeliveryStatus.FAILED }
-        val pending = totalSent - delivered - failed
-        
+
         return EmailStats(
-            totalEmailsSent = totalSent.toLong(),
-            deliveredEmails = delivered.toLong(),
-            failedEmails = failed.toLong(),
-            pendingEmails = pending.toLong(),
+            totalSent = totalSent.toLong(),
+            totalDelivered = delivered.toLong(),
+            totalFailed = failed.toLong(),
             deliveryRate = if (totalSent > 0) (delivered.toDouble() / totalSent) * 100 else 0.0,
-            averageDeliveryTime = calculateAverageDeliveryTime(),
-            emailsByType = calculateEmailsByType()
+            averageDeliveryTimeMs = calculateAverageDeliveryTime(),
+            totalOpened = deliveryStatuses.values.count { it.status == DeliveryStatus.OPENED }.toLong(),
+            totalClicked = deliveryStatuses.values.count { it.status == DeliveryStatus.CLICKED }.toLong(),
+            totalBounced = deliveryStatuses.values.count { it.status == DeliveryStatus.BOUNCED }.toLong(),
+            openRate = if (delivered > 0) (deliveryStatuses.values.count { it.status == DeliveryStatus.OPENED }.toDouble() / delivered) * 100 else 0.0,
+            clickRate = if (delivered > 0) (deliveryStatuses.values.count { it.status == DeliveryStatus.CLICKED }.toDouble() / delivered) * 100 else 0.0,
+            bounceRate = if (totalSent > 0) (deliveryStatuses.values.count { it.status == DeliveryStatus.BOUNCED }.toDouble() / totalSent) * 100 else 0.0,
+            lastSentAt = if (emailQueue.isNotEmpty()) emailQueue.maxByOrNull { it.timestamp }?.timestamp else null,
+            lastDeliveredAt = deliveryStatuses.values.maxByOrNull { it.deliveredAt ?: 0L }?.deliveredAt
         )
     }
     
@@ -153,18 +177,16 @@ class SimpleEmailService(
     
     override suspend fun getServiceInfo(): EmailServiceInfo {
         return EmailServiceInfo(
-            provider = EmailProvider.SIMPLE,
+            provider = EmailProvider.SMTP,
             isInitialized = isInitialized,
+            fromEmail = config.fromEmail,
+            fromName = config.fromName,
             supportsTemplates = true,
-            supportsAttachments = false,
-            maxRecipients = 1,
-            rateLimit = null,
-            features = listOf(
-                "Email logging",
-                "Template support",
-                "Delivery tracking",
-                "File output"
-            )
+            supportsTracking = false,
+            supportsAnalytics = false,
+            maxRetries = config.maxRetries,
+            timeoutMs = config.timeoutMs,
+            lastTestAt = null
         )
     }
     
@@ -176,15 +198,16 @@ class SimpleEmailService(
         metadata: Map<String, String>
     ): EmailSendResult {
         if (!isInitialized) {
-            return EmailSendResult(
-                success = false,
-                emailId = null,
-                error = "Email service not initialized"
+            return EmailSendResult.Failure(
+                error = "Email service not initialized",
+                errorCode = "NOT_INITIALIZED",
+                retryable = false,
+                attemptedAt = Clock.System.now().toEpochMilliseconds()
             )
         }
         
         val emailId = generateEmailId()
-        val timestamp = System.currentTimeMillis()
+        val timestamp = Clock.System.now().epochSeconds
         
         val email = QueuedEmail(
             id = emailId,
@@ -203,47 +226,55 @@ class SimpleEmailService(
             // Log email to console
             logEmailToConsole(email)
             
-            // Save email to file if configured
-            if (config.saveToFile) {
-                saveEmailToFile(email)
-            }
+            // TODO: Add file saving functionality if needed
             
             // Mark as delivered (since this is a simple service)
             val deliveryStatus = EmailDeliveryStatus(
                 emailId = emailId,
                 status = DeliveryStatus.DELIVERED,
+                sentAt = timestamp,
                 deliveredAt = timestamp,
-                attempts = 1,
-                lastAttemptAt = timestamp,
-                errorMessage = null
+                openedAt = null,
+                clickedAt = null,
+                bouncedAt = null,
+                bounceReason = null,
+                recipientEmail = to,
+                subject = subject,
+                providerMessageId = null
             )
             deliveryStatuses[emailId] = deliveryStatus
             
-            logger.info("Email sent successfully: $emailId to $to")
+            logger.info("services", "Email sent successfully: $emailId to $to")
             
-            EmailSendResult(
-                success = true,
+            return EmailSendResult.Success(
                 emailId = emailId,
-                error = null
+                providerMessageId = null,
+                sentAt = Clock.System.now().toEpochMilliseconds()
             )
             
         } catch (e: Exception) {
-            logger.error("Failed to send email: ${e.message}")
+            logger.error("services", "Failed to send email: ${e.message}")
             
             val deliveryStatus = EmailDeliveryStatus(
                 emailId = emailId,
                 status = DeliveryStatus.FAILED,
+                sentAt = timestamp,
                 deliveredAt = null,
-                attempts = 1,
-                lastAttemptAt = timestamp,
-                errorMessage = e.message
+                openedAt = null,
+                clickedAt = null,
+                bouncedAt = null,
+                bounceReason = e.message,
+                recipientEmail = to,
+                subject = subject,
+                providerMessageId = null
             )
             deliveryStatuses[emailId] = deliveryStatus
             
-            EmailSendResult(
-                success = false,
-                emailId = emailId,
-                error = e.message
+            return EmailSendResult.Failure(
+                error = e.message ?: "Unknown error",
+                errorCode = "SEND_FAILED", 
+                retryable = true,
+                attemptedAt = Clock.System.now().toEpochMilliseconds()
             )
         }
     }
@@ -277,7 +308,7 @@ class SimpleEmailService(
             <body>
                 <h2>Reset Your Password</h2>
                 <p>Click the link below to reset your password:</p>
-                <p><a href="${config.baseUrl}/reset-password?token=$resetToken">Reset Password</a></p>
+                <p><a href="https://yourapp.com/reset-password?token=$resetToken">Reset Password</a></p>
                 <p>This link will expire in 1 hour.</p>
                 <p>If you didn't request a password reset, please ignore this email.</p>
             </body>
@@ -318,7 +349,7 @@ class SimpleEmailService(
                 <h2>Security Alert: ${alertType.displayName}</h2>
                 <p><strong>Alert Type:</strong> ${alertType.displayName}</p>
                 <p><strong>Details:</strong> $alertDetails</p>
-                <p><strong>Time:</strong> ${java.time.Instant.now()}</p>
+                <p><strong>Time:</strong> ${Clock.System.now()}</p>
                 <p>If this activity was not authorized by you, please contact support immediately.</p>
             </body>
             </html>
@@ -328,64 +359,51 @@ class SimpleEmailService(
     }
     
     private fun applyTemplate(template: EmailTemplate, variables: EmailTemplateVariables?): String {
-        var body = template.htmlBody
+        var body = template.htmlContent
         
-        variables?.variables?.forEach { (key, value) ->
-            body = body.replace("{{$key}}", value)
+        // Apply variables if provided
+        variables?.let { vars ->
+            body = body.replace("{{userId}}", vars.userId)
+            body = body.replace("{{username}}", vars.username ?: "")
+            body = body.replace("{{email}}", vars.email)
+            vars.verificationCode?.let { body = body.replace("{{verificationCode}}", it) }
+            vars.resetToken?.let { body = body.replace("{{resetToken}}", it) }
+            vars.appName?.let { body = body.replace("{{appName}}", it) }
+            vars.supportEmail?.let { body = body.replace("{{supportEmail}}", it) }
         }
         
         return body
     }
     
     private fun logEmailToConsole(email: QueuedEmail) {
-        logger.info("""
+        logger.info("services", """
             ===== EMAIL SENT =====
             ID: ${email.id}
             To: ${email.to}
             Subject: ${email.subject}
             Type: ${email.type}
-            Timestamp: ${java.time.Instant.ofEpochMilli(email.timestamp)}
+            Timestamp: ${Instant.fromEpochMilliseconds(email.timestamp)}
             Body: ${email.body.take(200)}${if (email.body.length > 200) "..." else ""}
             =====================
         """.trimIndent())
     }
     
     private fun saveEmailToFile(email: QueuedEmail) {
-        try {
-            val emailDir = java.io.File("emails")
-            if (!emailDir.exists()) {
-                emailDir.mkdirs()
-            }
-            
-            val emailFile = java.io.File(emailDir, "${email.id}.json")
-            val emailData = EmailFileData(
-                id = email.id,
-                to = email.to,
-                subject = email.subject,
-                body = email.body,
-                type = email.type.name,
-                metadata = email.metadata,
-                timestamp = email.timestamp
-            )
-            
-            emailFile.writeText(json.encodeToString(EmailFileData.serializer(), emailData))
-            logger.debug("Email saved to file: ${emailFile.absolutePath}")
-            
-        } catch (e: Exception) {
-            logger.error("Failed to save email to file: ${e.message}")
-        }
+        // File saving is not available in common code
+        // This would need to be implemented in platform-specific code
+        logger.debug("services", "Email file saving not implemented in common code")
     }
     
     private fun generateEmailId(): String {
-        return "email_${System.currentTimeMillis()}_${(0..9999).random()}"
+        return "email_${Clock.System.now().epochSeconds}_${(0..9999).random()}"
     }
     
-    private fun calculateAverageDeliveryTime(): Double {
+    private fun calculateAverageDeliveryTime(): Long {
         val deliveredEmails = deliveryStatuses.values.filter { it.status == DeliveryStatus.DELIVERED }
-        if (deliveredEmails.isEmpty()) return 0.0
+        if (deliveredEmails.isEmpty()) return 0
         
-        val totalTime = deliveredEmails.sumOf { it.deliveredAt!! - it.timestamp }
-        return totalTime.toDouble() / deliveredEmails.size
+        val totalTime = deliveredEmails.sumOf { it.deliveredAt!! - it.sentAt }
+        return totalTime / deliveredEmails.size
     }
     
     private fun calculateEmailsByType(): Map<String, Long> {

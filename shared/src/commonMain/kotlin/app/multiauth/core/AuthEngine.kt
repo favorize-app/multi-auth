@@ -1,18 +1,17 @@
 package app.multiauth.core
 
+import kotlinx.datetime.Clock
 import app.multiauth.events.*
 import app.multiauth.models.*
 import app.multiauth.providers.*
 import app.multiauth.util.Logger
-import app.multiauth.models.OAuthProvider
+import app.multiauth.oauth.OAuthProvider
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
-import kotlinx.datetime.plus
-import kotlinx.datetime.DateTimeUnit
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * Main authentication engine that orchestrates all authentication operations.
@@ -22,7 +21,7 @@ class AuthEngine private constructor(
     private val emailProvider: EmailProvider,
     private val smsProvider: SmsProvider,
     private val oauthProvider: OAuthProvider,
-    private val eventBus: EventBus = EventBus.getInstance()
+    private val eventBus: EventBus = EventBusInstance()
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     
@@ -138,7 +137,7 @@ class AuthEngine private constructor(
         
         return try {
             _isLoading.value = true
-            eventBus.dispatch(AuthEvent.OAuth.OAuthSignInRequested(OAuthProvider.GOOGLE), "AuthEngine")
+            eventBus.dispatch(AuthEvent.OAuth.OAuthFlowStarted(OAuthProvider.GOOGLE, "state"), "AuthEngine")
             
             // TODO: Implement actual OAuth flow
             // For now, simulate successful OAuth authentication
@@ -149,14 +148,14 @@ class AuthEngine private constructor(
             val tokens = createMockTokens(user.id)
             
             _authState.value = AuthState.Authenticated(user, tokens)
-            eventBus.dispatch(AuthEvent.OAuth.OAuthSignInCompleted(user, tokens), "AuthEngine")
+            eventBus.dispatch(AuthEvent.OAuth.OAuthFlowCompleted(provider, user, tokens), "AuthEngine")
             
             _isLoading.value = false
             AuthResult.Success(user)
             
         } catch (e: Exception) {
             val error = AuthError.UnknownError("OAuth sign in failed: ${e.message}", e)
-            eventBus.dispatch(AuthEvent.OAuth.OAuthSignInFailed(error), "AuthEngine")
+            eventBus.dispatch(AuthEvent.OAuth.OAuthFlowFailed(provider, error), "AuthEngine")
             _authState.value = AuthState.Error(error, _authState.value)
             _isLoading.value = false
             AuthResult.Failure(error)
@@ -331,7 +330,7 @@ class AuthEngine private constructor(
     
     private fun createMockTokens(userId: String): TokenPair {
         val now = Clock.System.now()
-        val expiresAt = Clock.System.now().plus(30, DateTimeUnit.MINUTE) // 30 minutes
+        val expiresAt = Clock.System.now() + 30.minutes // 30 minutes
         
         return TokenPair(
             accessToken = "access_token_${userId}_${now.toEpochMilliseconds()}",

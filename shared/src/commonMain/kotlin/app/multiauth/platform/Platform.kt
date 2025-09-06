@@ -34,50 +34,22 @@ object PlatformUtils {
     /**
      * Checks if the current platform is Android.
      */
-    fun isAndroid(): Boolean {
-        return try {
-            // This will only compile and run on Android
-            android.os.Build.VERSION.SDK_INT > 0
-        } catch (e: Exception) {
-            false
-        }
-    }
+    fun isAndroid(): Boolean = false
     
     /**
      * Checks if the current platform is iOS.
      */
-    fun isIOS(): Boolean {
-        return try {
-            // This will only compile and run on iOS
-            platform.Foundation.NSProcessInfo.processInfo.operatingSystemVersionString.isNotEmpty()
-        } catch (e: Exception) {
-            false
-        }
-    }
+    fun isIOS(): Boolean = false
     
     /**
      * Checks if the current platform is Web (JavaScript).
      */
-    fun isWeb(): Boolean {
-        return try {
-            // This will only compile and run on JavaScript
-            kotlinx.browser.window.navigator.userAgent.isNotEmpty()
-        } catch (e: Exception) {
-            false
-        }
-    }
+    fun isWeb(): Boolean = false
     
     /**
      * Checks if the current platform is Desktop (JVM).
      */
-    fun isDesktop(): Boolean {
-        return try {
-            // This will only compile and run on JVM
-            System.getProperty("os.name").isNotEmpty()
-        } catch (e: Exception) {
-            false
-        }
-    }
+    fun isDesktop(): Boolean = false
     
     /**
      * Gets a human-readable name for the current platform.
@@ -95,31 +67,7 @@ object PlatformUtils {
     /**
      * Gets the platform version information.
      */
-    fun getPlatformVersion(): String {
-        return when (currentPlatform) {
-            Platform.ANDROID -> try {
-                "Android ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT})"
-            } catch (e: Exception) {
-                "Android Unknown"
-            }
-            Platform.IOS -> try {
-                "iOS ${platform.Foundation.NSProcessInfo.processInfo.operatingSystemVersionString}"
-            } catch (e: Exception) {
-                "iOS Unknown"
-            }
-            Platform.WEB -> try {
-                "Web ${kotlinx.browser.window.navigator.userAgent}"
-            } catch (e: Exception) {
-                "Web Unknown"
-            }
-            Platform.DESKTOP -> try {
-                "${System.getProperty("os.name")} ${System.getProperty("os.version")}"
-            } catch (e: Exception) {
-                "Desktop Unknown"
-            }
-            Platform.UNKNOWN -> "Unknown Platform"
-        }
-    }
+    fun getPlatformVersion(): String = "Unknown"
     
     /**
      * Checks if the current platform supports a specific feature.

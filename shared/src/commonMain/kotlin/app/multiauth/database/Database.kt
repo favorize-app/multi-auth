@@ -4,7 +4,6 @@ import app.multiauth.models.User
 import app.multiauth.models.OAuthAccount
 import app.multiauth.models.Session
 import app.multiauth.models.AuditLog
-import app.multiauth.util.Logger
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -278,6 +277,22 @@ interface Database {
      * @return true if optimization successful, false otherwise
      */
     suspend fun optimize(): Boolean
+    
+    /**
+     * Executes a raw SQL query and returns the results.
+     * 
+     * @param query The SQL query to execute
+     * @return List of rows, where each row is a map of column names to values
+     */
+    suspend fun executeQuery(query: String): List<Map<String, String>>
+    
+    /**
+     * Executes a raw SQL update/insert/delete statement.
+     * 
+     * @param query The SQL statement to execute
+     * @return Number of affected rows
+     */
+    suspend fun executeUpdate(query: String): Int
 }
 
 /**

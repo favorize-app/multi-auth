@@ -1,5 +1,6 @@
 package app.multiauth.oauth.clients
 
+import app.multiauth.oauth.HttpClient
 import app.multiauth.oauth.OAuthClient
 import app.multiauth.oauth.OAuthConfig
 import app.multiauth.oauth.OAuthResult
@@ -17,10 +18,9 @@ import kotlinx.serialization.json.Json
  */
 class DiscordOAuthClient(
     private val config: OAuthConfig,
-    private val httpClient: HttpClient
+    private val httpClient: HttpClient,
+    override val logger: Logger
 ) : OAuthClient {
-    
-    private val logger = Logger.getLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
     
     companion object {
@@ -51,7 +51,7 @@ class DiscordOAuthClient(
         }
         
         val authUrl = "$AUTH_URL$params"
-        logger.debug("Generated Discord OAuth authorization URL: $authUrl")
+        logger.debug("oath", "Generated Discord OAuth authorization URL: $authUrl")
         return authUrl
     }
     
@@ -60,7 +60,7 @@ class DiscordOAuthClient(
         codeVerifier: String
     ): OAuthResult {
         return try {
-            logger.debug("Exchanging authorization code for Discord tokens")
+            logger.debug("oath", "Exchanging authorization code for Discord tokens")
             
             val tokenRequest = DiscordTokenRequest(
                 clientId = config.clientId,
@@ -71,16 +71,16 @@ class DiscordOAuthClient(
                 codeVerifier = codeVerifier
             )
             
-            val response = withContext(Dispatchers.IO) {
+            val response = withContext(Dispatchers.Default) {
                 httpClient.post(TOKEN_URL) {
                     setBody(tokenRequest.toFormData())
                     header("Content-Type", "application/x-www-form-urlencoded")
                 }
             }
             
-            if (response.status.isSuccess()) {
+            if (response.status.isSuccess) {
                 val tokenResponse = json.decodeFromString<DiscordTokenResponse>(response.bodyAsText())
-                logger.debug("Successfully exchanged code for Discord tokens")
+                logger.debug("oath", "Successfully exchanged code for Discord tokens")
                 
                 OAuthResult.Success(
                     accessToken = tokenResponse.accessToken,
@@ -91,21 +91,21 @@ class DiscordOAuthClient(
                 )
             } else {
                 val errorResponse = json.decodeFromString<DiscordErrorResponse>(response.bodyAsText())
-                logger.error("Failed to exchange code for Discord tokens: ${errorResponse.error}")
+                logger.error("oath", "Failed to exchange code for Discord tokens: ${errorResponse.error}")
                 
-                OAuthResult.Error(
-                    OAuthError.TokenExchangeFailed(
+                OAuthResult.Failure(
+                    OAuthError.fromOAuthResponse(
                         error = errorResponse.error,
                         errorDescription = errorResponse.errorDescription
                     )
                 )
             }
         } catch (e: Exception) {
-            logger.error("Exception during Discord token exchange", e)
-            OAuthResult.Error(
-                OAuthError.TokenExchangeFailed(
-                    error = "token_exchange_failed",
-                    errorDescription = e.message ?: "Unknown error"
+            logger.error("discord", "Exception during Discord token exchange", e)
+            OAuthResult.Failure(
+                OAuthError.networkError(
+                    message = e.message ?: "Unknown error during token exchange",
+                    cause = e
                 )
             )
         }
@@ -113,7 +113,7 @@ class DiscordOAuthClient(
     
     override suspend fun refreshAccessToken(refreshToken: String): OAuthResult {
         return try {
-            logger.debug("Refreshing Discord access token")
+            logger.debug("oath", "Refreshing Discord access token")
             
             val refreshRequest = DiscordRefreshRequest(
                 clientId = config.clientId,
@@ -122,16 +122,16 @@ class DiscordOAuthClient(
                 grantType = GRANT_TYPE_REFRESH
             )
             
-            val response = withContext(Dispatchers.IO) {
+            val response = withContext(Dispatchers.Default) {
                 httpClient.post(TOKEN_URL) {
                     setBody(refreshRequest.toFormData())
                     header("Content-Type", "application/x-www-form-urlencoded")
                 }
             }
             
-            if (response.status.isSuccess()) {
+            if (response.status.isSuccess) {
                 val tokenResponse = json.decodeFromString<DiscordTokenResponse>(response.bodyAsText())
-                logger.debug("Successfully refreshed Discord access token")
+                logger.debug("oath", "Successfully refreshed Discord access token")
                 
                 OAuthResult.Success(
                     accessToken = tokenResponse.accessToken,
@@ -142,21 +142,21 @@ class DiscordOAuthClient(
                 )
             } else {
                 val errorResponse = json.decodeFromString<DiscordErrorResponse>(response.bodyAsText())
-                logger.error("Failed to refresh Discord access token: ${errorResponse.error}")
+                logger.error("oath", "Failed to refresh Discord access token: ${errorResponse.error}")
                 
-                OAuthResult.Error(
-                    OAuthError.TokenRefreshFailed(
+                OAuthResult.Failure(
+                    OAuthError.fromOAuthResponse(
                         error = errorResponse.error,
                         errorDescription = errorResponse.errorDescription
                     )
                 )
             }
         } catch (e: Exception) {
-            logger.error("Exception during Discord token refresh", e)
-            OAuthResult.Error(
-                OAuthError.TokenRefreshFailed(
-                    error = "token_refresh_failed",
-                    errorDescription = e.message ?: "Unknown error"
+            logger.error("discord", "Exception during Discord token refresh", e)
+            OAuthResult.Failure(
+                OAuthError.networkError(
+                    message = e.message ?: "Unknown error during token refresh",
+                    cause = e
                 )
             )
         }
@@ -164,47 +164,53 @@ class DiscordOAuthClient(
     
     override suspend fun getUserInfo(accessToken: String): OAuthResult {
         return try {
-            logger.debug("Fetching Discord user info")
+            logger.debug("oath", "Fetching Discord user info")
             
-            val response = withContext(Dispatchers.IO) {
+            val response = withContext(Dispatchers.Default) {
                 httpClient.get(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                 }
             }
             
-            if (response.status.isSuccess()) {
+            if (response.status.isSuccess) {
                 val userInfo = json.decodeFromString<DiscordUserInfo>(response.bodyAsText())
-                logger.debug("Successfully fetched Discord user info: ${userInfo.username}")
+                logger.debug("oath", "Successfully fetched Discord user info: ${userInfo.username}")
                 
                 OAuthResult.Success(
+                    accessToken = accessToken,
+                    refreshToken = null,
+                    expiresIn = null,
                     userInfo = OAuthUserInfo(
                         id = userInfo.id,
                         email = userInfo.email,
                         name = userInfo.username,
-                        firstName = null, // Discord doesn't provide first/last name
-                        lastName = null,
+                        givenName = null, // Discord doesn't provide first/last name
+                        familyName = null,
+                        displayName = userInfo.username,
                         picture = "https://cdn.discordapp.com/avatars/${userInfo.id}/${userInfo.avatar}.png",
                         locale = userInfo.locale,
-                        verifiedEmail = userInfo.verified
+                        emailVerified = userInfo.verified,
+                        provider = "discord",
+                        providerId = userInfo.id
                     )
                 )
             } else {
                 val errorResponse = json.decodeFromString<DiscordErrorResponse>(response.bodyAsText())
-                logger.error("Failed to fetch Discord user info: ${errorResponse.error}")
+                logger.error("oath", "Failed to fetch Discord user info: ${errorResponse.error}")
                 
-                OAuthResult.Error(
-                    OAuthError.UserInfoFetchFailed(
+                OAuthResult.Failure(
+                    OAuthError.fromOAuthResponse(
                         error = errorResponse.error,
                         errorDescription = errorResponse.errorDescription
                     )
                 )
             }
         } catch (e: Exception) {
-            logger.error("Exception during Discord user info fetch", e)
-            OAuthResult.Error(
-                OAuthError.UserInfoFetchFailed(
-                    error = "user_info_fetch_failed",
-                    errorDescription = e.message ?: "Unknown error"
+            logger.error("discord", "Exception during Discord user info fetch", e)
+            OAuthResult.Failure(
+                OAuthError.networkError(
+                    message = e.message ?: "Unknown error during user info fetch",
+                    cause = e
                 )
             )
         }
@@ -212,45 +218,45 @@ class DiscordOAuthClient(
     
     override suspend fun revokeToken(token: String): Boolean {
         return try {
-            logger.debug("Revoking Discord OAuth token")
+            logger.debug("oath", "Revoking Discord OAuth token")
             
-            val response = withContext(Dispatchers.IO) {
+            val response = withContext(Dispatchers.Default) {
                 httpClient.post(REVOKE_URL) {
                     setBody("token=$token")
                     header("Content-Type", "application/x-www-form-urlencoded")
                 }
             }
             
-            val success = response.status.isSuccess()
+            val success = response.status.isSuccess
             if (success) {
-                logger.debug("Successfully revoked Discord OAuth token")
+                logger.debug("oath", "Successfully revoked Discord OAuth token")
             } else {
-                logger.warn("Failed to revoke Discord OAuth token: ${response.status}")
+                logger.warn("discord", "Failed to revoke Discord OAuth token: ${response.status}")
             }
             
             success
         } catch (e: Exception) {
-            logger.error("Exception during Discord token revocation", e)
+            logger.error("discord", "Exception during Discord token revocation", e)
             false
         }
     }
     
     override suspend fun validateToken(accessToken: String): Boolean {
         return try {
-            logger.debug("Validating Discord OAuth token")
+            logger.debug("oath", "Validating Discord OAuth token")
             
-            val response = withContext(Dispatchers.IO) {
+            val response = withContext(Dispatchers.Default) {
                 httpClient.get(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                 }
             }
             
-            val isValid = response.status.isSuccess()
-            logger.debug("Discord OAuth token validation result: $isValid")
+            val isValid = response.status.isSuccess
+            logger.debug("oath", "Discord OAuth token validation result: $isValid")
             
             isValid
         } catch (e: Exception) {
-            logger.error("Exception during Discord token validation", e)
+            logger.error("discord", "Exception during Discord token validation", e)
             false
         }
     }
