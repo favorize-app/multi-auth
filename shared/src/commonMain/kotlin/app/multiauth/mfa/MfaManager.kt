@@ -283,16 +283,48 @@ class MfaManager(
     }
     
     private suspend fun enableSms(user: User): Result<Unit> {
-        // In a real implementation, this would:
-        // 1. Verify the user's phone number
-        // 2. Send a verification SMS
-        // 3. Store the verification status
-        
         return try {
-            // Simulate SMS setup
-            kotlinx.coroutines.delay(1000)
-            Result.success(Unit)
+            // 1. Verify the user has a phone number
+            val phoneNumber = user.phoneNumber
+            if (phoneNumber == null) {
+                return Result.failure(IllegalStateException("User must have a verified phone number to enable SMS MFA"))
+            }
+            
+            // 2. Send a verification SMS to confirm the phone number
+            when (val result = smsProvider.sendVerificationCode(phoneNumber)) {
+                is app.multiauth.models.AuthResult.Success -> {
+                    val sessionId = result.data
+                    
+                    // 3. Store the SMS MFA session
+                    val smsSession = SmsMfaSession(
+                        userId = user.id,
+                        sessionId = sessionId,
+                        phoneNumber = phoneNumber
+                    )
+                    
+                    val sessionKey = "mfa_sms_session_${user.id}"
+                    val stored = secureStorage.store(sessionKey, Json.encodeToString(smsSession))
+                    
+                    if (!stored) {
+                        return Result.failure(Exception("Failed to store SMS MFA session"))
+                    }
+                    
+                    // Update enabled methods
+                    val currentMethods = _enabledMethods.value.toMutableSet()
+                    currentMethods.add(MfaMethod.SMS)
+                    _enabledMethods.value = currentMethods
+                    
+                    logger.info("mfa", "SMS MFA enabled successfully for user: ${user.id}")
+                    Result.success(Unit)
+                }
+                is app.multiauth.models.AuthResult.Failure -> {
+                    logger.error("mfa", "Failed to send SMS verification for MFA setup: ${result.error.message}")
+                    Result.failure(Exception("SMS verification failed: ${result.error.message}"))
+                }
+            }
+            
         } catch (e: Exception) {
+            logger.error("mfa", "Failed to enable SMS MFA", e)
             Result.failure(e)
         }
     }
@@ -334,40 +366,76 @@ class MfaManager(
     }
     
     private suspend fun disableTotp(user: User): Result<Unit> {
-        // In a real implementation, this would:
-        // 1. Remove the TOTP secret
-        // 2. Clear any associated data
-        
         return try {
-            kotlinx.coroutines.delay(500)
+            // 1. Remove the TOTP secret from secure storage
+            val storageKey = "totp_settings_${user.id}"
+            val removed = secureStorage.remove(storageKey)
+            
+            if (!removed) {
+                logger.warn("mfa", "TOTP settings not found for user: ${user.id}")
+            }
+            
+            // 2. Update enabled methods
+            val currentMethods = _enabledMethods.value.toMutableSet()
+            currentMethods.remove(MfaMethod.TOTP)
+            _enabledMethods.value = currentMethods
+            
+            logger.info("mfa", "TOTP disabled successfully for user: ${user.id}")
             Result.success(Unit)
+            
         } catch (e: Exception) {
+            logger.error("mfa", "Failed to disable TOTP", e)
             Result.failure(e)
         }
     }
     
     private suspend fun disableSms(user: User): Result<Unit> {
-        // In a real implementation, this would:
-        // 1. Remove the SMS verification status
-        // 2. Clear any associated data
-        
         return try {
-            kotlinx.coroutines.delay(500)
+            // 1. Remove any active SMS MFA session
+            val sessionKey = "mfa_sms_session_${user.id}"
+            val removed = secureStorage.remove(sessionKey)
+            
+            if (!removed) {
+                logger.warn("mfa", "No SMS MFA session found for user: ${user.id}")
+            }
+            
+            // 2. Update enabled methods
+            val currentMethods = _enabledMethods.value.toMutableSet()
+            currentMethods.remove(MfaMethod.SMS)
+            _enabledMethods.value = currentMethods
+            
+            logger.info("mfa", "SMS MFA disabled successfully for user: ${user.id}")
             Result.success(Unit)
+            
         } catch (e: Exception) {
+            logger.error("mfa", "Failed to disable SMS MFA", e)
             Result.failure(e)
         }
     }
     
     private suspend fun disableBackupCodes(user: User): Result<Unit> {
-        // In a real implementation, this would:
-        // 1. Remove all backup codes
-        // 2. Clear any associated data
-        
         return try {
+            // 1. Remove all backup codes from secure storage
+            val storageKey = "backup_codes_${user.id}"
+            val removed = secureStorage.remove(storageKey)
+            
+            if (!removed) {
+                logger.warn("mfa", "No backup codes found for user: ${user.id}")
+            }
+            
+            // 2. Clear in-memory state
             _backupCodes.value = emptyList()
+            
+            // 3. Update enabled methods
+            val currentMethods = _enabledMethods.value.toMutableSet()
+            currentMethods.remove(MfaMethod.BACKUP_CODES)
+            _enabledMethods.value = currentMethods
+            
+            logger.info("mfa", "Backup codes disabled successfully for user: ${user.id}")
             Result.success(Unit)
+            
         } catch (e: Exception) {
+            logger.error("mfa", "Failed to disable backup codes", e)
             Result.failure(e)
         }
     }
