@@ -428,7 +428,7 @@ class RateLimiter {
         val cutoffTime = now.minus(Duration.parse("PT${config.failedAttemptWindowMinutes}M"))
         
         _failedAttempts.forEach { (identifier, attempts) ->
-            attempts.removeAll { it < cutoffTime }
+            attempts.removeAll { it.timestamp < cutoffTime }
             if (attempts.isEmpty()) {
                 _failedAttempts.remove(identifier)
             }

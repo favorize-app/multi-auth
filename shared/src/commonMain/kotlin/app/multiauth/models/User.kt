@@ -2,6 +2,7 @@ package app.multiauth.models
 
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
+import app.multiauth.oauth.OAuthProvider
 
 /**
  * Represents a user in the multi-auth system.
@@ -58,17 +59,7 @@ sealed class AuthMethod {
     ) : AuthMethod()
 }
 
-/**
- * Supported OAuth providers.
- */
-@Serializable
-enum class OAuthProvider {
-    GOOGLE,
-    APPLE,
-    FACEBOOK,
-    TWITTER,
-    GITHUB
-}
+// OAuthProvider is defined in app.multiauth.oauth.OAuthProvider
 
 /**
  * User creation request.

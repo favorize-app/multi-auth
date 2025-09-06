@@ -38,12 +38,7 @@ class DatabaseMigrationManager(
             
             if (currentVersion >= CURRENT_VERSION) {
                 logger.info("database", "Database is already at version $CURRENT_VERSION")
-                return MigrationResult(
-                    success = true,
-                    fromVersion = currentVersion,
-                    toVersion = CURRENT_VERSION,
-                    message = "Database is already up to date"
-                )
+                return MigrationResult.Success
             }
             
             // Execute pending migrations
@@ -62,14 +57,7 @@ class DatabaseMigrationManager(
                         logger.info("db", "Successfully migrated to version $version")
                     } catch (e: Exception) {
                         logger.error("database", "Migration to version $version failed: ${e.message}")
-                        return MigrationResult(
-                            success = false,
-                            fromVersion = currentVersion,
-                            toVersion = version - 1,
-                            migrationsExecuted = migrationsExecuted,
-                            message = "Migration to version $version failed: ${e.message}",
-                            error = e
-                        )
+                        return MigrationResult.Failure("Migration to version $version failed: ${e.message}")
                     }
                 } else {
                     logger.warn("db", "No migration found for version $version")
@@ -77,24 +65,11 @@ class DatabaseMigrationManager(
             }
             
             logger.info("database", "Database migration completed successfully")
-            return MigrationResult(
-                success = true,
-                fromVersion = currentVersion,
-                toVersion = CURRENT_VERSION,
-                migrationsExecuted = migrationsExecuted,
-                message = "Successfully migrated from version $currentVersion to $CURRENT_VERSION"
-            )
+            return MigrationResult.Success
             
         } catch (e: Exception) {
             logger.error("db", "Migration failed: ${e.message}")
-            return MigrationResult(
-                success = false,
-                fromVersion = getCurrentVersion(),
-                toVersion = getCurrentVersion(),
-                migrationsExecuted = emptyList(),
-                message = "Migration failed: ${e.message}",
-                error = e
-            )
+            return MigrationResult.Failure("Migration failed: ${e.message}")
         }
     }
     
@@ -111,13 +86,7 @@ class DatabaseMigrationManager(
             val currentVersion = getCurrentVersion()
             
             if (targetVersion >= currentVersion) {
-                return MigrationResult(
-                    success = false,
-                    fromVersion = currentVersion,
-                    toVersion = currentVersion,
-                    migrationsExecuted = emptyList(),
-                    message = "Cannot rollback to version $targetVersion (current: $currentVersion)"
-                )
+                return MigrationResult.Failure("Cannot rollback to version $targetVersion (current: $currentVersion)")
             }
             
             // Execute rollback migrations in reverse order
@@ -136,14 +105,7 @@ class DatabaseMigrationManager(
                         logger.info("db", "Successfully rolled back from version $version")
                     } catch (e: Exception) {
                         logger.error("database", "Rollback from version $version failed: ${e.message}")
-                        return MigrationResult(
-                            success = false,
-                            fromVersion = currentVersion,
-                            toVersion = version,
-                            migrationsExecuted = rollbacksExecuted,
-                            message = "Rollback from version $version failed: ${e.message}",
-                            error = e
-                        )
+                        return MigrationResult.Failure("Rollback from version $version failed: ${e.message}")
                     }
                 } else {
                     logger.warn("db", "No rollback migration found for version $version")
@@ -151,24 +113,11 @@ class DatabaseMigrationManager(
             }
             
             logger.info("database", "Database rollback completed successfully")
-            return MigrationResult(
-                success = true,
-                fromVersion = currentVersion,
-                toVersion = targetVersion,
-                migrationsExecuted = rollbacksExecuted,
-                message = "Successfully rolled back from version $currentVersion to $targetVersion"
-            )
+            return MigrationResult.Success
             
         } catch (e: Exception) {
             logger.error("db", "Rollback failed: ${e.message}")
-            return MigrationResult(
-                success = false,
-                fromVersion = getCurrentVersion(),
-                toVersion = getCurrentVersion(),
-                migrationsExecuted = emptyList(),
-                message = "Rollback failed: ${e.message}",
-                error = e
-            )
+            return MigrationResult.Failure("Rollback failed: ${e.message}")
         }
     }
     
@@ -338,7 +287,8 @@ class DatabaseMigrationManager(
             timestamp = Clock.System.now().epochSeconds
         ))
         
-        database.executeUpdate(insertSql, listOf(version.toString(), migration.description, migrationData))
+        val query = insertSql.replace("?", version.toString()).replace("?", migration.description).replace("?", migrationData)
+        database.executeUpdate(query)
     }
     
     /**
@@ -354,7 +304,8 @@ class DatabaseMigrationManager(
             WHERE version = ?
         """.trimIndent()
         
-        database.executeUpdate(updateSql, listOf(version.toString()))
+        val query = updateSql.replace("?", version.toString())
+        database.executeUpdate(query)
     }
     
     /**

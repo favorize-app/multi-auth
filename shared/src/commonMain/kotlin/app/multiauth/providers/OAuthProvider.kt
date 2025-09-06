@@ -1,7 +1,7 @@
 package app.multiauth.providers
 
 import app.multiauth.models.AuthResult
-import app.multiauth.models.OAuthProvider as OAuthProviderType
+import app.multiauth.oauth.OAuthProvider as OAuthProviderType
 
 /**
  * Interface for OAuth-based authentication providers.

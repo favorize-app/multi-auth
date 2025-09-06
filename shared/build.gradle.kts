@@ -1,14 +1,15 @@
 plugins {
     kotlin("multiplatform")
     kotlin("plugin.serialization")
+    kotlin("plugin.compose")
     id("com.android.library")
 }
 
 kotlin {
     androidTarget {
         compilations.all {
-            kotlinOptions {
-                jvmTarget = "1.8"
+            compilerOptions.configure {
+                jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
             }
         }
     }
@@ -41,6 +42,10 @@ kotlin {
                 implementation("io.ktor:ktor-client-content-negotiation:2.3.7")
                 implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.7")
                 implementation("io.ktor:ktor-client-logging:2.3.7")
+                // KotlinCrypto MACs for HMAC operations
+                // Use individual dependencies for better platform compatibility
+                implementation("org.kotlincrypto.macs:hmac-sha1:0.7.1")
+                implementation("org.kotlincrypto.macs:hmac-sha2:0.7.1")
             }
         }
         
@@ -60,7 +65,7 @@ kotlin {
         
         val androidUnitTest by getting {
             dependencies {
-                implementation("org.jetbrains.kotlin:kotlin-test-junit:1.9.20")
+                implementation("org.jetbrains.kotlin:kotlin-test-junit:2.1.0")
             }
         }
         
@@ -87,7 +92,7 @@ kotlin {
         val jsMain by getting
         val jsTest by getting {
             dependencies {
-                implementation("org.jetbrains.kotlin:kotlin-test-js:1.9.20")
+                implementation("org.jetbrains.kotlin:kotlin-test-js:2.1.0")
             }
         }
     }

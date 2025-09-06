@@ -5,7 +5,7 @@ import app.multiauth.events.*
 import app.multiauth.models.*
 import app.multiauth.providers.*
 import app.multiauth.util.Logger
-import app.multiauth.models.OAuthProvider
+import app.multiauth.oauth.OAuthProvider
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -137,7 +137,7 @@ class AuthEngine private constructor(
         
         return try {
             _isLoading.value = true
-            eventBus.dispatch(AuthEvent.OAuth.OAuthSignInRequested(OAuthProvider.GOOGLE), "AuthEngine")
+            eventBus.dispatch(AuthEvent.OAuth.OAuthFlowStarted(OAuthProvider.GOOGLE, "state"), "AuthEngine")
             
             // TODO: Implement actual OAuth flow
             // For now, simulate successful OAuth authentication
@@ -148,14 +148,14 @@ class AuthEngine private constructor(
             val tokens = createMockTokens(user.id)
             
             _authState.value = AuthState.Authenticated(user, tokens)
-            eventBus.dispatch(AuthEvent.OAuth.OAuthSignInCompleted(user, tokens), "AuthEngine")
+            eventBus.dispatch(AuthEvent.OAuth.OAuthFlowCompleted(provider, user, tokens), "AuthEngine")
             
             _isLoading.value = false
             AuthResult.Success(user)
             
         } catch (e: Exception) {
             val error = AuthError.UnknownError("OAuth sign in failed: ${e.message}", e)
-            eventBus.dispatch(AuthEvent.OAuth.OAuthSignInFailed(error), "AuthEngine")
+            eventBus.dispatch(AuthEvent.OAuth.OAuthFlowFailed(provider, error), "AuthEngine")
             _authState.value = AuthState.Error(error, _authState.value)
             _isLoading.value = false
             AuthResult.Failure(error)

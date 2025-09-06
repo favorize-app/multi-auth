@@ -28,19 +28,19 @@ object OAuthClientFactory {
         logger.info("oath", "Creating OAuth client for provider: $provider")
         
         return when (provider) {
-            OAuthProvider.GOOGLE -> GoogleOAuthClient(config, httpClient)
-            OAuthProvider.DISCORD -> DiscordOAuthClient(config, httpClient)
-            OAuthProvider.GITHUB -> GitHubOAuthClient(config, httpClient)
-            OAuthProvider.MICROSOFT -> MicrosoftOAuthClient(config, httpClient)
-            OAuthProvider.LINKEDIN -> LinkedInOAuthClient(config, httpClient)
-            OAuthProvider.TWITTER -> TwitterOAuthClient(config, httpClient)
-            OAuthProvider.TWITCH -> TwitchOAuthClient(config, httpClient)
-            OAuthProvider.REDDIT -> RedditOAuthClient(config, httpClient)
-            OAuthProvider.STEAM -> SteamOAuthClient(config, httpClient)
-            OAuthProvider.EPIC_GAMES -> EpicGamesOAuthClient(config, httpClient)
-            OAuthProvider.SPOTIFY -> SpotifyOAuthClient(config, httpClient)
-            OAuthProvider.FACEBOOK -> FacebookOAuthClient(config, httpClient)
-            OAuthProvider.APPLE -> AppleOAuthClient(config, httpClient)
+            OAuthProvider.GOOGLE -> GoogleOAuthClient(config, httpClient, logger)
+            OAuthProvider.DISCORD -> DiscordOAuthClient(config, httpClient, logger)
+            OAuthProvider.GITHUB -> GitHubOAuthClient(config, httpClient, logger)
+            OAuthProvider.MICROSOFT -> MicrosoftOAuthClient(config, httpClient, logger)
+            OAuthProvider.LINKEDIN -> LinkedInOAuthClient(config, httpClient, logger)
+            OAuthProvider.TWITTER -> TwitterOAuthClient(config, httpClient, logger)
+            OAuthProvider.TWITCH -> TwitchOAuthClient(config, httpClient, logger)
+            OAuthProvider.REDDIT -> RedditOAuthClient(config, httpClient, logger)
+            OAuthProvider.STEAM -> SteamOAuthClient(config, httpClient, logger)
+            OAuthProvider.EPIC_GAMES -> EpicGamesOAuthClient(config, httpClient, logger)
+            OAuthProvider.SPOTIFY -> SpotifyOAuthClient(config, httpClient, logger)
+            OAuthProvider.FACEBOOK -> FacebookOAuthClient(config, httpClient, logger)
+            OAuthProvider.APPLE -> AppleOAuthClient(config, httpClient, logger)
         }
     }
     

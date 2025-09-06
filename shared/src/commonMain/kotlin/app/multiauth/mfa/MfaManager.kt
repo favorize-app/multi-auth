@@ -5,6 +5,7 @@ import app.multiauth.events.AuthEvent
 import app.multiauth.events.EventBus
 import app.multiauth.events.EventBusInstance
 import app.multiauth.models.User
+import app.multiauth.models.AuthError
 import app.multiauth.util.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -69,7 +70,8 @@ class MfaManager(
                 _mfaState.value = MfaState.Idle
                 
                 // Dispatch failure event
-                eventBus.dispatch(AuthEvent.Mfa.MfaMethodEnableFailed(user, method, error))
+                val authError = if (error is AuthError) error else AuthError.UnknownError(error.message ?: "MFA enable failed", error)
+                eventBus.dispatch(AuthEvent.Mfa.MfaMethodEnabledFailed(user, method, authError))
             }
             
             result
@@ -115,7 +117,8 @@ class MfaManager(
                 _mfaState.value = MfaState.Idle
                 
                 // Dispatch failure event
-                eventBus.dispatch(AuthEvent.Mfa.MfaMethodDisableFailed(user, method, error))
+                val authError = if (error is AuthError) error else AuthError.UnknownError(error.message ?: "MFA disable failed", error)
+                eventBus.dispatch(AuthEvent.Mfa.MfaMethodDisabledFailed(user, method, authError))
             }
             
             result
@@ -165,7 +168,8 @@ class MfaManager(
                 _mfaState.value = MfaState.Idle
                 
                 // Dispatch failure event
-                eventBus.dispatch(AuthEvent.Mfa.MfaVerificationFailed(user, method, error))
+                val authError = if (error is AuthError) error else AuthError.UnknownError(error.message ?: "MFA verification failed", error)
+                eventBus.dispatch(AuthEvent.Mfa.MfaVerificationFailed(user, method, authError))
             }
             
             result
@@ -196,7 +200,7 @@ class MfaManager(
             _mfaState.value = MfaState.Idle
             
             // Dispatch success event
-            eventBus.dispatch(AuthEvent.Mfa.BackupCodesGenerated(user, codes))
+            eventBus.dispatch(AuthEvent.Mfa.MfaBackupCodesGenerated(user, codes))
             
             logger.info("mfa", "Backup codes generated successfully for user: ${user.displayName}")
             Result.success(codes)
@@ -380,13 +384,13 @@ class MfaManager(
     }
     
     private fun generateSecureBackupCodes(): List<String> {
-        val random = SecureRandom()
         val codes = mutableListOf<String>()
+        val charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
         
         repeat(10) {
             val code = buildString {
                 repeat(8) {
-                    append("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[random.nextInt(36)])
+                    append(charset.random())
                 }
             }
             codes.add(code)

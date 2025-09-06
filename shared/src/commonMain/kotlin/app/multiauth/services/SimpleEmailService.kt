@@ -11,7 +11,12 @@ import kotlinx.serialization.json.Json
  * Logs emails to console and can optionally save them to files.
  */
 class SimpleEmailService(
-    private val config: EmailConfig = EmailConfig()
+    private val config: EmailConfig = EmailConfig(
+        provider = EmailProvider.SMTP,
+        apiKey = "test-key",
+        fromEmail = "noreply@example.com",
+        fromName = "Test App"
+    )
 ) : EmailService {
     
     private val logger = Logger.getLogger(this::class)
@@ -48,7 +53,7 @@ class SimpleEmailService(
             metadata = mapOf(
                 "userId" to userId,
                 "verificationCode" to verificationCode,
-                "template" to (template?.id ?: "default")
+                "template" to (template?.name ?: "default")
             )
         )
     }
@@ -68,7 +73,7 @@ class SimpleEmailService(
             metadata = mapOf(
                 "userId" to userId,
                 "resetToken" to resetToken,
-                "template" to (template?.id ?: "default")
+                "template" to (template?.name ?: "default")
             )
         )
     }
@@ -88,7 +93,7 @@ class SimpleEmailService(
             metadata = mapOf(
                 "userId" to userId,
                 "displayName" to displayName,
-                "template" to (template?.id ?: "default")
+                "template" to (template?.name ?: "default")
             )
         )
     }
@@ -110,7 +115,7 @@ class SimpleEmailService(
                 "userId" to userId,
                 "alertType" to alertType.name,
                 "alertDetails" to alertDetails,
-                "template" to (template?.id ?: "default")
+                "template" to (template?.name ?: "default")
             )
         )
     }
@@ -130,8 +135,20 @@ class SimpleEmailService(
         )
     }
     
-    override suspend fun getDeliveryStatus(emailId: String): EmailDeliveryStatus? {
-        return deliveryStatuses[emailId]
+    override suspend fun getDeliveryStatus(emailId: String): EmailDeliveryStatus {
+        return deliveryStatuses[emailId] ?: EmailDeliveryStatus(
+            emailId = emailId,
+            status = DeliveryStatus.PENDING,
+            sentAt = Clock.System.now().toEpochMilliseconds(),
+            deliveredAt = null,
+            openedAt = null,
+            clickedAt = null,
+            bouncedAt = null,
+            bounceReason = null,
+            recipientEmail = "",
+            subject = "Unknown",
+            providerMessageId = null
+        )
     }
     
     override suspend fun getEmailStats(): EmailStats {
@@ -145,14 +162,14 @@ class SimpleEmailService(
             totalFailed = failed.toLong(),
             deliveryRate = if (totalSent > 0) (delivered.toDouble() / totalSent) * 100 else 0.0,
             averageDeliveryTimeMs = calculateAverageDeliveryTime(),
-            totalOpened = TODO(),
-            totalClicked = TODO(),
-            totalBounced = TODO(),
-            openRate = TODO(),
-            clickRate = TODO(),
-            bounceRate = TODO(),
-            lastSentAt = TODO(),
-            lastDeliveredAt = TODO()
+            totalOpened = deliveryStatuses.values.count { it.status == DeliveryStatus.OPENED }.toLong(),
+            totalClicked = deliveryStatuses.values.count { it.status == DeliveryStatus.CLICKED }.toLong(),
+            totalBounced = deliveryStatuses.values.count { it.status == DeliveryStatus.BOUNCED }.toLong(),
+            openRate = if (delivered > 0) (deliveryStatuses.values.count { it.status == DeliveryStatus.OPENED }.toDouble() / delivered) * 100 else 0.0,
+            clickRate = if (delivered > 0) (deliveryStatuses.values.count { it.status == DeliveryStatus.CLICKED }.toDouble() / delivered) * 100 else 0.0,
+            bounceRate = if (totalSent > 0) (deliveryStatuses.values.count { it.status == DeliveryStatus.BOUNCED }.toDouble() / totalSent) * 100 else 0.0,
+            lastSentAt = if (emailQueue.isNotEmpty()) emailQueue.maxByOrNull { it.timestamp }?.timestamp else null,
+            lastDeliveredAt = deliveryStatuses.values.maxByOrNull { it.deliveredAt ?: 0L }?.deliveredAt
         )
     }
     
@@ -160,18 +177,16 @@ class SimpleEmailService(
     
     override suspend fun getServiceInfo(): EmailServiceInfo {
         return EmailServiceInfo(
-            provider = EmailProvider.SIMPLE,
+            provider = EmailProvider.SMTP,
             isInitialized = isInitialized,
+            fromEmail = config.fromEmail,
+            fromName = config.fromName,
             supportsTemplates = true,
-            supportsAttachments = false,
-            maxRecipients = 1,
-            rateLimit = null,
-            features = listOf(
-                "Email logging",
-                "Template support",
-                "Delivery tracking",
-                "File output"
-            )
+            supportsTracking = false,
+            supportsAnalytics = false,
+            maxRetries = config.maxRetries,
+            timeoutMs = config.timeoutMs,
+            lastTestAt = null
         )
     }
     
@@ -217,16 +232,21 @@ class SimpleEmailService(
             val deliveryStatus = EmailDeliveryStatus(
                 emailId = emailId,
                 status = DeliveryStatus.DELIVERED,
+                sentAt = timestamp,
                 deliveredAt = timestamp,
-                attempts = 1,
-                lastAttemptAt = timestamp,
-                errorMessage = null
+                openedAt = null,
+                clickedAt = null,
+                bouncedAt = null,
+                bounceReason = null,
+                recipientEmail = to,
+                subject = subject,
+                providerMessageId = null
             )
             deliveryStatuses[emailId] = deliveryStatus
             
             logger.info("services", "Email sent successfully: $emailId to $to")
             
-            EmailSendResult.Success(
+            return EmailSendResult.Success(
                 emailId = emailId,
                 providerMessageId = null,
                 sentAt = Clock.System.now().toEpochMilliseconds()
@@ -238,14 +258,19 @@ class SimpleEmailService(
             val deliveryStatus = EmailDeliveryStatus(
                 emailId = emailId,
                 status = DeliveryStatus.FAILED,
+                sentAt = timestamp,
                 deliveredAt = null,
-                attempts = 1,
-                lastAttemptAt = timestamp,
-                errorMessage = e.message
+                openedAt = null,
+                clickedAt = null,
+                bouncedAt = null,
+                bounceReason = e.message,
+                recipientEmail = to,
+                subject = subject,
+                providerMessageId = null
             )
             deliveryStatuses[emailId] = deliveryStatus
             
-            EmailSendResult.Failure(
+            return EmailSendResult.Failure(
                 error = e.message ?: "Unknown error",
                 errorCode = "SEND_FAILED", 
                 retryable = true,
@@ -283,7 +308,7 @@ class SimpleEmailService(
             <body>
                 <h2>Reset Your Password</h2>
                 <p>Click the link below to reset your password:</p>
-                <p><a href="${config.baseUrl}/reset-password?token=$resetToken">Reset Password</a></p>
+                <p><a href="https://yourapp.com/reset-password?token=$resetToken">Reset Password</a></p>
                 <p>This link will expire in 1 hour.</p>
                 <p>If you didn't request a password reset, please ignore this email.</p>
             </body>
@@ -334,11 +359,17 @@ class SimpleEmailService(
     }
     
     private fun applyTemplate(template: EmailTemplate, variables: EmailTemplateVariables?): String {
-        var body = template.body
+        var body = template.htmlContent
         
         // Apply variables if provided
         variables?.let { vars ->
-            body = body.replace("{{$key}}", value)
+            body = body.replace("{{userId}}", vars.userId)
+            body = body.replace("{{username}}", vars.username ?: "")
+            body = body.replace("{{email}}", vars.email)
+            vars.verificationCode?.let { body = body.replace("{{verificationCode}}", it) }
+            vars.resetToken?.let { body = body.replace("{{resetToken}}", it) }
+            vars.appName?.let { body = body.replace("{{appName}}", it) }
+            vars.supportEmail?.let { body = body.replace("{{supportEmail}}", it) }
         }
         
         return body

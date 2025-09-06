@@ -1,5 +1,6 @@
 package app.multiauth.oauth.clients
 
+import app.multiauth.oauth.HttpClient
 import app.multiauth.oauth.OAuthClient
 import app.multiauth.oauth.OAuthConfig
 import app.multiauth.oauth.OAuthResult
@@ -17,10 +18,10 @@ import kotlinx.serialization.json.Json
  */
 class LinkedInOAuthClient(
     private val config: OAuthConfig,
-    private val httpClient: HttpClient
+    private val httpClient: HttpClient,
+    override val logger: Logger
 ) : OAuthClient {
-    
-    private val logger = Logger.getLogger(this::class)
+
     private val json = Json { ignoreUnknownKeys = true }
     
     companion object {
@@ -71,14 +72,14 @@ class LinkedInOAuthClient(
                 codeVerifier = codeVerifier
             )
             
-            val response = withContext(Dispatchers.IO) {
+            val response = withContext(Dispatchers.Default) {
                 httpClient.post(TOKEN_URL) {
                     setBody(tokenRequest.toFormData())
                     header("Content-Type", "application/x-www-form-urlencoded")
                 }
             }
             
-            if (response.status.isSuccess()) {
+            if (response.status.isSuccess) {
                 val tokenResponse = json.decodeFromString<LinkedInTokenResponse>(response.bodyAsText())
                 logger.debug("oath", "Successfully exchanged code for LinkedIn tokens")
                 
@@ -93,8 +94,8 @@ class LinkedInOAuthClient(
                 val errorResponse = json.decodeFromString<LinkedInErrorResponse>(response.bodyAsText())
                 logger.error("oath", "Failed to exchange code for LinkedIn tokens: ${errorResponse.error}")
                 
-                OAuthResult.Error(
-                    OAuthError.TokenExchangeFailed(
+                OAuthResult.Failure(
+                    OAuthError.fromOAuthResponse(
                         error = errorResponse.error,
                         errorDescription = errorResponse.errorDescription
                     )
@@ -102,8 +103,8 @@ class LinkedInOAuthClient(
             }
         } catch (e: Exception) {
             logger.error("linkedin", "Exception during LinkedIn token exchange", e)
-            OAuthResult.Error(
-                OAuthError.TokenExchangeFailed(
+            OAuthResult.Failure(
+                OAuthError.fromOAuthResponse(
                     error = "token_exchange_failed",
                     errorDescription = e.message ?: "Unknown error"
                 )
@@ -122,14 +123,14 @@ class LinkedInOAuthClient(
                 grantType = GRANT_TYPE_REFRESH
             )
             
-            val response = withContext(Dispatchers.IO) {
+            val response = withContext(Dispatchers.Default) {
                 httpClient.post(TOKEN_URL) {
                     setBody(refreshRequest.toFormData())
                     header("Content-Type", "application/x-www-form-urlencoded")
                 }
             }
             
-            if (response.status.isSuccess()) {
+            if (response.status.isSuccess) {
                 val tokenResponse = json.decodeFromString<LinkedInTokenResponse>(response.bodyAsText())
                 logger.debug("oath", "Successfully refreshed LinkedIn access token")
                 
@@ -144,19 +145,19 @@ class LinkedInOAuthClient(
                 val errorResponse = json.decodeFromString<LinkedInErrorResponse>(response.bodyAsText())
                 logger.error("oath", "Failed to refresh LinkedIn access token: ${errorResponse.error}")
                 
-                OAuthResult.Error(
-                    OAuthError.TokenRefreshFailed(
-                        error = errorResponse.error,
-                        errorDescription = errorResponse.errorDescription
+                OAuthResult.Failure(
+                    OAuthError.networkError(
+                        message = "Token refresh failed: ${errorResponse.error} - ${errorResponse.errorDescription}",
+                        cause = null
                     )
                 )
             }
         } catch (e: Exception) {
             logger.error("linkedin", "Exception during LinkedIn token refresh", e)
-            OAuthResult.Error(
-                OAuthError.TokenRefreshFailed(
-                    error = "token_refresh_failed",
-                    errorDescription = e.message ?: "Unknown error"
+            OAuthResult.Failure(
+                OAuthError.networkError(
+                    message = e.message ?: "Unknown error during token refresh",
+                    cause = e
                 )
             )
         }
@@ -167,25 +168,25 @@ class LinkedInOAuthClient(
             logger.debug("oath", "Fetching LinkedIn user info")
             
             // Fetch user profile
-            val userResponse = withContext(Dispatchers.IO) {
-                httpClient(USER_INFO_URL) {
+            val userResponse = withContext(Dispatchers.Default) {
+                httpClient.get(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                     header("Accept", "application/json")
                 }
             }
             
-            if (userResponse.status.isSuccess()) {
+            if (userResponse.status.isSuccess) {
                 val userInfo = json.decodeFromString<LinkedInUserInfo>(userResponse.bodyAsText())
                 
                 // Fetch user email
-                val emailResponse = withContext(Dispatchers.IO) {
-                    httpClient(USER_EMAIL_URL) {
+                val emailResponse = withContext(Dispatchers.Default) {
+                    httpClient.get(USER_EMAIL_URL) {
                         header("Authorization", "Bearer $accessToken")
                         header("Accept", "application/json")
                     }
                 }
                 
-                val email = if (emailResponse.status.isSuccess()) {
+                val email = if (emailResponse.status.isSuccess) {
                     val emailData = json.decodeFromString<LinkedInEmailResponse>(emailResponse.bodyAsText())
                     emailData.elements.firstOrNull()?.handle?.emailAddress
                 } else {
@@ -195,23 +196,29 @@ class LinkedInOAuthClient(
                 logger.debug("oath", "Successfully fetched LinkedIn user info: ${userInfo.localizedFirstName}")
                 
                 OAuthResult.Success(
+                    accessToken = accessToken,
+                    refreshToken = null,
+                    expiresIn = null,
                     userInfo = OAuthUserInfo(
                         id = userInfo.id,
                         email = email,
                         name = "${userInfo.localizedFirstName} ${userInfo.localizedLastName}",
-                        firstName = userInfo.localizedFirstName,
-                        lastName = userInfo.localizedLastName,
+                        givenName = userInfo.localizedFirstName,
+                        familyName = userInfo.localizedLastName,
+                        displayName = "${userInfo.localizedFirstName} ${userInfo.localizedLastName}",
                         picture = null, // LinkedIn doesn't provide profile picture in basic profile
                         locale = userInfo.preferredLocale?.language,
-                        verifiedEmail = true // LinkedIn accounts are verified
+                        emailVerified = true, // LinkedIn accounts are verified
+                        provider = "linkedin",
+                        providerId = userInfo.id
                     )
                 )
             } else {
                 val errorResponse = json.decodeFromString<LinkedInErrorResponse>(userResponse.bodyAsText())
                 logger.error("oath", "Failed to fetch LinkedIn user info: ${errorResponse.error}")
                 
-                OAuthResult.Error(
-                    OAuthError.UserInfoFetchFailed(
+                OAuthResult.Failure(
+                    OAuthError.fromOAuthResponse(
                         error = errorResponse.error,
                         errorDescription = errorResponse.errorDescription
                     )
@@ -219,8 +226,8 @@ class LinkedInOAuthClient(
             }
         } catch (e: Exception) {
             logger.error("linkedin", "Exception during LinkedIn user info fetch", e)
-            OAuthResult.Error(
-                OAuthError.UserInfoFetchFailed(
+            OAuthResult.Failure(
+                OAuthError.fromOAuthResponse(
                     error = "user_info_fetch_failed",
                     errorDescription = e.message ?: "Unknown error"
                 )
@@ -248,14 +255,14 @@ class LinkedInOAuthClient(
         return try {
             logger.debug("oath", "Validating LinkedIn OAuth token")
             
-            val response = withContext(Dispatchers.IO) {
-                httpClient(USER_INFO_URL) {
+            val response = withContext(Dispatchers.Default) {
+                httpClient.get(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                     header("Accept", "application/json")
                 }
             }
             
-            val isValid = response.status.isSuccess()
+            val isValid = response.status.isSuccess
             logger.debug("oath", "LinkedIn OAuth token validation result: $isValid")
             
             isValid
