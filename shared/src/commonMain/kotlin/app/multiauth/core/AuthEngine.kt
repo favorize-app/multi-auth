@@ -6,6 +6,10 @@ import app.multiauth.models.*
 import app.multiauth.providers.*
 import app.multiauth.util.Logger
 import app.multiauth.oauth.OAuthProvider
+import app.multiauth.security.PasswordHasher
+import app.multiauth.security.JwtTokenManager
+import app.multiauth.security.RateLimiter
+import app.multiauth.security.RateLimitResult
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +27,12 @@ class AuthEngine private constructor(
     private val oauthProvider: OAuthProvider,
     private val eventBus: EventBus = EventBusInstance()
 ) {
+    
+    private val jwtTokenManager = JwtTokenManager()
+    private val rateLimiter = RateLimiter()
+    
+    // Simple in-memory user storage for now (Phase 3 will add real database)
+    private val userStorage = mutableMapOf<String, StoredUser>()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     
     private val _authState = MutableStateFlow<AuthState>(AuthState.Initial)
@@ -47,6 +57,22 @@ class AuthEngine private constructor(
             _isLoading.value = true
             eventBus.dispatch(AuthEvent.Authentication.SignInRequested, "AuthEngine")
             
+            // Check rate limiting first
+            when (val rateLimitResult = rateLimiter.checkRateLimit(email)) {
+                is RateLimitResult.RateLimited -> {
+                    val error = AuthError.RateLimitError(
+                        "Too many failed attempts. Please try again in ${rateLimitResult.retryAfter.inWholeMinutes} minutes.",
+                        rateLimitResult.retryAfter
+                    )
+                    eventBus.dispatch(AuthEvent.Authentication.SignInFailed(error), "AuthEngine")
+                    _isLoading.value = false
+                    return AuthResult.Failure(error)
+                }
+                is RateLimitResult.Allowed -> {
+                    Logger.debug("AuthEngine", "Rate limit check passed. ${rateLimitResult.attemptsRemaining} attempts remaining")
+                }
+            }
+            
             // Validate email format
             val emailValidation = emailProvider.validateEmail(email)
             if (emailValidation.isFailure()) {
@@ -56,16 +82,49 @@ class AuthEngine private constructor(
                 return AuthResult.Failure(error)
             }
             
-            // TODO: Implement actual email/password authentication
-            // For now, simulate successful authentication
-            val user = createMockUser(email, AuthMethod.Email(email, true, Clock.System.now()))
-            val tokens = createMockTokens(user.id)
+            // Find user by email
+            val storedUser = userStorage.values.find { it.user.email == email }
+            if (storedUser == null) {
+                // Record failed attempt for rate limiting (even for non-existent users)
+                rateLimiter.recordFailedAttempt(email)
+                
+                val error = AuthError.ValidationError("User not found", "email")
+                eventBus.dispatch(AuthEvent.Authentication.SignInFailed(error), "AuthEngine")
+                _isLoading.value = false
+                return AuthResult.Failure(error)
+            }
             
-            _authState.value = AuthState.Authenticated(user, tokens)
-            eventBus.dispatch(AuthEvent.Authentication.SignInCompleted(user, tokens), "AuthEngine")
+            // Verify password
+            if (storedUser.passwordHash == null) {
+                val error = AuthError.ValidationError("Password authentication not available for this user", "password")
+                eventBus.dispatch(AuthEvent.Authentication.SignInFailed(error), "AuthEngine")
+                _isLoading.value = false
+                return AuthResult.Failure(error)
+            }
+            
+            if (!PasswordHasher.verifyPassword(password, storedUser.passwordHash)) {
+                // Record failed attempt for rate limiting
+                rateLimiter.recordFailedAttempt(email)
+                
+                val error = AuthError.ValidationError("Invalid password", "password")
+                eventBus.dispatch(AuthEvent.Authentication.SignInFailed(error), "AuthEngine")
+                _isLoading.value = false
+                return AuthResult.Failure(error)
+            }
+            
+            // Record successful authentication to reset rate limiting
+            rateLimiter.recordSuccessfulAttempt(email)
+            
+            // Create real JWT tokens
+            val accessToken = jwtTokenManager.createAccessToken(storedUser.user.id, storedUser.user.email)
+            val refreshToken = jwtTokenManager.createRefreshToken(storedUser.user.id)
+            val tokens = TokenPair(accessToken, refreshToken, Clock.System.now() + 30.minutes)
+            
+            _authState.value = AuthState.Authenticated(storedUser.user, tokens)
+            eventBus.dispatch(AuthEvent.Authentication.SignInCompleted(storedUser.user, tokens), "AuthEngine")
             
             _isLoading.value = false
-            AuthResult.Success(user)
+            AuthResult.Success(storedUser.user)
             
         } catch (e: Exception) {
             val error = AuthError.UnknownError("Sign in failed: ${e.message}", e)
@@ -95,12 +154,26 @@ class AuthEngine private constructor(
                 return AuthResult.Failure(error)
             }
             
-            // TODO: Check if user already exists
-            // TODO: Hash password securely
+            // Check if user already exists
+            if (userStorage.values.any { it.user.email == email }) {
+                val error = AuthError.ValidationError("User with this email already exists", "email")
+                eventBus.dispatch(AuthEvent.Authentication.SignUpFailed(error), "AuthEngine")
+                _isLoading.value = false
+                return AuthResult.Failure(error)
+            }
+            
+            // Hash password securely
+            val hashedPassword = PasswordHasher.hashPassword(password)
             
             // Create new user
             val user = createNewUser(email, displayName, AuthMethod.Email(email, false, null))
-            val tokens = createMockTokens(user.id)
+            val storedUser = StoredUser(user, hashedPassword)
+            userStorage[user.id] = storedUser
+            
+            // Create real JWT tokens
+            val accessToken = jwtTokenManager.createAccessToken(user.id, user.email)
+            val refreshToken = jwtTokenManager.createRefreshToken(user.id)
+            val tokens = TokenPair(accessToken, refreshToken, Clock.System.now() + 30.minutes)
             
             // Send verification email
             val verificationResult = emailProvider.sendVerificationEmail(email)
@@ -145,7 +218,9 @@ class AuthEngine private constructor(
                 "oauth-user@example.com",
                 AuthMethod.OAuth(OAuthProvider.GOOGLE, "google-user-123", true, Clock.System.now())
             )
-            val tokens = createMockTokens(user.id)
+            val accessToken = jwtTokenManager.createAccessToken(user.id, user.email)
+            val refreshToken = jwtTokenManager.createRefreshToken(user.id)
+            val tokens = TokenPair(accessToken, refreshToken, Clock.System.now() + 30.minutes)
             
             _authState.value = AuthState.Authenticated(user, tokens)
             eventBus.dispatch(AuthEvent.OAuth.OAuthFlowCompleted(provider, user, tokens), "AuthEngine")
@@ -224,7 +299,9 @@ class AuthEngine private constructor(
                     null,
                     AuthMethod.Phone(phoneNumber, true, Clock.System.now())
                 )
-                val tokens = createMockTokens(user.id)
+                val accessToken = jwtTokenManager.createAccessToken(user.id, user.email)
+            val refreshToken = jwtTokenManager.createRefreshToken(user.id)
+            val tokens = TokenPair(accessToken, refreshToken, Clock.System.now() + 30.minutes)
                 
                 _authState.value = AuthState.Authenticated(user, tokens)
                 eventBus.dispatch(AuthEvent.Verification.PhoneVerificationCompleted(phoneNumber), "AuthEngine")
@@ -328,16 +405,6 @@ class AuthEngine private constructor(
         )
     }
     
-    private fun createMockTokens(userId: String): TokenPair {
-        val now = Clock.System.now()
-        val expiresAt = Clock.System.now() + 30.minutes // 30 minutes
-        
-        return TokenPair(
-            accessToken = "access_token_${userId}_${now.toEpochMilliseconds()}",
-            refreshToken = "refresh_token_${userId}_${now.toEpochMilliseconds()}",
-            expiresAt = expiresAt
-        )
-    }
     
     companion object {
         private var INSTANCE: AuthEngine? = null
@@ -355,3 +422,12 @@ class AuthEngine private constructor(
         }
     }
 }
+
+/**
+ * Internal storage representation of a user with authentication data.
+ */
+private data class StoredUser(
+    val user: User,
+    val passwordHash: app.multiauth.security.HashedPassword? = null,
+    val createdAt: kotlinx.datetime.Instant = Clock.System.now()
+)
