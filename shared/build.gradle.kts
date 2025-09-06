@@ -8,8 +8,10 @@ plugins {
 kotlin {
     androidTarget {
         compilations.all {
-            compilerOptions.configure {
-                jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
+            compileTaskProvider.configure {
+                compilerOptions {
+                    jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
+                }
             }
         }
     }
@@ -98,6 +100,14 @@ kotlin {
             }
         }
     }
+}
+
+composeCompiler {
+    // Compose compiler configuration
+    // StrongSkipping and IntrinsicRemember are enabled by default in newer versions
+    
+    // Stability configuration file if needed
+    // stabilityConfigurationFile = rootProject.layout.projectDirectory.file("stability_config.conf")
 }
 
 android {
