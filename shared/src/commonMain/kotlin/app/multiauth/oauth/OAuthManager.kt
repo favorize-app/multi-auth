@@ -1,9 +1,12 @@
 package app.multiauth.oauth
 
+import kotlinx.datetime.Clock
 import app.multiauth.core.AuthEngine
 import app.multiauth.events.AuthEvent
 import app.multiauth.events.EventBus
+import app.multiauth.events.EventBusInstance
 import app.multiauth.models.User
+import app.multiauth.models.TokenPair
 import app.multiauth.platform.Platform
 import app.multiauth.platform.PlatformUtils
 import app.multiauth.util.Logger
@@ -12,8 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-import kotlin.random.Random
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Manager for OAuth authentication flows across different platforms.
@@ -21,7 +23,7 @@ import kotlin.random.Random
  */
 class OAuthManager(
     private val authEngine: AuthEngine,
-    private val eventBus: EventBus = EventBus.getInstance()
+    private val eventBus: EventBus = EventBusInstance()
 ) {
     
     private val logger = Logger.getLogger(this::class)
@@ -48,7 +50,7 @@ class OAuthManager(
         redirectUri: String? = null
     ): Result<User> {
         return try {
-            logger.info("Starting OAuth sign-in with provider: ${provider.name}")
+            logger.info("oath", "Starting OAuth sign-in with provider: ${provider.name}")
             
             _oauthState.value = OAuthState.Initiating
             _currentProvider.value = provider
@@ -67,52 +69,57 @@ class OAuthManager(
                 pkce = pkce
             )
             
-            result.onSuccess { authCode ->
-                logger.info("OAuth flow completed successfully, exchanging code for tokens")
-                _oauthState.value = OAuthState.ExchangingCode
-                
-                // Exchange authorization code for tokens
-                val tokenResult = exchangeCodeForTokens(authCode, pkce)
-                
-                tokenResult.onSuccess { tokens ->
-                    logger.info("Token exchange successful, creating user session")
-                    _oauthState.value = OAuthState.CreatingSession
-                    
-                    // Create user session with the obtained tokens
-                    val userResult = createUserSession(tokens)
-                    
-                    userResult.onSuccess { user ->
-                        _oauthState.value = OAuthState.Success(user)
-                        _oauthState.value = OAuthState.Idle
-                        _currentProvider.value = null
-                        _pkceState.value = null
-                        
-                        // Dispatch success event
-                        eventBus.dispatch(AuthEvent.Authentication.SignInCompleted(user))
-                        
-                        logger.info("OAuth sign-in completed successfully for user: ${user.displayName}")
-                        Result.success(user)
-                    }.onFailure { error ->
-                        logger.error("Failed to create user session", error)
-                        _oauthState.value = OAuthState.Error(error)
-                        _oauthState.value = OAuthState.Idle
-                        Result.failure(error)
-                    }
-                }.onFailure { error ->
-                    logger.error("Failed to exchange code for tokens", error)
-                    _oauthState.value = OAuthState.Error(error)
-                    _oauthState.value = OAuthState.Idle
-                    Result.failure(error)
-                }
-            }.onFailure { error ->
-                logger.error("OAuth flow failed", error)
+            val authCode = result.getOrElse { error ->
+                logger.error("oauth", "OAuth flow failed", error)
                 _oauthState.value = OAuthState.Error(error)
                 _oauthState.value = OAuthState.Idle
-                Result.failure(error)
+                return Result.failure(error)
             }
             
+            logger.info("general", "OAuth flow completed successfully, exchanging code for tokens")
+            _oauthState.value = OAuthState.ExchangingCode
+            
+            // Exchange authorization code for tokens
+            val tokenResult = exchangeCodeForTokens(authCode, pkce)
+            
+            val tokens = tokenResult.getOrElse { error ->
+                logger.error("oauth", "Failed to exchange code for tokens", error)
+                _oauthState.value = OAuthState.Error(error)
+                _oauthState.value = OAuthState.Idle
+                return Result.failure(error)
+            }
+            
+            logger.info("general", "Token exchange successful, creating user session")
+            _oauthState.value = OAuthState.CreatingSession
+            
+            // Create user session with the obtained tokens
+            val userResult = createUserSession(tokens)
+            
+            val user = userResult.getOrElse { error ->
+                logger.error("oauth", "Failed to create user session", error)
+                _oauthState.value = OAuthState.Error(error)
+                _oauthState.value = OAuthState.Idle
+                return Result.failure(error)
+            }
+            
+            _oauthState.value = OAuthState.Success(user)
+            _oauthState.value = OAuthState.Idle
+            _currentProvider.value = null
+            _pkceState.value = null
+            
+            // Dispatch success event
+            val tokenPair = TokenPair(
+                accessToken = tokens.accessToken,
+                refreshToken = tokens.refreshToken,
+                expiresAt = Clock.System.now() + tokens.expiresIn.seconds
+            )
+            eventBus.dispatch(AuthEvent.Authentication.SignInCompleted(user, tokenPair))
+            
+            logger.info("oath", "OAuth sign-in completed successfully for user: ${user.displayName}")
+            Result.success(user)
+            
         } catch (e: Exception) {
-            logger.error("Unexpected error during OAuth sign-in", e)
+            logger.error("oauth", "Unexpected error during OAuth sign-in", e)
             _oauthState.value = OAuthState.Error(e)
             _oauthState.value = OAuthState.Idle
             Result.failure(e)
@@ -126,7 +133,7 @@ class OAuthManager(
      */
     suspend fun signOut(): Result<Unit> {
         return try {
-            logger.info("Signing out OAuth user")
+            logger.info("oath", "Signing out OAuth user")
             
             val provider = _currentProvider.value
             if (provider != null) {
@@ -139,11 +146,11 @@ class OAuthManager(
             _pkceState.value = null
             _oauthState.value = OAuthState.Idle
             
-            logger.info("OAuth sign-out completed successfully")
+            logger.info("oauth", "OAuth sign-out completed successfully")
             Result.success(Unit)
             
         } catch (e: Exception) {
-            logger.error("Failed to sign out OAuth user", e)
+            logger.error("oauth", "Failed to sign out OAuth user", e)
             Result.failure(e)
         }
     }
@@ -155,27 +162,28 @@ class OAuthManager(
      */
     suspend fun refreshToken(): Result<Unit> {
         return try {
-            logger.info("Refreshing OAuth access token")
+            logger.info("oath", "Refreshing OAuth access token")
             
             val provider = _currentProvider.value
             if (provider != null) {
                 val platformOAuth = getPlatformOAuthImplementation(provider)
                 val result = platformOAuth.refreshToken()
                 
-                result.onSuccess {
-                    logger.info("OAuth token refresh completed successfully")
+                if (result.isSuccess) {
+                    logger.info("oauth", "OAuth token refresh completed successfully")
                     Result.success(Unit)
-                }.onFailure { error ->
-                    logger.error("Failed to refresh OAuth token", error)
+                } else {
+                    val error = result.exceptionOrNull() ?: Exception("Token refresh failed")
+                    logger.error("oauth", "Failed to refresh OAuth token", error)
                     Result.failure(error)
                 }
             } else {
-                logger.warn("No OAuth provider available for token refresh")
+                logger.warn("oath", "No OAuth provider available for token refresh")
                 Result.failure(IllegalStateException("No OAuth provider available"))
             }
             
         } catch (e: Exception) {
-            logger.error("Unexpected error during token refresh", e)
+            logger.error("oauth", "Unexpected error during token refresh", e)
             Result.failure(e)
         }
     }
@@ -277,9 +285,9 @@ class OAuthManager(
                 id = "oauth_user_${tokens.accessToken.take(8)}",
                 email = "user@example.com",
                 displayName = "OAuth User",
-                isEmailVerified = true,
-                createdAt = System.currentTimeMillis(),
-                lastSignInAt = System.currentTimeMillis()
+                emailVerified = true,
+                createdAt = Clock.System.now(),
+                lastSignInAt = Clock.System.now()
             )
             Result.success(user)
         } catch (e: Exception) {

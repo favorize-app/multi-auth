@@ -16,7 +16,7 @@ object IosStorageFactory {
      * @return IosSecureStorage instance
      */
     fun createIosStorage(): SecureStorage {
-        logger.info("Creating iOS secure storage")
+        logger.info("secure storage", "Creating iOS secure storage")
         return IosSecureStorage()
     }
     

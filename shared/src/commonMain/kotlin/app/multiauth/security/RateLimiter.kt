@@ -7,9 +7,20 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.time.Instant
-import java.time.temporal.ChronoUnit
-import java.util.concurrent.ConcurrentHashMap
+import kotlinx.datetime.Instant
+import kotlinx.datetime.Clock
+import kotlin.time.Duration
+
+// Default rate limiting configurations
+const val DEFAULT_LOGIN_ATTEMPTS_PER_HOUR = 5
+const val DEFAULT_PASSWORD_RESET_ATTEMPTS_PER_HOUR = 3
+const val DEFAULT_MFA_ATTEMPTS_PER_HOUR = 10
+const val DEFAULT_API_REQUESTS_PER_MINUTE = 100
+
+// Account lockout configurations
+const val DEFAULT_ACCOUNT_LOCKOUT_DURATION_MINUTES = 30L
+const val DEFAULT_MAX_FAILED_ATTEMPTS = 5
+const val DEFAULT_FAILED_ATTEMPT_WINDOW_MINUTES = 15L
 
 /**
  * Rate limiter for preventing brute force attacks and controlling request frequency.
@@ -21,16 +32,7 @@ class RateLimiter {
     private val scope = CoroutineScope(Dispatchers.Main)
     
     companion object {
-        // Default rate limiting configurations
-        private const val DEFAULT_LOGIN_ATTEMPTS_PER_HOUR = 5
-        private const val DEFAULT_PASSWORD_RESET_ATTEMPTS_PER_HOUR = 3
-        private const val DEFAULT_MFA_ATTEMPTS_PER_HOUR = 10
-        private const val DEFAULT_API_REQUESTS_PER_MINUTE = 100
-        
-        // Account lockout configurations
-        private const val DEFAULT_ACCOUNT_LOCKOUT_DURATION_MINUTES = 30L
-        private const val DEFAULT_MAX_FAILED_ATTEMPTS = 5
-        private const val DEFAULT_FAILED_ATTEMPT_WINDOW_MINUTES = 15L
+        // Constants are now defined at package level
     }
     
     private val _rateLimitState = MutableStateFlow<RateLimitState>(RateLimitState.Idle)
@@ -43,14 +45,14 @@ class RateLimiter {
     val rateLimitMetrics: StateFlow<RateLimitMetrics> = _rateLimitMetrics.asStateFlow()
     
     // Rate limiting storage
-    private val _loginAttempts = ConcurrentHashMap<String, MutableList<Instant>>()
-    private val _passwordResetAttempts = ConcurrentHashMap<String, MutableList<Instant>>()
-    private val _mfaAttempts = ConcurrentHashMap<String, MutableList<Instant>>()
-    private val _apiRequests = ConcurrentHashMap<String, MutableList<Instant>>()
+    private val _loginAttempts = mutableMapOf<String, MutableList<Instant>>()
+    private val _passwordResetAttempts = mutableMapOf<String, MutableList<Instant>>()
+    private val _mfaAttempts = mutableMapOf<String, MutableList<Instant>>()
+    private val _apiRequests = mutableMapOf<String, MutableList<Instant>>()
     
     // Account lockout storage
-    private val _lockedAccounts = ConcurrentHashMap<String, AccountLockout>()
-    private val _failedAttempts = ConcurrentHashMap<String, MutableList<FailedAttempt>>()
+    private val _lockedAccounts = mutableMapOf<String, AccountLockout>()
+    private val _failedAttempts = mutableMapOf<String, MutableList<FailedAttempt>>()
     
     // Configuration
     private var config = RateLimitConfig()
@@ -62,7 +64,7 @@ class RateLimiter {
      */
     fun configure(newConfig: RateLimitConfig) {
         config = newConfig
-        logger.info("Rate limiter configured with new settings: $newConfig")
+        logger.info("security", "Rate limiter configured with new settings: $newConfig")
     }
     
     /**
@@ -89,7 +91,7 @@ class RateLimiter {
     fun recordSuccessfulLogin(identifier: String) {
         recordSuccessfulAttempt(identifier, AttemptType.LOGIN, _loginAttempts)
         unlockAccount(identifier)
-        logger.info("Successful login recorded for: $identifier")
+        logger.info("security", "Successful login recorded for: $identifier")
     }
     
     /**
@@ -101,7 +103,7 @@ class RateLimiter {
     fun recordFailedLogin(identifier: String, reason: String) {
         recordFailedAttempt(identifier, AttemptType.LOGIN, _loginAttempts, reason)
         checkForAccountLockout(identifier)
-        logger.warn("Failed login attempt recorded for: $identifier, reason: $reason")
+        logger.warn("security", "Failed login attempt recorded for: $identifier, reason: $reason")
     }
     
     /**
@@ -127,7 +129,7 @@ class RateLimiter {
      */
     fun recordPasswordResetAttempt(identifier: String) {
         recordAttempt(identifier, _passwordResetAttempts)
-        logger.info("Password reset attempt recorded for: $identifier")
+        logger.info("security", "Password reset attempt recorded for: $identifier")
     }
     
     /**
@@ -153,7 +155,7 @@ class RateLimiter {
      */
     fun recordMfaAttempt(identifier: String) {
         recordAttempt(identifier, _mfaAttempts)
-        logger.info("MFA attempt recorded for: $identifier")
+        logger.info("security", "MFA attempt recorded for: $identifier")
     }
     
     /**
@@ -179,7 +181,7 @@ class RateLimiter {
      */
     fun recordApiRequest(identifier: String) {
         recordAttempt(identifier, _apiRequests)
-        logger.debug("API request recorded for: $identifier")
+        logger.debug("security", "API request recorded for: $identifier")
     }
     
     /**
@@ -193,7 +195,7 @@ class RateLimiter {
         if (lockout == null) return false
         
         // Check if lockout has expired
-        if (Instant.now().isAfter(lockout.expiresAt)) {
+        if (Clock.System.now() > lockout.expiresAt) {
             _lockedAccounts.remove(identifier)
             return false
         }
@@ -210,12 +212,12 @@ class RateLimiter {
     fun getRemainingLockoutTime(identifier: String): Long {
         val lockout = _lockedAccounts[identifier] ?: return 0
         
-        if (Instant.now().isAfter(lockout.expiresAt)) {
+        if (Clock.System.now() > lockout.expiresAt) {
             _lockedAccounts.remove(identifier)
             return 0
         }
         
-        return ChronoUnit.SECONDS.between(Instant.now(), lockout.expiresAt)
+        return (lockout.expiresAt - Clock.System.now()).inWholeSeconds
     }
     
     /**
@@ -228,7 +230,7 @@ class RateLimiter {
         _failedAttempts.remove(identifier)
         _blockedEntities.value = _blockedEntities.value - identifier
         
-        logger.info("Account manually unlocked for: $identifier")
+        logger.info("security", "Account manually unlocked for: $identifier")
     }
     
     /**
@@ -238,7 +240,7 @@ class RateLimiter {
      * @return RateLimitStats for the identifier
      */
     fun getRateLimitStats(identifier: String): RateLimitStats {
-        val now = Instant.now()
+        val now = Clock.System.now()
         
         val loginAttempts = getRecentAttempts(_loginAttempts[identifier], now, 60L)
         val passwordResetAttempts = getRecentAttempts(_passwordResetAttempts[identifier], now, 60L)
@@ -266,7 +268,7 @@ class RateLimiter {
     fun cleanup() {
         scope.launch {
             try {
-                val now = Instant.now()
+                val now = Clock.System.now()
                 
                 // Clean up expired attempts
                 cleanupExpiredAttempts(_loginAttempts, now, 60L)
@@ -280,9 +282,9 @@ class RateLimiter {
                 // Clean up expired failed attempts
                 cleanupExpiredFailedAttempts(now)
                 
-                logger.debug("Rate limiter cleanup completed")
+                logger.debug("security", "Rate limiter cleanup completed")
             } catch (e: Exception) {
-                logger.error("Failed to cleanup rate limiter data", e)
+                logger.error("security", "Failed to cleanup rate limiter data", e)
             }
         }
     }
@@ -294,7 +296,7 @@ class RateLimiter {
         attemptType: AttemptType,
         maxAttempts: Int,
         windowMinutes: Long,
-        storage: ConcurrentHashMap<String, MutableList<Instant>>
+        storage: MutableMap<String, MutableList<Instant>>
     ): RateLimitResult {
         // Check if entity is blocked
         if (_blockedEntities.value.contains(identifier)) {
@@ -315,16 +317,16 @@ class RateLimiter {
         
         // Check rate limit
         val attempts = storage.getOrPut(identifier) { mutableListOf() }
-        val now = Instant.now()
-        val cutoffTime = now.minus(windowMinutes, ChronoUnit.MINUTES)
+        val now = Clock.System.now()
+        val cutoffTime = now.minus(Duration.parse("PT${windowMinutes}M"))
         
         // Remove old attempts
-        attempts.removeAll { it.isBefore(cutoffTime) }
+        attempts.removeAll { it < cutoffTime }
         
         if (attempts.size >= maxAttempts) {
             val oldestAttempt = attempts.minOrNull()
             val retryAfter = if (oldestAttempt != null) {
-                ChronoUnit.SECONDS.between(now, oldestAttempt.plus(windowMinutes, ChronoUnit.MINUTES))
+                (oldestAttempt.plus(Duration.parse("PT${windowMinutes}M")) - now).inWholeSeconds
             } else 0L
             
             return RateLimitResult.RateLimited(
@@ -339,51 +341,51 @@ class RateLimiter {
         )
     }
     
-    private fun recordAttempt(identifier: String, storage: ConcurrentHashMap<String, MutableList<Instant>>) {
+    private fun recordAttempt(identifier: String, storage: MutableMap<String, MutableList<Instant>>) {
         val attempts = storage.getOrPut(identifier) { mutableListOf() }
-        attempts.add(Instant.now())
+        attempts.add(Clock.System.now())
         
         // Update metrics
         updateMetrics(identifier, true)
     }
     
-    private fun recordSuccessfulAttempt(identifier: String, attemptType: AttemptType, storage: ConcurrentHashMap<String, MutableList<Instant>>) {
+    private fun recordSuccessfulAttempt(identifier: String, attemptType: AttemptType, storage: MutableMap<String, MutableList<Instant>>) {
         // Clear failed attempts for successful authentication
         storage.remove(identifier)
         updateMetrics(identifier, true)
     }
     
-    private fun recordFailedAttempt(identifier: String, attemptType: AttemptType, storage: ConcurrentHashMap<String, MutableList<Instant>>, reason: String) {
+    private fun recordFailedAttempt(identifier: String, attemptType: AttemptType, storage: MutableMap<String, MutableList<Instant>>, reason: String) {
         recordAttempt(identifier, storage)
         
         // Record failed attempt for lockout tracking
         val failedAttempts = _failedAttempts.getOrPut(identifier) { mutableListOf() }
-        failedAttempts.add(FailedAttempt(Instant.now(), attemptType, reason))
+        failedAttempts.add(FailedAttempt(Clock.System.now(), attemptType, reason))
         
         updateMetrics(identifier, false)
     }
     
     private fun checkForAccountLockout(identifier: String) {
         val failedAttempts = _failedAttempts[identifier] ?: return
-        val now = Instant.now()
-        val cutoffTime = now.minus(config.failedAttemptWindowMinutes, ChronoUnit.MINUTES)
+        val now = Clock.System.now()
+        val cutoffTime = now.minus(Duration.parse("PT${config.failedAttemptWindowMinutes}M"))
         
         // Get recent failed attempts
-        val recentFailedAttempts = failedAttempts.filter { it.timestamp.isAfter(cutoffTime) }
+        val recentFailedAttempts = failedAttempts.filter { it.timestamp > cutoffTime }
         
         if (recentFailedAttempts.size >= config.maxFailedAttempts) {
             // Lock the account
             val lockout = AccountLockout(
                 identifier = identifier,
                 lockedAt = now,
-                expiresAt = now.plus(config.accountLockoutDurationMinutes, ChronoUnit.MINUTES),
+                expiresAt = now.plus(Duration.parse("PT${config.accountLockoutDurationMinutes}M")),
                 reason = "Multiple failed authentication attempts"
             )
             
             _lockedAccounts[identifier] = lockout
             _blockedEntities.value = _blockedEntities.value + identifier
             
-            logger.warn("Account locked for: $identifier due to multiple failed attempts")
+            logger.warn("security", "Account locked for: $identifier due to multiple failed attempts")
             
             // Dispatch lockout event
             // eventBus.dispatch(AuthEvent.Security.AccountLocked(identifier, lockout))
@@ -393,15 +395,15 @@ class RateLimiter {
     private fun getRecentAttempts(attempts: MutableList<Instant>?, now: Instant, windowMinutes: Long): Int {
         if (attempts == null) return 0
         
-        val cutoffTime = now.minus(windowMinutes, ChronoUnit.MINUTES)
-        return attempts.count { it.isAfter(cutoffTime) }
+        val cutoffTime = now.minus(Duration.parse("PT${windowMinutes}M"))
+        return attempts.count { it > cutoffTime }
     }
     
-    private fun cleanupExpiredAttempts(storage: ConcurrentHashMap<String, MutableList<Instant>>, now: Instant, windowMinutes: Long) {
-        val cutoffTime = now.minus(windowMinutes, ChronoUnit.MINUTES)
+    private fun cleanupExpiredAttempts(storage: MutableMap<String, MutableList<Instant>>, now: Instant, windowMinutes: Long) {
+        val cutoffTime = now.minus(Duration.parse("PT${windowMinutes}M"))
         
         storage.forEach { (identifier, attempts) ->
-            attempts.removeAll { it.isBefore(cutoffTime) }
+            attempts.removeAll { it < cutoffTime }
             if (attempts.isEmpty()) {
                 storage.remove(identifier)
             }
@@ -409,16 +411,24 @@ class RateLimiter {
     }
     
     private fun cleanupExpiredLockouts(now: Instant) {
-        _lockedAccounts.entries.removeIf { (_, lockout) ->
-            now.isAfter(lockout.expiresAt)
+        val expiredKeys = mutableListOf<String>()
+        
+        _lockedAccounts.forEach { (identifier, lockout) ->
+            if (now > lockout.expiresAt) {
+                expiredKeys.add(identifier)
+            }
+        }
+        
+        expiredKeys.forEach { key ->
+            _lockedAccounts.remove(key)
         }
     }
     
     private fun cleanupExpiredFailedAttempts(now: Instant) {
-        val cutoffTime = now.minus(config.failedAttemptWindowMinutes, ChronoUnit.MINUTES)
+        val cutoffTime = now.minus(Duration.parse("PT${config.failedAttemptWindowMinutes}M"))
         
         _failedAttempts.forEach { (identifier, attempts) ->
-            attempts.removeAll { it.isBefore(cutoffTime) }
+            attempts.removeAll { it.timestamp < cutoffTime }
             if (attempts.isEmpty()) {
                 _failedAttempts.remove(identifier)
             }
@@ -467,7 +477,7 @@ sealed class RateLimitState {
 data class RateLimitMetrics(
     val successfulRequests: Long = 0,
     val blockedRequests: Long = 0,
-    val lastUpdated: Instant = Instant.now()
+    val lastUpdated: Instant = Clock.System.now()
 )
 
 /**

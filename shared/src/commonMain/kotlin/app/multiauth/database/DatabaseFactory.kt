@@ -18,7 +18,7 @@ object DatabaseFactory {
      * @throws IllegalArgumentException if the database type is not supported
      */
     fun createDatabase(config: DatabaseConfig): Database {
-        logger.info("Creating database with configuration: ${config.name}")
+        logger.info("db", "Creating database with configuration: ${config.name}")
         
         // For now, we only support SQLite
         // In the future, this could support PostgreSQL, MySQL, etc.
@@ -32,7 +32,7 @@ object DatabaseFactory {
      */
     fun createDefaultDatabase(): Database {
         val defaultConfig = DatabaseConfig()
-        logger.info("Creating default database: ${defaultConfig.name}")
+        logger.info("db", "Creating default database: ${defaultConfig.name}")
         return createDatabase(defaultConfig)
     }
     
@@ -56,7 +56,7 @@ object DatabaseFactory {
             autoVacuum = "NONE"
         )
         
-        logger.info("Creating development database: ${devConfig.name}")
+        logger.info("db", "Creating development database: ${devConfig.name}")
         return createDatabase(devConfig)
     }
     
@@ -80,7 +80,7 @@ object DatabaseFactory {
             autoVacuum = "INCREMENTAL"
         )
         
-        logger.info("Creating production database: ${prodConfig.name}")
+        logger.info("db", "Creating production database: ${prodConfig.name}")
         return createDatabase(prodConfig)
     }
     
@@ -104,7 +104,7 @@ object DatabaseFactory {
             autoVacuum = "INCREMENTAL"
         )
         
-        logger.info("Creating high-performance database: ${perfConfig.name}")
+        logger.info("db", "Creating high-performance database: ${perfConfig.name}")
         return createDatabase(perfConfig)
     }
     
@@ -128,7 +128,7 @@ object DatabaseFactory {
             autoVacuum = "NONE" // Disable auto-vacuum for embedded systems
         )
         
-        logger.info("Creating embedded database: ${embeddedConfig.name}")
+        logger.info("db", "Creating embedded database: ${embeddedConfig.name}")
         return createDatabase(embeddedConfig)
     }
     
@@ -175,7 +175,7 @@ object DatabaseFactory {
             autoVacuum = autoVacuum
         )
         
-        logger.info("Creating custom database: ${customConfig.name}")
+        logger.info("db", "Creating custom database: ${customConfig.name}")
         return createDatabase(customConfig)
     }
     

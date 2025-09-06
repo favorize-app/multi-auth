@@ -24,6 +24,7 @@ import app.multiauth.ui.auth.RegisterScreen
 import app.multiauth.ui.oauth.OAuthProvider
 import app.multiauth.ui.oauth.OAuthProviderSelection
 import app.multiauth.ui.theme.MultiAuthTheme
+import app.multiauth.util.Logger
 
 enum class AuthScreen {
     LOGIN,
@@ -149,7 +150,7 @@ fun OAuthDemo() {
                     onProviderSelected = { provider ->
                         // Handle OAuth provider selection
                         // In a real app, this would call the OAuthManager
-                        println("Selected OAuth provider: ${provider.displayName}")
+                        Logger.info("OAuth", "Selected OAuth provider: ${provider.displayName}")
                     }
                 )
             }

@@ -1,6 +1,5 @@
 package app.multiauth.util
 
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.Clock.System
 
@@ -16,6 +15,13 @@ object Logger {
     
     private var minimumLevel = Level.DEBUG
     private val loggers = mutableListOf<LogHandler>()
+    
+    /**
+     * Gets a logger instance for a specific class.
+     */
+    fun getLogger(clazz: Any): Logger {
+        return this
+    }
     
     /**
      * Sets the minimum log level for all loggers.

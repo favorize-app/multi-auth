@@ -33,7 +33,7 @@ object StorageFactory {
      * This will be implemented in the Android-specific source set.
      */
     private fun createAndroidStorage(): SecureStorage {
-        logger.info("Creating Android secure storage")
+        logger.info("StorageFactory", "Creating Android secure storage")
         // This will be implemented in androidMain
         throw UnsupportedOperationException("Android storage not implemented in common module")
     }
@@ -43,7 +43,7 @@ object StorageFactory {
      * This will be implemented in the iOS-specific source set.
      */
     private fun createIOSStorage(): SecureStorage {
-        logger.info("Creating iOS secure storage")
+        logger.info("StorageFactory", "Creating iOS secure storage")
         // This will be implemented in iosMain
         throw UnsupportedOperationException("iOS storage not implemented in common module")
     }
@@ -53,7 +53,7 @@ object StorageFactory {
      * This will be implemented in the JavaScript-specific source set.
      */
     private fun createWebStorage(): SecureStorage {
-        logger.info("Creating Web secure storage")
+        logger.info("StorageFactory", "Creating Web secure storage")
         // This will be implemented in jsMain
         throw UnsupportedOperationException("Web storage not implemented in common module")
     }
@@ -63,7 +63,7 @@ object StorageFactory {
      * This will be implemented in the JVM-specific source set.
      */
     private fun createDesktopStorage(): SecureStorage {
-        logger.info("Creating Desktop secure storage")
+        logger.info("StorageFactory", "Creating Desktop secure storage")
         // This will be implemented in jvmMain
         throw UnsupportedOperationException("Desktop storage not implemented in common module")
     }
@@ -74,7 +74,7 @@ object StorageFactory {
      * @return A MockSecureStorage instance
      */
     fun createMockStorage(): SecureStorage {
-        logger.info("Creating mock secure storage for testing")
+        logger.info("StorageFactory", "Creating mock secure storage for testing")
         return MockSecureStorage()
     }
     
@@ -103,10 +103,10 @@ class MockSecureStorage : BaseSecureStorage() {
         
         return try {
             storage[key] = value
-            logger.debug("Mock storage: stored key '$key'")
+            logger.debug("MockSecureStorage", "Mock storage: stored key '$key'")
             true
         } catch (e: Exception) {
-            logger.error("Mock storage: failed to store key '$key'", e)
+            logger.error("MockSecureStorage", "Mock storage: failed to store key '$key': ${e.message}")
             false
         }
     }
@@ -118,10 +118,10 @@ class MockSecureStorage : BaseSecureStorage() {
         
         return try {
             val value = storage[key]
-            logger.debug("Mock storage: retrieved key '$key' -> ${if (value != null) "found" else "not found"}")
+            logger.debug("MockSecureStorage", "Mock storage: retrieved key '$key' -> ${if (value != null) "found" else "not found"}")
             value
         } catch (e: Exception) {
-            logger.error("Mock storage: failed to retrieve key '$key'", e)
+            logger.error("MockSecureStorage", "Mock storage: failed to retrieve key '$key': ${e.message}")
             null
         }
     }
@@ -133,10 +133,10 @@ class MockSecureStorage : BaseSecureStorage() {
         
         return try {
             val removed = storage.remove(key) != null
-            logger.debug("Mock storage: removed key '$key' -> $removed")
+            logger.debug("MockSecureStorage", "Mock storage: removed key '$key' -> $removed")
             removed
         } catch (e: Exception) {
-            logger.error("Mock storage: failed to remove key '$key'", e)
+            logger.error("MockSecureStorage", "Mock storage: failed to remove key '$key': ${e.message}")
             false
         }
     }
@@ -145,10 +145,10 @@ class MockSecureStorage : BaseSecureStorage() {
         return try {
             val size = storage.size
             storage.clear()
-            logger.debug("Mock storage: cleared $size items")
+            logger.debug("MockSecureStorage", "Mock storage: cleared $size items")
             true
         } catch (e: Exception) {
-            logger.error("Mock storage: failed to clear storage", e)
+            logger.error("MockSecureStorage", "Mock storage: failed to clear storage: ${e.message}")
             false
         }
     }
