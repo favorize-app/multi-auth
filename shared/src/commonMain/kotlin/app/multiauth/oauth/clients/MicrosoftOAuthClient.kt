@@ -1,5 +1,6 @@
 package app.multiauth.oauth.clients
 
+import app.multiauth.oauth.HttpClient
 import app.multiauth.oauth.OAuthClient
 import app.multiauth.oauth.OAuthConfig
 import app.multiauth.oauth.OAuthResult
@@ -17,10 +18,8 @@ import kotlinx.serialization.json.Json
  */
 class MicrosoftOAuthClient(
     private val config: OAuthConfig,
-    private val httpClient: HttpClient
+    private val httpClient: HttpClient, override val logger: Logger
 ) : OAuthClient {
-    
-    private val logger = Logger.getLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
     
     companion object {
@@ -71,14 +70,14 @@ class MicrosoftOAuthClient(
                 codeVerifier = codeVerifier
             )
             
-            val response = withContext(Dispatchers.IO) {
+            val response = withContext(Dispatchers.Default) {
                 httpClient.post(TOKEN_URL) {
                     setBody(tokenRequest.toFormData())
                     header("Content-Type", "application/x-www-form-urlencoded")
                 }
             }
             
-            if (response.status.isSuccess()) {
+            if (response.status.isSuccess) {
                 val tokenResponse = json.decodeFromString<MicrosoftTokenResponse>(response.bodyAsText())
                 logger.debug("oath", "Successfully exchanged code for Microsoft tokens")
                 
@@ -93,8 +92,8 @@ class MicrosoftOAuthClient(
                 val errorResponse = json.decodeFromString<MicrosoftErrorResponse>(response.bodyAsText())
                 logger.error("oath", "Failed to exchange code for Microsoft tokens: ${errorResponse.error}")
                 
-                OAuthResult.Error(
-                    OAuthError.TokenExchangeFailed(
+                OAuthResult.Failure(
+                    OAuthError.fromOAuthResponse(
                         error = errorResponse.error,
                         errorDescription = errorResponse.errorDescription
                     )
@@ -102,8 +101,8 @@ class MicrosoftOAuthClient(
             }
         } catch (e: Exception) {
             logger.error("microsoft", "Exception during Microsoft token exchange", e)
-            OAuthResult.Error(
-                OAuthError.TokenExchangeFailed(
+            OAuthResult.Failure(
+                OAuthError.fromOAuthResponse(
                     error = "token_exchange_failed",
                     errorDescription = e.message ?: "Unknown error"
                 )
@@ -122,14 +121,14 @@ class MicrosoftOAuthClient(
                 grantType = GRANT_TYPE_REFRESH
             )
             
-            val response = withContext(Dispatchers.IO) {
+            val response = withContext(Dispatchers.Default) {
                 httpClient.post(TOKEN_URL) {
                     setBody(refreshRequest.toFormData())
                     header("Content-Type", "application/x-www-form-urlencoded")
                 }
             }
             
-            if (response.status.isSuccess()) {
+            if (response.status.isSuccess) {
                 val tokenResponse = json.decodeFromString<MicrosoftTokenResponse>(response.bodyAsText())
                 logger.debug("oath", "Successfully refreshed Microsoft access token")
                 
@@ -144,19 +143,19 @@ class MicrosoftOAuthClient(
                 val errorResponse = json.decodeFromString<MicrosoftErrorResponse>(response.bodyAsText())
                 logger.error("oath", "Failed to refresh Microsoft access token: ${errorResponse.error}")
                 
-                OAuthResult.Error(
-                    OAuthError.TokenRefreshFailed(
-                        error = errorResponse.error,
-                        errorDescription = errorResponse.errorDescription
+                OAuthResult.Failure(
+                    OAuthError.networkError(
+                        message = "Token refresh failed: ${errorResponse.error} - ${errorResponse.errorDescription}",
+                        cause = null
                     )
                 )
             }
         } catch (e: Exception) {
             logger.error("microsoft", "Exception during Microsoft token refresh", e)
-            OAuthResult.Error(
-                OAuthError.TokenRefreshFailed(
-                    error = "token_refresh_failed",
-                    errorDescription = e.message ?: "Unknown error"
+            OAuthResult.Failure(
+                OAuthError.networkError(
+                    message = e.message ?: "Unknown error during token refresh",
+                    cause = e
                 )
             )
         }
@@ -166,35 +165,41 @@ class MicrosoftOAuthClient(
         return try {
             logger.debug("oath", "Fetching Microsoft user info")
             
-            val response = withContext(Dispatchers.IO) {
-                httpClient(USER_INFO_URL) {
+            val response = withContext(Dispatchers.Default) {
+                httpClient.get(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                     header("Accept", "application/json")
                 }
             }
             
-            if (response.status.isSuccess()) {
+            if (response.status.isSuccess) {
                 val userInfo = json.decodeFromString<MicrosoftUserInfo>(response.bodyAsText())
                 logger.debug("oath", "Successfully fetched Microsoft user info: ${userInfo.displayName}")
                 
                 OAuthResult.Success(
+                    accessToken = accessToken,
+                    refreshToken = null,
+                    expiresIn = null,
                     userInfo = OAuthUserInfo(
                         id = userInfo.id,
                         email = userInfo.mail ?: userInfo.userPrincipalName,
                         name = userInfo.displayName,
-                        firstName = userInfo.givenName,
-                        lastName = userInfo.surname,
+                        givenName = userInfo.givenName,
+                        familyName = userInfo.surname,
+                        displayName = userInfo.displayName,
                         picture = null, // Microsoft Graph doesn't provide profile picture in basic profile
                         locale = userInfo.preferredLanguage,
-                        verifiedEmail = true // Microsoft accounts are verified
+                        emailVerified = true, // Microsoft accounts are verified
+                        provider = "microsoft",
+                        providerId = userInfo.id
                     )
                 )
             } else {
                 val errorResponse = json.decodeFromString<MicrosoftErrorResponse>(response.bodyAsText())
                 logger.error("oath", "Failed to fetch Microsoft user info: ${errorResponse.error}")
                 
-                OAuthResult.Error(
-                    OAuthError.UserInfoFetchFailed(
+                OAuthResult.Failure(
+                    OAuthError.fromOAuthResponse(
                         error = errorResponse.error,
                         errorDescription = errorResponse.errorDescription
                     )
@@ -202,8 +207,8 @@ class MicrosoftOAuthClient(
             }
         } catch (e: Exception) {
             logger.error("microsoft", "Exception during Microsoft user info fetch", e)
-            OAuthResult.Error(
-                OAuthError.UserInfoFetchFailed(
+            OAuthResult.Failure(
+                OAuthError.fromOAuthResponse(
                     error = "user_info_fetch_failed",
                     errorDescription = e.message ?: "Unknown error"
                 )
@@ -231,14 +236,14 @@ class MicrosoftOAuthClient(
         return try {
             logger.debug("oath", "Validating Microsoft OAuth token")
             
-            val response = withContext(Dispatchers.IO) {
-                httpClient(USER_INFO_URL) {
+            val response = withContext(Dispatchers.Default) {
+                httpClient.get(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                     header("Accept", "application/json")
                 }
             }
             
-            val isValid = response.status.isSuccess()
+            val isValid = response.status.isSuccess
             logger.debug("oath", "Microsoft OAuth token validation result: $isValid")
             
             isValid

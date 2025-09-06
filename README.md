@@ -120,7 +120,7 @@ The system includes comprehensive features, enterprise-grade security, and scala
 
 ### Prerequisites
 
-- Kotlin 1.9.20+
+- Kotlin 2.1.0+
 - Android Studio Arctic Fox or later
 - Xcode 13+ (for iOS development)
 - Node.js 16+ (for web development)

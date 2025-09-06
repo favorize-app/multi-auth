@@ -109,23 +109,7 @@ data class OAuthAccount(
     }
 }
 
-/**
- * OAuth provider information
- */
-@Serializable
-data class OAuthProvider(
-    val id: String,
-    val name: String,
-    val displayName: String,
-    val iconUrl: String?,
-    val authorizationUrl: String,
-    val tokenUrl: String,
-    val userInfoUrl: String,
-    val clientId: String,
-    val clientSecret: String,
-    val scopes: List<String>,
-    val isEnabled: Boolean = true
-)
+// OAuthProvider is defined as an enum in app.multiauth.oauth.OAuthProvider
 
 /**
  * OAuth authorization request parameters

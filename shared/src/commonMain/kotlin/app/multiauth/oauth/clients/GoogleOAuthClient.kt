@@ -1,5 +1,6 @@
 package app.multiauth.oauth.clients
 
+import app.multiauth.oauth.HttpClient
 import app.multiauth.oauth.OAuthClient
 import app.multiauth.oauth.OAuthConfig
 import app.multiauth.oauth.OAuthResult
@@ -10,8 +11,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * Real Google OAuth client implementation.
@@ -19,9 +18,9 @@ import kotlinx.serialization.json.jsonPrimitive
  */
 class GoogleOAuthClient(
     private val config: OAuthConfig,
-    private val httpClient: HttpClient
+    private val httpClient: HttpClient,
+    override val logger: Logger
 ) : OAuthClient {
-    override val logger = Logger.getLogger(this::class)
 
     private val json = Json { ignoreUnknownKeys = true }
     
@@ -75,14 +74,14 @@ class GoogleOAuthClient(
                 codeVerifier = codeVerifier
             )
             
-            val response = withContext(Dispatchers.IO) {
+            val response = withContext(Dispatchers.Default) {
                 httpClient.post(TOKEN_URL) {
                     setBody(tokenRequest.toFormData())
                     header("Content-Type", "application/x-www-form-urlencoded")
                 }
             }
             
-            if (response.status.isSuccess()) {
+            if (response.status.isSuccess) {
                 val tokenResponse = json.decodeFromString<GoogleTokenResponse>(response.bodyAsText())
                 logger.debug("oath", "Successfully exchanged code for tokens")
                 
@@ -97,8 +96,8 @@ class GoogleOAuthClient(
                 val errorResponse = json.decodeFromString<GoogleErrorResponse>(response.bodyAsText())
                 logger.error("oath", "Failed to exchange code for tokens: ${errorResponse.error}")
                 
-                OAuthResult.Error(
-                    OAuthError.TokenExchangeFailed(
+                OAuthResult.Failure(
+                    OAuthError.fromOAuthResponse(
                         error = errorResponse.error,
                         errorDescription = errorResponse.errorDescription
                     )
@@ -106,8 +105,8 @@ class GoogleOAuthClient(
             }
         } catch (e: Exception) {
             logger.error("google", "Exception during token exchange", e)
-            OAuthResult.Error(
-                OAuthError.TokenExchangeFailed(
+            OAuthResult.Failure(
+                OAuthError.fromOAuthResponse(
                     error = "token_exchange_failed",
                     errorDescription = e.message ?: "Unknown error"
                 )
@@ -126,14 +125,14 @@ class GoogleOAuthClient(
                 grantType = GRANT_TYPE_REFRESH
             )
             
-            val response = withContext(Dispatchers.IO) {
+            val response = withContext(Dispatchers.Default) {
                 httpClient.post(TOKEN_URL) {
                     setBody(refreshRequest.toFormData())
                     header("Content-Type", "application/x-www-form-urlencoded")
                 }
             }
             
-            if (response.status.isSuccess()) {
+            if (response.status.isSuccess) {
                 val tokenResponse = json.decodeFromString<GoogleTokenResponse>(response.bodyAsText())
                 logger.debug("oath", "Successfully refreshed access token")
                 
@@ -148,19 +147,19 @@ class GoogleOAuthClient(
                 val errorResponse = json.decodeFromString<GoogleErrorResponse>(response.bodyAsText())
                 logger.error("oath", "Failed to refresh access token: ${errorResponse.error}")
                 
-                OAuthResult.Error(
-                    OAuthError.TokenRefreshFailed(
-                        error = errorResponse.error,
-                        errorDescription = errorResponse.errorDescription
+                OAuthResult.Failure(
+                    OAuthError.networkError(
+                        message = "Token refresh failed: ${errorResponse.error} - ${errorResponse.errorDescription}",
+                        cause = null
                     )
                 )
             }
         } catch (e: Exception) {
             logger.error("google", "Exception during token refresh", e)
-            OAuthResult.Error(
-                OAuthError.TokenRefreshFailed(
-                    error = "token_refresh_failed",
-                    errorDescription = e.message ?: "Unknown error"
+            OAuthResult.Failure(
+                OAuthError.networkError(
+                    message = e.message ?: "Unknown error during token refresh",
+                    cause = e
                 )
             )
         }
@@ -170,34 +169,40 @@ class GoogleOAuthClient(
         return try {
             logger.debug("oath", "Fetching user info from Google")
             
-            val response = withContext(Dispatchers.IO) {
-                httpClient(USER_INFO_URL) {
+            val response = withContext(Dispatchers.Default) {
+                httpClient.get(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                 }
             }
             
-            if (response.status.isSuccess()) {
+            if (response.status.isSuccess) {
                 val userInfo = json.decodeFromString<GoogleUserInfo>(response.bodyAsText())
                 logger.debug("oath", "Successfully fetched user info: ${userInfo.email}")
                 
                 OAuthResult.Success(
+                    accessToken = accessToken,
+                    refreshToken = null,
+                    expiresIn = null,
                     userInfo = OAuthUserInfo(
                         id = userInfo.id,
                         email = userInfo.email,
                         name = userInfo.name,
-                        firstName = userInfo.givenName,
-                        lastName = userInfo.familyName,
+                        givenName = userInfo.givenName,
+                        familyName = userInfo.familyName,
+                        displayName = userInfo.name,
                         picture = userInfo.picture,
                         locale = userInfo.locale,
-                        verifiedEmail = userInfo.verifiedEmail
+                        emailVerified = userInfo.verifiedEmail,
+                        provider = "google",
+                        providerId = userInfo.id
                     )
                 )
             } else {
                 val errorResponse = json.decodeFromString<GoogleErrorResponse>(response.bodyAsText())
                 logger.error("oath", "Failed to fetch user info: ${errorResponse.error}")
                 
-                OAuthResult.Error(
-                    OAuthError.UserInfoFetchFailed(
+                OAuthResult.Failure(
+                    OAuthError.fromOAuthResponse(
                         error = errorResponse.error,
                         errorDescription = errorResponse.errorDescription
                     )
@@ -205,8 +210,8 @@ class GoogleOAuthClient(
             }
         } catch (e: Exception) {
             logger.error("google", "Exception during user info fetch", e)
-            OAuthResult.Error(
-                OAuthError.UserInfoFetchFailed(
+            OAuthResult.Failure(
+                OAuthError.fromOAuthResponse(
                     error = "user_info_fetch_failed",
                     errorDescription = e.message ?: "Unknown error"
                 )
@@ -218,14 +223,14 @@ class GoogleOAuthClient(
         return try {
             logger.debug("oath", "Revoking Google OAuth token")
             
-            val response = withContext(Dispatchers.IO) {
+            val response = withContext(Dispatchers.Default) {
                 httpClient.post(REVOKE_URL) {
                     setBody("token=$token")
                     header("Content-Type", "application/x-www-form-urlencoded")
                 }
             }
             
-            val success = response.status.isSuccess()
+            val success = response.status.isSuccess
             if (success) {
                 logger.debug("oath", "Successfully revoked Google OAuth token")
             } else {
@@ -243,13 +248,13 @@ class GoogleOAuthClient(
         return try {
             logger.debug("oath", "Validating Google OAuth token")
             
-            val response = withContext(Dispatchers.IO) {
-                httpClient(USER_INFO_URL) {
+            val response = withContext(Dispatchers.Default) {
+                httpClient.get(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                 }
             }
             
-            val isValid = response.status.isSuccess()
+            val isValid = response.status.isSuccess
             logger.debug("oath", "Google OAuth token validation result: $isValid")
             
             isValid

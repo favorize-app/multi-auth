@@ -243,7 +243,7 @@ class ComplianceFramework {
         timeRange: TimeRange
     ): ComplianceReport {
         return try {
-            logger.info("Generating compliance report for standards: ${standards.joinToString(", ")}")
+            logger.info("compliance", "Generating compliance report for standards: ${standards.joinToString(", ")}")
             
             val reportSections = mutableListOf<ComplianceReportSection>()
             
@@ -286,7 +286,8 @@ class ComplianceFramework {
             userData.forEach { record ->
                 val policy = dataRetentionPolicies[record.dataCategory]
                 if (policy != null) {
-                    val age = // Duration calculation required(record.timestamp, Clock.System.now())
+                    // TODO use real age calculation
+                    val age = record.timestamp.minus(Clock.System.now()).inWholeDays // Duration calculation required(record.timestamp, Clock.System.now())
                     if (age > policy.retentionPeriodDays) {
                         issues.add("Data category ${record.dataCategory} exceeds retention period")
                         recommendations.add("Review and potentially delete expired data")

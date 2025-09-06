@@ -2,9 +2,10 @@ package app.multiauth.mfa
 
 import kotlinx.datetime.Clock
 import app.multiauth.util.Logger
-import java.security.MessageDigest
-// Platform-specific implementation required
 import kotlin.math.pow
+import org.kotlincrypto.macs.hmac.sha1.HmacSHA1
+import org.kotlincrypto.macs.hmac.sha2.HmacSHA256
+import org.kotlincrypto.macs.hmac.sha2.HmacSHA512
 
 /**
  * TOTP (Time-based One-Time Password) generator and validator.
@@ -32,9 +33,9 @@ class TotpGenerator {
      * @return Base32 encoded secret key
      */
     fun generateSecret(algorithm: String = HMAC_SHA1): String {
-        val random = SecureRandom()
+        // TODO is this dummy implementation? ignoring algorithm
         val bytes = ByteArray(20) // 160 bits for SHA1
-        random.nextBytes(bytes)
+        kotlin.random.Random.nextBytes(bytes)
         
         return Base32.encode(bytes)
     }
@@ -73,7 +74,7 @@ class TotpGenerator {
                     (hash[offset + 3].toInt() and 0xFF)
             
             val totp = code % (10.0.pow(TOTP_DIGITS)).toInt()
-            return String.format("%0${TOTP_DIGITS}d", totp)
+            return totp.toString().padStart(TOTP_DIGITS, '0')
             
         } catch (e: Exception) {
             logger.error("mfa", "Failed to generate TOTP", e)
@@ -164,25 +165,21 @@ class TotpGenerator {
     }
     
     private fun generateHmacSha1(key: ByteArray, data: ByteArray): ByteArray {
-        // In a real implementation, this would use proper HMAC-SHA1
-        // For demo purposes, we'll use a simplified approach
-        val combined = key + data
-        val digest = MessageDigestInstance("SHA-1")
-        return digest.digest(combined)
+        val hmac = HmacSHA1(key)
+        hmac.update(data)
+        return hmac.doFinal()
     }
     
     private fun generateHmacSha256(key: ByteArray, data: ByteArray): ByteArray {
-        // In a real implementation, this would use proper HMAC-SHA256
-        val combined = key + data
-        val digest = MessageDigestInstance("SHA-256")
-        return digest.digest(combined)
+        val hmac = HmacSHA256(key)
+        hmac.update(data)
+        return hmac.doFinal()
     }
     
     private fun generateHmacSha512(key: ByteArray, data: ByteArray): ByteArray {
-        // In a real implementation, this would use proper HMAC-SHA512
-        val combined = key + data
-        val digest = MessageDigestInstance("SHA-512")
-        return digest.digest(combined)
+        val hmac = HmacSHA512(key)
+        hmac.update(data)
+        return hmac.doFinal()
     }
     
     /**

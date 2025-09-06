@@ -397,14 +397,10 @@ class SimpleSmsService(
             // File operations are platform-specific in KMP
             // This would need platform-specific implementation
             logger.debug("services", "SMS file saving is not implemented in KMP common code")
-            
-            /*
-            val smsDir = java.io.File("sms")
-            if (!smsDir.exists()) {
-                smsDir.mkdirs()
-            }
-            
-            val smsFile = java.io.File(smsDir, "${sms.id}.json")
+
+            // TODO: Implement proper file storage for multiplatform
+            // For now, just log the SMS data
+            logger.debug("sms", "SMS data: ${sms.id}, ${sms.phoneNumber}, ${sms.message}")
             val smsData = SmsFileData(
                 id = sms.id,
                 phoneNumber = sms.phoneNumber,
@@ -414,8 +410,8 @@ class SimpleSmsService(
                 timestamp = sms.queuedAt
             )
             
-            smsFile.writeText(json.encodeToString(SmsFileData.serializer(), smsData))
-            logger.debug("SimpleSmsService", "SMS saved to file: ${smsFile.absolutePath}")
+            // File writing removed for multiplatform compatibility
+            logger.debug("SimpleSmsService", "SMS data logged: ${sms.id}")
         } catch (e: Exception) {
             logger.error("SimpleSmsService", "Failed to save SMS to file: ${e.message}")
         }

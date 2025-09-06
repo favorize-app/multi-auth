@@ -1,10 +1,10 @@
 package app.multiauth.oauth.clients
 
+import app.multiauth.oauth.HttpClient
 import app.multiauth.oauth.OAuthClient
 import app.multiauth.oauth.OAuthConfig
 import app.multiauth.oauth.OAuthResult
 import app.multiauth.oauth.OAuthError
-import app.multiauth.oauth.OAuthUserInfo
 import app.multiauth.util.Logger
 
 /**
@@ -15,10 +15,9 @@ import app.multiauth.util.Logger
 // Twitch OAuth Client
 class TwitchOAuthClient(
     private val config: OAuthConfig,
-    private val httpClient: HttpClient
+    private val httpClient: app.multiauth.oauth.HttpClient,
+    override val logger: Logger
 ) : OAuthClient {
-    
-    private val logger = Logger.getLogger(this::class)
     
     override suspend fun getAuthorizationUrl(
         state: String,
@@ -45,8 +44,8 @@ class TwitchOAuthClient(
         codeVerifier: String
     ): OAuthResult {
         logger.warn("oath", "Twitch OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Error(
-            OAuthError.TokenExchangeFailed(
+        return OAuthResult.Failure(
+            OAuthError.fromOAuthResponse(
                 error = "not_implemented",
                 errorDescription = "Twitch OAuth client not fully implemented"
             )
@@ -55,18 +54,18 @@ class TwitchOAuthClient(
     
     override suspend fun refreshAccessToken(refreshToken: String): OAuthResult {
         logger.warn("oath", "Twitch OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Error(
-            OAuthError.TokenRefreshFailed(
-                error = "not_implemented",
-                errorDescription = "Twitch OAuth client not fully implemented"
+        return OAuthResult.Failure(
+            OAuthError.networkError(
+                message = "Twitch OAuth client not fully implemented",
+                cause = null
             )
         )
     }
     
     override suspend fun getUserInfo(accessToken: String): OAuthResult {
         logger.warn("oath", "Twitch OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Error(
-            OAuthError.UserInfoFetchFailed(
+        return OAuthResult.Failure(
+            OAuthError.fromOAuthResponse(
                 error = "not_implemented",
                 errorDescription = "Twitch OAuth client not fully implemented"
             )
@@ -87,11 +86,10 @@ class TwitchOAuthClient(
 // Reddit OAuth Client
 class RedditOAuthClient(
     private val config: OAuthConfig,
-    private val httpClient: HttpClient
+    private val httpClient: HttpClient,
+    override val logger: Logger
 ) : OAuthClient {
-    
-    private val logger = Logger.getLogger(this::class)
-    
+
     override suspend fun getAuthorizationUrl(
         state: String,
         codeChallenge: String,
@@ -118,8 +116,8 @@ class RedditOAuthClient(
         codeVerifier: String
     ): OAuthResult {
         logger.warn("oath", "Reddit OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Error(
-            OAuthError.TokenExchangeFailed(
+        return OAuthResult.Failure(
+            OAuthError.fromOAuthResponse(
                 error = "not_implemented",
                 errorDescription = "Reddit OAuth client not fully implemented"
             )
@@ -128,18 +126,17 @@ class RedditOAuthClient(
     
     override suspend fun refreshAccessToken(refreshToken: String): OAuthResult {
         logger.warn("oath", "Reddit OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Error(
-            OAuthError.TokenRefreshFailed(
-                error = "not_implemented",
-                errorDescription = "Reddit OAuth client not fully implemented"
+        return OAuthResult.Failure(
+            OAuthError.networkError(
+                message = "Reddit OAuth client not fully implemented"
             )
         )
     }
     
     override suspend fun getUserInfo(accessToken: String): OAuthResult {
         logger.warn("oath", "Reddit OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Error(
-            OAuthError.UserInfoFetchFailed(
+        return OAuthResult.Failure(
+            OAuthError.fromOAuthResponse(
                 error = "not_implemented",
                 errorDescription = "Reddit OAuth client not fully implemented"
             )
@@ -160,11 +157,10 @@ class RedditOAuthClient(
 // Steam OAuth Client
 class SteamOAuthClient(
     private val config: OAuthConfig,
-    private val httpClient: HttpClient
+    private val httpClient: HttpClient,
+    override val logger: Logger
 ) : OAuthClient {
-    
-    private val logger = Logger.getLogger(this::class)
-    
+
     override suspend fun getAuthorizationUrl(
         state: String,
         codeChallenge: String,
@@ -180,8 +176,8 @@ class SteamOAuthClient(
         codeVerifier: String
     ): OAuthResult {
         logger.warn("oath", "Steam OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Error(
-            OAuthError.TokenExchangeFailed(
+        return OAuthResult.Failure(
+            OAuthError.fromOAuthResponse(
                 error = "not_implemented",
                 errorDescription = "Steam OAuth client not fully implemented"
             )
@@ -190,18 +186,17 @@ class SteamOAuthClient(
     
     override suspend fun refreshAccessToken(refreshToken: String): OAuthResult {
         logger.warn("oath", "Steam OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Error(
-            OAuthError.TokenRefreshFailed(
-                error = "not_implemented",
-                errorDescription = "Steam OAuth client not fully implemented"
+        return OAuthResult.Failure(
+            OAuthError.networkError(
+                message = "Steam OAuth client not fully implemented"
             )
         )
     }
     
     override suspend fun getUserInfo(accessToken: String): OAuthResult {
         logger.warn("oath", "Steam OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Error(
-            OAuthError.UserInfoFetchFailed(
+        return OAuthResult.Failure(
+            OAuthError.fromOAuthResponse(
                 error = "not_implemented",
                 errorDescription = "Steam OAuth client not fully implemented"
             )
@@ -222,11 +217,10 @@ class SteamOAuthClient(
 // Epic Games OAuth Client
 class EpicGamesOAuthClient(
     private val config: OAuthConfig,
-    private val httpClient: HttpClient
+    private val httpClient: HttpClient,
+    override val logger: Logger
 ) : OAuthClient {
-    
-    private val logger = Logger.getLogger(this::class)
-    
+
     override suspend fun getAuthorizationUrl(
         state: String,
         codeChallenge: String,
@@ -252,8 +246,8 @@ class EpicGamesOAuthClient(
         codeVerifier: String
     ): OAuthResult {
         logger.warn("oath", "Epic Games OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Error(
-            OAuthError.TokenExchangeFailed(
+        return OAuthResult.Failure(
+            OAuthError.fromOAuthResponse(
                 error = "not_implemented",
                 errorDescription = "Epic Games OAuth client not fully implemented"
             )
@@ -262,18 +256,17 @@ class EpicGamesOAuthClient(
     
     override suspend fun refreshAccessToken(refreshToken: String): OAuthResult {
         logger.warn("oath", "Epic Games OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Error(
-            OAuthError.TokenRefreshFailed(
-                error = "not_implemented",
-                errorDescription = "Epic Games OAuth client not fully implemented"
+        return OAuthResult.Failure(
+            OAuthError.networkError(
+                message = "Epic Games OAuth client not fully implemented"
             )
         )
     }
     
     override suspend fun getUserInfo(accessToken: String): OAuthResult {
         logger.warn("oath", "Epic Games OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Error(
-            OAuthError.UserInfoFetchFailed(
+        return OAuthResult.Failure(
+            OAuthError.fromOAuthResponse(
                 error = "not_implemented",
                 errorDescription = "Epic Games OAuth client not fully implemented"
             )
@@ -294,11 +287,10 @@ class EpicGamesOAuthClient(
 // Spotify OAuth Client
 class SpotifyOAuthClient(
     private val config: OAuthConfig,
-    private val httpClient: HttpClient
+    private val httpClient: HttpClient,
+    override val logger: Logger
 ) : OAuthClient {
-    
-    private val logger = Logger.getLogger(this::class)
-    
+
     override suspend fun getAuthorizationUrl(
         state: String,
         codeChallenge: String,
@@ -324,8 +316,8 @@ class SpotifyOAuthClient(
         codeVerifier: String
     ): OAuthResult {
         logger.warn("oath", "Spotify OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Error(
-            OAuthError.TokenExchangeFailed(
+        return OAuthResult.Failure(
+            OAuthError.fromOAuthResponse(
                 error = "not_implemented",
                 errorDescription = "Spotify OAuth client not fully implemented"
             )
@@ -334,18 +326,17 @@ class SpotifyOAuthClient(
     
     override suspend fun refreshAccessToken(refreshToken: String): OAuthResult {
         logger.warn("oath", "Spotify OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Error(
-            OAuthError.TokenRefreshFailed(
-                error = "not_implemented",
-                errorDescription = "Spotify OAuth client not fully implemented"
+        return OAuthResult.Failure(
+            OAuthError.networkError(
+                message = "Spotify OAuth client not fully implemented"
             )
         )
     }
     
     override suspend fun getUserInfo(accessToken: String): OAuthResult {
         logger.warn("oath", "Spotify OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Error(
-            OAuthError.UserInfoFetchFailed(
+        return OAuthResult.Failure(
+            OAuthError.fromOAuthResponse(
                 error = "not_implemented",
                 errorDescription = "Spotify OAuth client not fully implemented"
             )
@@ -366,11 +357,10 @@ class SpotifyOAuthClient(
 // Facebook OAuth Client
 class FacebookOAuthClient(
     private val config: OAuthConfig,
-    private val httpClient: HttpClient
+    private val httpClient: HttpClient,
+    override val logger: Logger
 ) : OAuthClient {
-    
-    private val logger = Logger.getLogger(this::class)
-    
+
     override suspend fun getAuthorizationUrl(
         state: String,
         codeChallenge: String,
@@ -396,8 +386,8 @@ class FacebookOAuthClient(
         codeVerifier: String
     ): OAuthResult {
         logger.warn("oath", "Facebook OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Error(
-            OAuthError.TokenExchangeFailed(
+        return OAuthResult.Failure(
+            OAuthError.fromOAuthResponse(
                 error = "not_implemented",
                 errorDescription = "Facebook OAuth client not fully implemented"
             )
@@ -406,18 +396,17 @@ class FacebookOAuthClient(
     
     override suspend fun refreshAccessToken(refreshToken: String): OAuthResult {
         logger.warn("oath", "Facebook OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Error(
-            OAuthError.TokenRefreshFailed(
-                error = "not_implemented",
-                errorDescription = "Facebook OAuth client not fully implemented"
+        return OAuthResult.Failure(
+            OAuthError.networkError(
+                message = "Facebook OAuth client not fully implemented"
             )
         )
     }
     
     override suspend fun getUserInfo(accessToken: String): OAuthResult {
         logger.warn("oath", "Facebook OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Error(
-            OAuthError.UserInfoFetchFailed(
+        return OAuthResult.Failure(
+            OAuthError.fromOAuthResponse(
                 error = "not_implemented",
                 errorDescription = "Facebook OAuth client not fully implemented"
             )
@@ -438,11 +427,10 @@ class FacebookOAuthClient(
 // Apple OAuth Client
 class AppleOAuthClient(
     private val config: OAuthConfig,
-    private val httpClient: HttpClient
+    private val httpClient: HttpClient,
+    override val logger: Logger
 ) : OAuthClient {
-    
-    private val logger = Logger.getLogger(this::class)
-    
+
     override suspend fun getAuthorizationUrl(
         state: String,
         codeChallenge: String,
@@ -469,8 +457,8 @@ class AppleOAuthClient(
         codeVerifier: String
     ): OAuthResult {
         logger.warn("oath", "Apple OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Error(
-            OAuthError.TokenExchangeFailed(
+        return OAuthResult.Failure(
+            OAuthError.fromOAuthResponse(
                 error = "not_implemented",
                 errorDescription = "Apple OAuth client not fully implemented"
             )
@@ -479,18 +467,17 @@ class AppleOAuthClient(
     
     override suspend fun refreshAccessToken(refreshToken: String): OAuthResult {
         logger.warn("oath", "Apple OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Error(
-            OAuthError.TokenRefreshFailed(
-                error = "not_implemented",
-                errorDescription = "Apple OAuth client not fully implemented"
+        return OAuthResult.Failure(
+            OAuthError.networkError(
+                message = "Apple OAuth client not fully implemented"
             )
         )
     }
     
     override suspend fun getUserInfo(accessToken: String): OAuthResult {
         logger.warn("oath", "Apple OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Error(
-            OAuthError.UserInfoFetchFailed(
+        return OAuthResult.Failure(
+            OAuthError.fromOAuthResponse(
                 error = "not_implemented",
                 errorDescription = "Apple OAuth client not fully implemented"
             )

@@ -1,5 +1,9 @@
 package app.multiauth.models
 
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import app.multiauth.oauth.OAuthProvider
+
 
 /**
  * Represents the current authentication state of the application.

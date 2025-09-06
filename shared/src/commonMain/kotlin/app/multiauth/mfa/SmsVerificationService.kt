@@ -10,6 +10,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.DurationUnit
 // Platform-specific implementation required
 
@@ -24,8 +26,8 @@ class SmsVerificationService {
     
     companion object {
         private const val SMS_CODE_LENGTH = 6
-        private const val SMS_CODE_EXPIRY_MINUTES = 10L
-        private const val SMS_RESEND_COOLDOWN_SECONDS = 60L
+        private val SMS_CODE_EXPIRY_MINUTES = 10L.minutes
+        private val SMS_RESEND_COOLDOWN_SECONDS = 60L.seconds
         private const val MAX_ATTEMPTS = 3
     }
     
@@ -57,7 +59,7 @@ class SmsVerificationService {
             // Generate verification code
             val code = generateSmsCode()
             val expiryTime = Clock.System.now()
-                .plus(SMS_CODE_EXPIRY_MINUTES, DateTimeUnit.MINUTE)
+                .plus(SMS_CODE_EXPIRY_MINUTES)
             
             val verification = SmsVerification(
                 userId = user.id,
@@ -173,8 +175,8 @@ class SmsVerificationService {
             // Check cooldown period
             val timeSinceLastSend = Clock.System.now() - verification.createdAt
 
-            if (timeSinceLastSend.inWholeSeconds < SMS_RESEND_COOLDOWN_SECONDS) {
-                val remainingTime = SMS_RESEND_COOLDOWN_SECONDS - timeSinceLastSend.inWholeSeconds
+            if (timeSinceLastSend < SMS_RESEND_COOLDOWN_SECONDS) {
+                val remainingTime = SMS_RESEND_COOLDOWN_SECONDS - timeSinceLastSend
                 return Result.failure(SmsVerificationException("Please wait $remainingTime seconds before requesting another code"))
             }
             
@@ -182,7 +184,7 @@ class SmsVerificationService {
             
             // Generate new code
             val newCode = generateSmsCode()
-            val newExpiryTime = Clock.System.now().plus(SMS_CODE_EXPIRY_MINUTES, DateTimeUnit.MINUTE)
+            val newExpiryTime = Clock.System.now().plus(SMS_CODE_EXPIRY_MINUTES)
             
             verification.code = newCode
             verification.expiryTime = newExpiryTime
@@ -256,10 +258,9 @@ class SmsVerificationService {
     // Private implementation methods
     
     private fun generateSmsCode(): String {
-        val random = SecureRandom()
         return buildString {
             repeat(SMS_CODE_LENGTH) {
-                append(random.nextInt(10))
+                append((0..9).random())
             }
         }
     }

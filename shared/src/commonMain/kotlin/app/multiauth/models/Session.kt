@@ -100,21 +100,21 @@ data class Session(
      */
     fun isActive(): Boolean {
         return status == SessionStatus.ACTIVE &&
-               Clock.System.now().epochSeconds < expiresAt.toEpochMilli()
+               Clock.System.now().epochSeconds < expiresAt.toEpochMilliseconds()
     }
 
     /**
      * Checks if the session is expired
      */
     fun isExpired(): Boolean {
-        return Clock.System.now().epochSeconds >= expiresAt.toEpochMilli()
+        return Clock.System.now().epochSeconds >= expiresAt.toEpochMilliseconds()
     }
 
     /**
      * Gets remaining session time in milliseconds
      */
     fun getRemainingTime(): Long {
-        return maxOf(0, expiresAt.toEpochMilli() - Clock.System.now().epochSeconds)
+        return maxOf(0, expiresAt.toEpochMilliseconds() - Clock.System.now().epochSeconds)
     }
 
     /**

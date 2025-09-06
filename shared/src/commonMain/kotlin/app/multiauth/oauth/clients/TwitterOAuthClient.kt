@@ -1,11 +1,11 @@
 package app.multiauth.oauth.clients
 
+import app.multiauth.oauth.HttpClient
 import app.multiauth.oauth.OAuthClient
 import app.multiauth.oauth.OAuthConfig
 import app.multiauth.oauth.OAuthResult
 import app.multiauth.oauth.OAuthError
 import app.multiauth.oauth.OAuthUserInfo
-import app.multiauth.providers.OAuthResult
 import app.multiauth.util.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -18,10 +18,10 @@ import kotlinx.serialization.json.Json
  */
 class TwitterOAuthClient(
     private val config: OAuthConfig,
-    private val httpClient: HttpClient
+    private val httpClient: HttpClient,
+    override val logger: Logger
 ) : OAuthClient {
-    
-    private val logger = Logger.getLogger(this::class)
+
     private val json = Json { ignoreUnknownKeys = true }
     
     companion object {
@@ -71,14 +71,14 @@ class TwitterOAuthClient(
                 codeVerifier = codeVerifier
             )
             
-            val response = withContext(Dispatchers.IO) {
+            val response = withContext(Dispatchers.Default) {
                 httpClient.post(TOKEN_URL) {
                     setBody(tokenRequest.toFormData())
                     header("Content-Type", "application/x-www-form-urlencoded")
                 }
             }
             
-            if (response.status.isSuccess()) {
+            if (response.status.isSuccess) {
                 val tokenResponse = json.decodeFromString<TwitterTokenResponse>(response.bodyAsText())
                 logger.debug("oath", "Successfully exchanged code for Twitter tokens")
                 
@@ -93,8 +93,8 @@ class TwitterOAuthClient(
                 val errorResponse = json.decodeFromString<TwitterErrorResponse>(response.bodyAsText())
                 logger.error("oath", "Failed to exchange code for Twitter tokens: ${errorResponse.error}")
                 
-                OAuthResult.Error(
-                    OAuthError.TokenExchangeFailed(
+                OAuthResult.Failure(
+                    OAuthError.fromOAuthResponse(
                         error = errorResponse.error,
                         errorDescription = errorResponse.errorDescription
                     )
@@ -102,8 +102,8 @@ class TwitterOAuthClient(
             }
         } catch (e: Exception) {
             logger.error("twitter", "Exception during Twitter token exchange", e)
-            OAuthResult.Error(
-                OAuthError.TokenExchangeFailed(
+            OAuthResult.Failure(
+                OAuthError.fromOAuthResponse(
                     error = "token_exchange_failed",
                     errorDescription = e.message ?: "Unknown error"
                 )
@@ -122,14 +122,14 @@ class TwitterOAuthClient(
                 grantType = GRANT_TYPE_REFRESH
             )
             
-            val response = withContext(Dispatchers.IO) {
+            val response = withContext(Dispatchers.Default) {
                 httpClient.post(TOKEN_URL) {
                     setBody(refreshRequest.toFormData())
                     header("Content-Type", "application/x-www-form-urlencoded")
                 }
             }
             
-            if (response.status.isSuccess()) {
+            if (response.status.isSuccess) {
                 val tokenResponse = json.decodeFromString<TwitterTokenResponse>(response.bodyAsText())
                 logger.debug("oath", "Successfully refreshed Twitter access token")
                 
@@ -144,19 +144,19 @@ class TwitterOAuthClient(
                 val errorResponse = json.decodeFromString<TwitterErrorResponse>(response.bodyAsText())
                 logger.error("oath", "Failed to refresh Twitter access token: ${errorResponse.error}")
                 
-                OAuthResult.Error(
-                    OAuthError.TokenRefreshFailed(
-                        error = errorResponse.error,
-                        errorDescription = errorResponse.errorDescription
+                OAuthResult.Failure(
+                    OAuthError.networkError(
+                        message = "Token refresh failed: ${errorResponse.error} - ${errorResponse.errorDescription}",
+                        cause = null
                     )
                 )
             }
         } catch (e: Exception) {
             logger.error("twitter", "Exception during Twitter token refresh", e)
-            OAuthResult.Error(
-                OAuthError.TokenRefreshFailed(
-                    error = "token_refresh_failed",
-                    errorDescription = e.message ?: "Unknown error"
+            OAuthResult.Failure(
+                OAuthError.networkError(
+                    message = e.message ?: "Unknown error during token refresh",
+                    cause = e
                 )
             )
         }
@@ -166,35 +166,41 @@ class TwitterOAuthClient(
         return try {
             logger.debug("oath", "Fetching Twitter user info")
             
-            val response = withContext(Dispatchers.IO) {
-                httpClient(USER_INFO_URL) {
+            val response = withContext(Dispatchers.Default) {
+                httpClient.get(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                     header("Accept", "application/json")
                 }
             }
             
-            if (response.status.isSuccess()) {
+            if (response.status.isSuccess) {
                 val userInfo = json.decodeFromString<TwitterUserInfo>(response.bodyAsText())
                 logger.debug("oath", "Successfully fetched Twitter user info: ${userInfo.data.username}")
                 
                 OAuthResult.Success(
+                    accessToken = accessToken,
+                    refreshToken = null,
+                    expiresIn = null,
                     userInfo = OAuthUserInfo(
                         id = userInfo.data.id,
                         email = null, // Twitter doesn't provide email in basic profile
                         name = userInfo.data.name,
-                        firstName = null, // Twitter doesn't provide first/last name
-                        lastName = null,
+                        givenName = null, // Twitter doesn't provide first/last name
+                        familyName = null,
+                        displayName = userInfo.data.name,
                         picture = userInfo.data.profileImageUrl,
                         locale = null, // Twitter doesn't provide locale in basic profile
-                        verifiedEmail = false // Twitter doesn't provide email verification status
+                        emailVerified = false, // Twitter doesn't provide email verification status
+                        provider = "twitter",
+                        providerId = userInfo.data.id
                     )
                 )
             } else {
                 val errorResponse = json.decodeFromString<TwitterErrorResponse>(response.bodyAsText())
                 logger.error("oath", "Failed to fetch Twitter user info: ${errorResponse.error}")
                 
-                OAuthResult.Error(
-                    OAuthError.UserInfoFetchFailed(
+                OAuthResult.Failure(
+                    OAuthError.fromOAuthResponse(
                         error = errorResponse.error,
                         errorDescription = errorResponse.errorDescription
                     )
@@ -202,8 +208,8 @@ class TwitterOAuthClient(
             }
         } catch (e: Exception) {
             logger.error("twitter", "Exception during Twitter user info fetch", e)
-            OAuthResult.Error(
-                OAuthError.UserInfoFetchFailed(
+            OAuthResult.Failure(
+                OAuthError.fromOAuthResponse(
                     error = "user_info_fetch_failed",
                     errorDescription = e.message ?: "Unknown error"
                 )
@@ -231,14 +237,14 @@ class TwitterOAuthClient(
         return try {
             logger.debug("oath", "Validating Twitter OAuth token")
             
-            val response = withContext(Dispatchers.IO) {
-                httpClient(USER_INFO_URL) {
+            val response = withContext(Dispatchers.Default) {
+                httpClient.get(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                     header("Accept", "application/json")
                 }
             }
             
-            val isValid = response.status.isSuccess()
+            val isValid = response.status.isSuccess
             logger.debug("oath", "Twitter OAuth token validation result: $isValid")
             
             isValid

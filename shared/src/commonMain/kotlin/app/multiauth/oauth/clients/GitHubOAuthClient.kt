@@ -1,9 +1,11 @@
 package app.multiauth.oauth.clients
 
+import app.multiauth.oauth.HttpClient
 import app.multiauth.oauth.OAuthClient
 import app.multiauth.oauth.OAuthConfig
 import app.multiauth.oauth.OAuthResult
 import app.multiauth.oauth.OAuthError
+import app.multiauth.oauth.OAuthErrorType
 import app.multiauth.oauth.OAuthUserInfo
 import app.multiauth.util.Logger
 import kotlinx.coroutines.Dispatchers
@@ -17,10 +19,9 @@ import kotlinx.serialization.json.Json
  */
 class GitHubOAuthClient(
     private val config: OAuthConfig,
-    private val httpClient: HttpClient
+    private val httpClient: HttpClient,
+    override val logger: Logger
 ) : OAuthClient {
-    
-    private val logger = Logger.getLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
     
     companion object {
@@ -70,7 +71,7 @@ class GitHubOAuthClient(
                 codeVerifier = codeVerifier
             )
             
-            val response = withContext(Dispatchers.IO) {
+            val response = withContext(Dispatchers.Default) {
                 httpClient.post(TOKEN_URL) {
                     setBody(tokenRequest.toFormData())
                     header("Content-Type", "application/x-www-form-urlencoded")
@@ -78,7 +79,7 @@ class GitHubOAuthClient(
                 }
             }
             
-            if (response.status.isSuccess()) {
+            if (response.status.isSuccess) {
                 val tokenResponse = json.decodeFromString<GitHubTokenResponse>(response.bodyAsText())
                 logger.debug("oath", "Successfully exchanged code for GitHub tokens")
                 
@@ -93,19 +94,19 @@ class GitHubOAuthClient(
                 val errorResponse = json.decodeFromString<GitHubErrorResponse>(response.bodyAsText())
                 logger.error("oath", "Failed to exchange code for GitHub tokens: ${errorResponse.error}")
                 
-                OAuthResult.Error(
-                    OAuthError.TokenExchangeFailed(
-                        error = errorResponse.error,
+                OAuthResult.Failure(
+                    OAuthError.fromOAuthResponse(
+                        error = errorResponse.error ?: "unknown_error",
                         errorDescription = errorResponse.errorDescription
                     )
                 )
             }
         } catch (e: Exception) {
             logger.error("github", "Exception during GitHub token exchange", e)
-            OAuthResult.Error(
-                OAuthError.TokenExchangeFailed(
-                    error = "token_exchange_failed",
-                    errorDescription = e.message ?: "Unknown error"
+            OAuthResult.Failure(
+                OAuthError.networkError(
+                    message = e.message ?: "Unknown error during token exchange",
+                    cause = e
                 )
             )
         }
@@ -119,18 +120,18 @@ class GitHubOAuthClient(
             // This method will return an error indicating refresh is not supported
             logger.warn("github", "GitHub OAuth does not support refresh tokens in standard flow")
             
-            OAuthResult.Error(
-                OAuthError.TokenRefreshFailed(
-                    error = "refresh_not_supported",
-                    errorDescription = "GitHub OAuth does not support refresh tokens in standard flow"
+            OAuthResult.Failure(
+                OAuthError(
+                    type = OAuthErrorType.UNSUPPORTED_GRANT_TYPE,
+                    message = "GitHub OAuth does not support refresh tokens in standard flow"
                 )
             )
         } catch (e: Exception) {
             logger.error("github", "Exception during GitHub token refresh", e)
-            OAuthResult.Error(
-                OAuthError.TokenRefreshFailed(
-                    error = "token_refresh_failed",
-                    errorDescription = e.message ?: "Unknown error"
+            OAuthResult.Failure(
+                OAuthError.networkError(
+                    message = e.message ?: "Unknown error during token refresh",
+                    cause = e
                 )
             )
         }
@@ -141,25 +142,25 @@ class GitHubOAuthClient(
             logger.debug("oath", "Fetching GitHub user info")
             
             // Fetch user profile
-            val userResponse = withContext(Dispatchers.IO) {
-                httpClient(USER_INFO_URL) {
+            val userResponse = withContext(Dispatchers.Default) {
+                httpClient.get(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                     header("Accept", "application/vnd.github.v3+json")
                 }
             }
             
-            if (userResponse.status.isSuccess()) {
+            if (userResponse.status.isSuccess) {
                 val userInfo = json.decodeFromString<GitHubUserInfo>(userResponse.bodyAsText())
                 
                 // Fetch user emails
-                val emailsResponse = withContext(Dispatchers.IO) {
-                    httpClient(USER_EMAILS_URL) {
+                val emailsResponse = withContext(Dispatchers.Default) {
+                    httpClient.get(USER_EMAILS_URL) {
                         header("Authorization", "Bearer $accessToken")
                         header("Accept", "application/vnd.github.v3+json")
                     }
                 }
                 
-                val primaryEmail = if (emailsResponse.status.isSuccess()) {
+                val primaryEmail = if (emailsResponse.status.isSuccess) {
                     val emails = json.decodeFromString<List<GitHubEmail>>(emailsResponse.bodyAsText())
                     emails.find { it.primary }?.email ?: userInfo.email
                 } else {
@@ -169,23 +170,29 @@ class GitHubOAuthClient(
                 logger.debug("oath", "Successfully fetched GitHub user info: ${userInfo.login}")
                 
                 OAuthResult.Success(
+                    accessToken = accessToken,
+                    refreshToken = null,
+                    expiresIn = null,
                     userInfo = OAuthUserInfo(
                         id = userInfo.id.toString(),
                         email = primaryEmail,
                         name = userInfo.name ?: userInfo.login,
-                        firstName = null, // GitHub doesn't provide first/last name
-                        lastName = null,
+                        givenName = null, // GitHub doesn't provide first/last name
+                        familyName = null,
+                        displayName = userInfo.name ?: userInfo.login,
                         picture = userInfo.avatarUrl,
                         locale = null, // GitHub doesn't provide locale
-                        verifiedEmail = true // GitHub emails are verified
+                        emailVerified = true, // GitHub emails are verified
+                        provider = "github",
+                        providerId = userInfo.id.toString()
                     )
                 )
             } else {
                 val errorResponse = json.decodeFromString<GitHubErrorResponse>(userResponse.bodyAsText())
                 logger.error("oath", "Failed to fetch GitHub user info: ${errorResponse.message}")
                 
-                OAuthResult.Error(
-                    OAuthError.UserInfoFetchFailed(
+                OAuthResult.Failure(
+                    OAuthError.fromOAuthResponse(
                         error = errorResponse.error ?: "unknown_error",
                         errorDescription = errorResponse.message
                     )
@@ -193,10 +200,10 @@ class GitHubOAuthClient(
             }
         } catch (e: Exception) {
             logger.error("github", "Exception during GitHub user info fetch", e)
-            OAuthResult.Error(
-                OAuthError.UserInfoFetchFailed(
-                    error = "user_info_fetch_failed",
-                    errorDescription = e.message ?: "Unknown error"
+            OAuthResult.Failure(
+                OAuthError.networkError(
+                    message = e.message ?: "Unknown error during user info fetch",
+                    cause = e
                 )
             )
         }
@@ -222,14 +229,14 @@ class GitHubOAuthClient(
         return try {
             logger.debug("oath", "Validating GitHub OAuth token")
             
-            val response = withContext(Dispatchers.IO) {
-                httpClient(USER_INFO_URL) {
+            val response = withContext(Dispatchers.Default) {
+                httpClient.get(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                     header("Accept", "application/vnd.github.v3+json")
                 }
             }
             
-            val isValid = response.status.isSuccess()
+            val isValid = response.status.isSuccess
             logger.debug("oath", "GitHub OAuth token validation result: $isValid")
             
             isValid

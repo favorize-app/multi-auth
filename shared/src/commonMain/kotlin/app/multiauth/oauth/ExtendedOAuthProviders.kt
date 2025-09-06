@@ -505,7 +505,7 @@ data class OAuthProviderConfig(
     val userInfoUrl: String,
     val defaultScopes: List<String>,
     val supportedScopes: List<String>,
-    val color: androidx.compose.ui.graphics.Color,
+    val color: String,
     val icon: String,
     val isEnabled: Boolean = true,
     val requiresPkce: Boolean = false,
@@ -517,13 +517,13 @@ data class OAuthProviderConfig(
  * Extended OAuth colors for additional providers.
  */
 object OAuthColors {
-    val discord = androidx.compose.ui.graphics.Color(0xFF5865F2)
-    val github = androidx.compose.ui.graphics.Color(0xFF333333)
-    val microsoft = androidx.compose.ui.graphics.Color(0xFF00A4EF)
-    val linkedin = androidx.compose.ui.graphics.Color(0xFF0077B5)
-    val twitter = androidx.compose.ui.graphics.Color(0xFF1DA1F2)
-    val twitch = androidx.compose.ui.graphics.Color(0xFF9146FF)
-    val reddit = androidx.compose.ui.graphics.Color(0xFFFF4500)
-    val epic_games = androidx.compose.ui.graphics.Color(0xFF2A2A2A)
-    val spotify = androidx.compose.ui.graphics.Color(0xFF1DB954)
+    val discord = "#5865F2"
+    val github = "#333333"
+    val microsoft = "#00A4EF"
+    val linkedin = "#0077B5"
+    val twitter = "#1DA1F2"
+    val twitch = "#9146FF"
+    val reddit = "#FF4500"
+    val epic_games = "#2A2A2A"
+    val spotify = "#1DB954"
 }
