@@ -1,300 +1,474 @@
 package app.multiauth.core
 
-import kotlinx.datetime.Instant
 import kotlinx.datetime.Clock
-import app.multiauth.events.*
+import kotlinx.datetime.Instant
 import app.multiauth.models.*
+import app.multiauth.security.JwtTokenManager
+import app.multiauth.security.TokenValidationResult
+import app.multiauth.storage.SecureStorage
 import app.multiauth.util.Logger
+import app.multiauth.events.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Duration.Companion.days
 
 /**
- * Manages user sessions, tokens, and authentication state persistence.
- * Handles token refresh, session expiration, and secure storage.
+ * Manages user sessions, token storage, and automatic token refresh.
+ * Handles secure storage of authentication tokens and session data.
  */
-class SessionManager private constructor(
+class SessionManager(
+    private val secureStorage: SecureStorage,
     private val eventBus: EventBus = EventBusInstance()
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val jwtTokenManager = JwtTokenManager()
     
-    private val _currentSession = MutableStateFlow<Session?>(null)
-    val currentSession: StateFlow<Session?> = _currentSession.asStateFlow()
+    private val _currentSession = MutableStateFlow<UserSession?>(null)
+    val currentSession: StateFlow<UserSession?> = _currentSession.asStateFlow()
     
-    private val _isRefreshing = MutableStateFlow(false)
-    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+    private val _isSessionValid = MutableStateFlow(false)
+    val isSessionValid: StateFlow<Boolean> = _isSessionValid.asStateFlow()
     
-    private var refreshJob: kotlinx.coroutines.Job? = null
+    // Session storage keys
+    private companion object {
+        const val SESSION_KEY = "user_session"
+        const val TOKEN_PAIR_KEY = "token_pair"
+        const val SESSION_METADATA_KEY = "session_metadata"
+    }
     
     init {
         Logger.info("SessionManager", "SessionManager initialized")
-        startSessionMonitoring()
+        
+        // Start session monitoring
+        scope.launch {
+            startSessionMonitoring()
+        }
+        
+        // Try to restore existing session
+        scope.launch {
+            restoreSession()
+        }
     }
     
     /**
-     * Create a new session for a user.
+     * Creates a new session for a user with tokens.
      */
-    suspend fun createSession(user: User, tokens: TokenPair): Session {
+    suspend fun createSession(user: User, tokens: TokenPair): AuthResult<UserSession> {
         Logger.debug("SessionManager", "Creating session for user: ${user.id}")
         
-        val session = Session(
-            id = generateSessionId(),
-            userId = user.id,
-            user = user,
-            tokens = tokens,
-            createdAt = Clock.System.now(),
-            lastActivityAt = Clock.System.now(),
-            expiresAt = tokens.expiresAt,
-            isActive = true
-        )
-        
-        _currentSession.value = session
-        
-        // Schedule token refresh
-        scheduleTokenRefresh(session)
-        
-        // Dispatch session created event
-        eventBus.dispatch(AuthEvent.Session.SessionCreated(session), "SessionManager")
-        
-        return session
-    }
-    
-    /**
-     * Update the current session with new tokens.
-     */
-    suspend fun updateSession(tokens: TokenPair): Session? {
-        val currentSession = _currentSession.value ?: return null
-        
-        Logger.debug("SessionManager", "Updating session: ${currentSession.id}")
-        
-        val updatedSession = currentSession.copy(
-            tokens = tokens,
-            lastActivityAt = Clock.System.now(),
-            expiresAt = tokens.expiresAt
-        )
-        
-        _currentSession.value = updatedSession
-        
-        // Reschedule token refresh
-        scheduleTokenRefresh(updatedSession)
-        
-        eventBus.dispatch(AuthEvent.Session.SessionRefreshed, "SessionManager")
-        
-        return updatedSession
-    }
-    
-    /**
-     * End the current session.
-     */
-    suspend fun endSession(): Boolean {
-        val currentSession = _currentSession.value ?: return false
-        
-        Logger.debug("SessionManager", "Ending session: ${currentSession.id}")
-        
-        // Cancel refresh job
-        refreshJob?.cancel()
-        refreshJob = null
-        
-        // Mark session as inactive
-        val endedSession = currentSession.copy(
-            isActive = false,
-            endedAt = Clock.System.now()
-        )
-        
-        _currentSession.value = null
-        
-        eventBus.dispatch(AuthEvent.Session.SessionEnded(endedSession), "SessionManager")
-        
-        return true
-    }
-    
-    /**
-     * Check if the current session is valid.
-     */
-    fun isSessionValid(): Boolean {
-        val session = _currentSession.value ?: return false
-        if (!session.isActive) return false
-        
-        val now = Clock.System.now()
-        return session.expiresAt > now
-    }
-    
-    /**
-     * Check if the current session is expired.
-     */
-    fun isSessionExpired(): Boolean {
-        val session = _currentSession.value ?: return true
-        if (!session.isActive) return true
-        
-        val now = Clock.System.now()
-        return session.expiresAt <= now
-    }
-    
-    /**
-     * Get the current access token.
-     */
-    fun getCurrentAccessToken(): String? {
-        return _currentSession.value?.tokens?.accessToken
-    }
-    
-    /**
-     * Get the current refresh token.
-     */
-    fun getCurrentRefreshToken(): String? {
-        return _currentSession.value?.tokens?.refreshToken
-    }
-    
-    /**
-     * Update last activity timestamp.
-     */
-    fun updateLastActivity() {
-        val currentSession = _currentSession.value ?: return
-        
-        val updatedSession = currentSession.copy(
-            lastActivityAt = Clock.System.now()
-        )
-        
-        _currentSession.value = updatedSession
-    }
-    
-    /**
-     * Refresh the current session's tokens.
-     */
-    suspend fun refreshTokens(): AuthResult<TokenPair> {
-        val currentSession = _currentSession.value ?: return AuthResult.Failure(
-            AuthError.SessionError("No active session to refresh")
-        )
-        
-        if (_isRefreshing.value) {
-            return AuthResult.Failure(
-                AuthError.SessionError("Token refresh already in progress")
-            )
-        }
-        
-        Logger.debug("SessionManager", "Refreshing tokens for session: ${currentSession.id}")
-        
         return try {
-            _isRefreshing.value = true
+            val now = Clock.System.now()
+            val session = UserSession(
+                user = user,
+                sessionId = generateSessionId(),
+                createdAt = now,
+                lastAccessedAt = now,
+                expiresAt = tokens.expiresAt,
+                isActive = true
+            )
             
-            // TODO: Implement actual token refresh with backend
-            // For now, simulate successful refresh
-            val newTokens = createMockTokens(currentSession.userId)
+            val sessionMetadata = SessionMetadata(
+                sessionId = session.sessionId,
+                userId = user.id,
+                deviceInfo = getDeviceInfo(),
+                createdAt = now,
+                lastRefreshAt = now
+            )
             
-            updateSession(newTokens)
+            // Store session data securely
+            val sessionStored = secureStorage.store(SESSION_KEY, Json.encodeToString(session))
+            val tokensStored = secureStorage.store(TOKEN_PAIR_KEY, Json.encodeToString(tokens))
+            val metadataStored = secureStorage.store(SESSION_METADATA_KEY, Json.encodeToString(sessionMetadata))
             
-            AuthResult.Success(newTokens)
+            if (sessionStored && tokensStored && metadataStored) {
+                _currentSession.value = session
+                _isSessionValid.value = true
+                
+                eventBus.dispatch(AuthEvent.Session.SessionCreated(session), "SessionManager")
+                Logger.info("SessionManager", "Session created successfully for user: ${user.id}")
+                
+                AuthResult.Success(session)
+            } else {
+                Logger.error("SessionManager", "Failed to store session data securely")
+                AuthResult.Failure(
+                    AuthError.SessionError("Failed to create secure session")
+                )
+            }
             
         } catch (e: Exception) {
-            val error = AuthError.SessionError("Token refresh failed: ${e.message}")
-            eventBus.dispatch(AuthEvent.Session.SessionRefreshFailed(error), "SessionManager")
-            AuthResult.Failure(error)
-        } finally {
-            _isRefreshing.value = false
+            Logger.error("SessionManager", "Failed to create session", e)
+            AuthResult.Failure(
+                AuthError.UnknownError("Session creation failed: ${e.message}", e)
+            )
         }
     }
     
     /**
-     * Start monitoring the current session for expiration.
+     * Refreshes the current session tokens.
      */
-    private fun startSessionMonitoring() {
-        scope.launch {
-            while (true) {
-                delay(SESSION_CHECK_INTERVAL)
-                
-                if (isSessionExpired()) {
-                    Logger.warn("SessionManager", "Session expired, dispatching event")
-                    eventBus.dispatch(AuthEvent.Session.SessionExpired, "SessionManager")
+    suspend fun refreshSession(): AuthResult<TokenPair> {
+        Logger.debug("SessionManager", "Refreshing session tokens")
+        
+        return try {
+            val currentTokens = getCurrentTokens()
+            if (currentTokens == null) {
+                return AuthResult.Failure(
+                    AuthError.SessionError("No active session to refresh")
+                )
+            }
+            
+            val currentSession = _currentSession.value
+            if (currentSession == null) {
+                return AuthResult.Failure(
+                    AuthError.SessionError("No active session found")
+                )
+            }
+            
+            // Validate refresh token
+            when (val validationResult = jwtTokenManager.validateToken(currentTokens.refreshToken)) {
+                is TokenValidationResult.Valid -> {
+                    if (validationResult.payload.tokenType != "refresh") {
+                        return AuthResult.Failure(
+                            AuthError.InvalidToken("Invalid refresh token type")
+                        )
+                    }
                     
-                    // Auto-refresh if possible
-                    if (_currentSession.value?.tokens?.refreshToken != null) {
-                        try {
-                            refreshTokens()
-                        } catch (e: Exception) {
-                            Logger.error("SessionManager", "Auto-refresh failed: ${e.message}")
-                            endSession()
+                    // Create new tokens
+                    val newAccessToken = jwtTokenManager.createAccessToken(
+                        currentSession.user.id, 
+                        currentSession.user.email
+                    )
+                    val newRefreshToken = jwtTokenManager.createRefreshToken(currentSession.user.id)
+                    val newTokens = TokenPair(
+                        accessToken = newAccessToken,
+                        refreshToken = newRefreshToken,
+                        expiresAt = Clock.System.now() + 30.minutes
+                    )
+                    
+                    // Update stored tokens
+                    val tokensStored = secureStorage.store(TOKEN_PAIR_KEY, Json.encodeToString(newTokens))
+                    if (!tokensStored) {
+                        return AuthResult.Failure(
+                            AuthError.SessionError("Failed to store refreshed tokens")
+                        )
+                    }
+                    
+                    // Update session expiration
+                    val updatedSession = currentSession.copy(
+                        expiresAt = newTokens.expiresAt,
+                        lastAccessedAt = Clock.System.now()
+                    )
+                    val sessionStored = secureStorage.store(SESSION_KEY, Json.encodeToString(updatedSession))
+                    if (sessionStored) {
+                        _currentSession.value = updatedSession
+                    }
+                    
+                    // Update metadata
+                    updateSessionMetadata()
+                    
+                    eventBus.dispatch(AuthEvent.Session.SessionRefreshed(updatedSession), "SessionManager")
+                    Logger.info("SessionManager", "Session refreshed successfully")
+                    
+                    AuthResult.Success(newTokens)
+                }
+                
+                is TokenValidationResult.Expired -> {
+                    Logger.warn("SessionManager", "Refresh token has expired")
+                    invalidateSession()
+                    AuthResult.Failure(
+                        AuthError.InvalidToken("Refresh token has expired")
+                    )
+                }
+                
+                is TokenValidationResult.Invalid -> {
+                    Logger.warn("SessionManager", "Invalid refresh token: ${validationResult.reason}")
+                    invalidateSession()
+                    AuthResult.Failure(
+                        AuthError.InvalidToken("Invalid refresh token")
+                    )
+                }
+            }
+            
+        } catch (e: Exception) {
+            Logger.error("SessionManager", "Failed to refresh session", e)
+            AuthResult.Failure(
+                AuthError.UnknownError("Session refresh failed: ${e.message}", e)
+            )
+        }
+    }
+    
+    /**
+     * Validates the current session and tokens.
+     */
+    suspend fun validateSession(): AuthResult<Boolean> {
+        Logger.debug("SessionManager", "Validating current session")
+        
+        return try {
+            val session = _currentSession.value
+            val tokens = getCurrentTokens()
+            
+            if (session == null || tokens == null) {
+                _isSessionValid.value = false
+                return AuthResult.Success(false)
+            }
+            
+            val now = Clock.System.now()
+            
+            // Check session expiration
+            if (now > session.expiresAt) {
+                Logger.info("SessionManager", "Session has expired")
+                invalidateSession()
+                return AuthResult.Success(false)
+            }
+            
+            // Validate access token
+            when (val validationResult = jwtTokenManager.validateToken(tokens.accessToken)) {
+                is TokenValidationResult.Valid -> {
+                    _isSessionValid.value = true
+                    
+                    // Update last accessed time
+                    val updatedSession = session.copy(lastAccessedAt = now)
+                    secureStorage.store(SESSION_KEY, Json.encodeToString(updatedSession))
+                    _currentSession.value = updatedSession
+                    
+                    AuthResult.Success(true)
+                }
+                
+                is TokenValidationResult.Expired -> {
+                    Logger.info("SessionManager", "Access token expired, attempting refresh")
+                    
+                    // Try to refresh automatically
+                    when (val refreshResult = refreshSession()) {
+                        is AuthResult.Success -> {
+                            _isSessionValid.value = true
+                            AuthResult.Success(true)
                         }
-                    } else {
-                        endSession()
+                        is AuthResult.Failure -> {
+                            _isSessionValid.value = false
+                            AuthResult.Success(false)
+                        }
                     }
                 }
-            }
-        }
-    }
-    
-    /**
-     * Schedule token refresh before expiration.
-     */
-    private fun scheduleTokenRefresh(session: Session) {
-        refreshJob?.cancel()
-        
-        val timeUntilRefresh = session.expiresAt - Clock.System.now()
-        val refreshDelay = timeUntilRefresh - REFRESH_BUFFER_TIME
-        
-        if (refreshDelay.isPositive()) {
-            refreshJob = scope.launch {
-                delay(refreshDelay.inWholeMilliseconds)
                 
-                if (_currentSession.value?.id == session.id) {
-                    Logger.debug("SessionManager", "Auto-refreshing tokens for session: ${session.id}")
-                    refreshTokens()
+                is TokenValidationResult.Invalid -> {
+                    Logger.warn("SessionManager", "Invalid access token: ${validationResult.reason}")
+                    invalidateSession()
+                    AuthResult.Success(false)
                 }
             }
+            
+        } catch (e: Exception) {
+            Logger.error("SessionManager", "Failed to validate session", e)
+            _isSessionValid.value = false
+            AuthResult.Failure(
+                AuthError.UnknownError("Session validation failed: ${e.message}", e)
+            )
         }
     }
     
     /**
-     * Generate a unique session ID.
+     * Invalidates the current session and clears all stored data.
      */
-    private fun generateSessionId(): String {
-        return "session_${Clock.System.now().toEpochMilliseconds()}_${kotlin.random.Random.nextInt(1000, 9999)}"
+    suspend fun invalidateSession(): AuthResult<Unit> {
+        Logger.debug("SessionManager", "Invalidating current session")
+        
+        return try {
+            val currentSession = _currentSession.value
+            
+            // Clear stored data
+            secureStorage.remove(SESSION_KEY)
+            secureStorage.remove(TOKEN_PAIR_KEY)
+            secureStorage.remove(SESSION_METADATA_KEY)
+            
+            // Clear in-memory state
+            _currentSession.value = null
+            _isSessionValid.value = false
+            
+            if (currentSession != null) {
+                eventBus.dispatch(AuthEvent.Session.SessionExpired(currentSession), "SessionManager")
+            }
+            
+            Logger.info("SessionManager", "Session invalidated successfully")
+            AuthResult.Success(Unit)
+            
+        } catch (e: Exception) {
+            Logger.error("SessionManager", "Failed to invalidate session", e)
+            AuthResult.Failure(
+                AuthError.UnknownError("Session invalidation failed: ${e.message}", e)
+            )
+        }
     }
     
     /**
-     * Create mock tokens for development/testing.
+     * Gets the current access token if session is valid.
      */
-    private fun createMockTokens(userId: String): TokenPair {
-        val now = Clock.System.now()
-        val expiresAt = now + 30.minutes // 30 minutes
+    suspend fun getCurrentAccessToken(): String? {
+        return if (_isSessionValid.value) {
+            getCurrentTokens()?.accessToken
+        } else {
+            null
+        }
+    }
+    
+    /**
+     * Gets the current user if session is valid.
+     */
+    fun getCurrentUser(): User? {
+        return if (_isSessionValid.value) {
+            _currentSession.value?.user
+        } else {
+            null
+        }
+    }
+    
+    /**
+     * Gets session information for monitoring/debugging.
+     */
+    suspend fun getSessionInfo(): SessionInfo? {
+        val session = _currentSession.value ?: return null
+        val metadata = getSessionMetadata() ?: return null
         
-        return TokenPair(
-            accessToken = "access_token_${userId}_${now.toEpochMilliseconds()}",
-            refreshToken = "refresh_token_${userId}_${now.toEpochMilliseconds()}",
-            expiresAt = expiresAt
+        return SessionInfo(
+            sessionId = session.sessionId,
+            userId = session.user.id,
+            userEmail = session.user.email,
+            createdAt = session.createdAt,
+            lastAccessedAt = session.lastAccessedAt,
+            expiresAt = session.expiresAt,
+            isActive = session.isActive && _isSessionValid.value,
+            deviceInfo = metadata.deviceInfo,
+            lastRefreshAt = metadata.lastRefreshAt
         )
     }
     
-    companion object {
-        private val SESSION_CHECK_INTERVAL = 30.seconds // 30 seconds
-        private val REFRESH_BUFFER_TIME = 5.minutes // 5 minutes
-        
-        private var INSTANCE: SessionManager? = null
-        
-        fun getInstance(): SessionManager {
-            return INSTANCE ?: SessionManager().also { INSTANCE = it }
+    private suspend fun getCurrentTokens(): TokenPair? {
+        return try {
+            val tokensJson = secureStorage.retrieve(TOKEN_PAIR_KEY)
+            if (tokensJson != null) {
+                Json.decodeFromString<TokenPair>(tokensJson)
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            Logger.error("SessionManager", "Failed to retrieve tokens", e)
+            null
         }
-        
-        fun reset() {
-            INSTANCE = null
+    }
+    
+    private suspend fun restoreSession() {
+        try {
+            val sessionJson = secureStorage.retrieve(SESSION_KEY)
+            if (sessionJson != null) {
+                val session = Json.decodeFromString<UserSession>(sessionJson)
+                _currentSession.value = session
+                
+                // Validate restored session
+                validateSession()
+                
+                Logger.info("SessionManager", "Session restored for user: ${session.user.id}")
+            }
+        } catch (e: Exception) {
+            Logger.error("SessionManager", "Failed to restore session", e)
+            // Clear corrupted session data
+            invalidateSession()
         }
+    }
+    
+    private suspend fun startSessionMonitoring() {
+        // Monitor session validity every 5 minutes
+        while (true) {
+            kotlinx.coroutines.delay(5.minutes.inWholeMilliseconds)
+            
+            if (_currentSession.value != null) {
+                validateSession()
+            }
+        }
+    }
+    
+    private suspend fun updateSessionMetadata() {
+        try {
+            val metadataJson = secureStorage.retrieve(SESSION_METADATA_KEY)
+            if (metadataJson != null) {
+                val metadata = Json.decodeFromString<SessionMetadata>(metadataJson)
+                val updatedMetadata = metadata.copy(lastRefreshAt = Clock.System.now())
+                secureStorage.store(SESSION_METADATA_KEY, Json.encodeToString(updatedMetadata))
+            }
+        } catch (e: Exception) {
+            Logger.error("SessionManager", "Failed to update session metadata", e)
+        }
+    }
+    
+    private suspend fun getSessionMetadata(): SessionMetadata? {
+        return try {
+            val metadataJson = secureStorage.retrieve(SESSION_METADATA_KEY)
+            if (metadataJson != null) {
+                Json.decodeFromString<SessionMetadata>(metadataJson)
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            Logger.error("SessionManager", "Failed to get session metadata", e)
+            null
+        }
+    }
+    
+    private fun generateSessionId(): String {
+        val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+        return (1..32).map { chars.random() }.joinToString("")
+    }
+    
+    private fun getDeviceInfo(): String {
+        // In a real implementation, this would collect device information
+        // For now, return a basic identifier
+        return "MultiAuth-Client-${Clock.System.now().toEpochMilliseconds()}"
     }
 }
 
 /**
- * Represents a user session with authentication state.
+ * Represents an active user session.
  */
-data class Session(
-    val id: String,
-    val userId: String,
+@Serializable
+data class UserSession(
     val user: User,
-    val tokens: TokenPair,
+    val sessionId: String,
+    val createdAt: @kotlinx.serialization.Contextual Instant,
+    val lastAccessedAt: @kotlinx.serialization.Contextual Instant,
+    val expiresAt: @kotlinx.serialization.Contextual Instant,
+    val isActive: Boolean = true
+)
+
+/**
+ * Session metadata for monitoring and analytics.
+ */
+@Serializable
+private data class SessionMetadata(
+    val sessionId: String,
+    val userId: String,
+    val deviceInfo: String,
+    val createdAt: @kotlinx.serialization.Contextual Instant,
+    val lastRefreshAt: @kotlinx.serialization.Contextual Instant
+)
+
+/**
+ * Session information for monitoring/debugging.
+ */
+data class SessionInfo(
+    val sessionId: String,
+    val userId: String,
+    val userEmail: String?,
     val createdAt: Instant,
-    val lastActivityAt: Instant,
+    val lastAccessedAt: Instant,
     val expiresAt: Instant,
     val isActive: Boolean,
-    val endedAt: Instant? = null
+    val deviceInfo: String,
+    val lastRefreshAt: Instant
 )
