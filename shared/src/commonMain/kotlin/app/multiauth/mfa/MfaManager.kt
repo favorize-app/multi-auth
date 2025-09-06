@@ -7,12 +7,19 @@ import app.multiauth.events.EventBusInstance
 import app.multiauth.models.User
 import app.multiauth.models.AuthError
 import app.multiauth.util.Logger
+import app.multiauth.storage.SecureStorage
+import app.multiauth.security.PasswordHasher
+import app.multiauth.providers.SmsProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
 // Platform-specific implementation required
 import kotlin.math.pow
 
@@ -22,8 +29,12 @@ import kotlin.math.pow
  */
 class MfaManager(
     private val authEngine: AuthEngine,
+    private val secureStorage: SecureStorage,
+    private val smsProvider: SmsProvider,
     private val eventBus: EventBus = EventBusInstance()
 ) {
+    
+    private val totpGenerator = TotpGenerator()
     
     private val logger = Logger.getLogger(this::class)
     private val scope = CoroutineScope(Dispatchers.Main)
@@ -236,17 +247,37 @@ class MfaManager(
     // Private implementation methods
     
     private suspend fun enableTotp(user: User): Result<Unit> {
-        // In a real implementation, this would:
-        // 1. Generate a secret key
-        // 2. Create a QR code for authenticator apps
-        // 3. Store the secret securely
-        // 4. Return the setup information
-        
         return try {
-            // Simulate TOTP setup
-            kotlinx.coroutines.delay(1000)
+            // 1. Generate a secret key
+            val secret = totpGenerator.generateSecret()
+            
+            // 2. Store the secret securely
+            val totpSettings = UserTotpSettings(
+                userId = user.id,
+                secret = secret,
+                algorithm = "HmacSHA1",
+                digits = 6,
+                period = 30,
+                enabled = true
+            )
+            
+            val storageKey = "totp_settings_${user.id}"
+            val stored = secureStorage.store(storageKey, Json.encodeToString(totpSettings))
+            
+            if (!stored) {
+                return Result.failure(Exception("Failed to store TOTP settings securely"))
+            }
+            
+            // 3. Update enabled methods
+            val currentMethods = _enabledMethods.value.toMutableSet()
+            currentMethods.add(MfaMethod.TOTP)
+            _enabledMethods.value = currentMethods
+            
+            logger.info("mfa", "TOTP enabled successfully for user: ${user.id}")
             Result.success(Unit)
+            
         } catch (e: Exception) {
+            logger.error("mfa", "Failed to enable TOTP", e)
             Result.failure(e)
         }
     }
@@ -267,16 +298,37 @@ class MfaManager(
     }
     
     private suspend fun enableBackupCodes(user: User): Result<Unit> {
-        // In a real implementation, this would:
-        // 1. Generate secure backup codes
-        // 2. Hash and store them securely
-        // 3. Present them to the user once
-        
         return try {
+            // 1. Generate secure backup codes
             val codes = generateSecureBackupCodes()
+            
+            // 2. Hash and store them securely
+            val hashedCodes = codes.map { simpleHash(it) }
+            val backupCodeData = UserBackupCodes(
+                userId = user.id,
+                hashedCodes = hashedCodes
+            )
+            
+            val storageKey = "backup_codes_${user.id}"
+            val stored = secureStorage.store(storageKey, Json.encodeToString(backupCodeData))
+            
+            if (!stored) {
+                return Result.failure(Exception("Failed to store backup codes securely"))
+            }
+            
+            // 3. Present them to the user once (store in memory temporarily)
             _backupCodes.value = codes
+            
+            // Update enabled methods
+            val currentMethods = _enabledMethods.value.toMutableSet()
+            currentMethods.add(MfaMethod.BACKUP_CODES)
+            _enabledMethods.value = currentMethods
+            
+            logger.info("mfa", "Backup codes enabled successfully for user: ${user.id}")
             Result.success(Unit)
+            
         } catch (e: Exception) {
+            logger.error("mfa", "Failed to enable backup codes", e)
             Result.failure(e)
         }
     }
@@ -321,64 +373,119 @@ class MfaManager(
     }
     
     private suspend fun verifyTotpCode(user: User, code: String): Result<Unit> {
-        // In a real implementation, this would:
-        // 1. Retrieve the user's TOTP secret
-        // 2. Generate the expected TOTP code
-        // 3. Compare with the provided code
-        // 4. Check for time window validity
-        
         return try {
-            // Simulate TOTP verification
-            kotlinx.coroutines.delay(500)
+            // 1. Retrieve the user's TOTP secret
+            val storageKey = "totp_settings_${user.id}"
+            val settingsJson = secureStorage.retrieve(storageKey)
             
-            // For demo purposes, accept any 6-digit code
-            if (code.length == 6 && code.all { it.isDigit() }) {
+            if (settingsJson == null) {
+                return Result.failure(IllegalStateException("TOTP not enabled for this user"))
+            }
+            
+            val totpSettings = Json.decodeFromString<UserTotpSettings>(settingsJson)
+            
+            if (!totpSettings.enabled) {
+                return Result.failure(IllegalStateException("TOTP is disabled for this user"))
+            }
+            
+            // 2. Validate the provided TOTP code using the real generator
+            val isValid = totpGenerator.validateTotp(totpSettings.secret, code, totpSettings.algorithm)
+            
+            if (isValid) {
+                logger.info("mfa", "TOTP verification successful for user: ${user.id}")
                 Result.success(Unit)
             } else {
+                logger.warn("mfa", "TOTP verification failed for user: ${user.id}")
                 Result.failure(IllegalArgumentException("Invalid TOTP code"))
             }
+            
         } catch (e: Exception) {
+            logger.error("mfa", "TOTP verification error", e)
             Result.failure(e)
         }
     }
     
     private suspend fun verifySmsCode(user: User, code: String): Result<Unit> {
-        // In a real implementation, this would:
-        // 1. Retrieve the stored SMS verification code
-        // 2. Compare with the provided code
-        // 3. Check for expiration
-        
         return try {
-            // Simulate SMS verification
-            kotlinx.coroutines.delay(500)
-            
-            // For demo purposes, accept any 6-digit code
-            if (code.length == 6 && code.all { it.isDigit() }) {
-                Result.success(Unit)
-            } else {
-                Result.failure(IllegalArgumentException("Invalid SMS code"))
+            // Get user's phone number
+            val phoneNumber = user.phoneNumber
+            if (phoneNumber == null) {
+                return Result.failure(IllegalStateException("No phone number associated with this user"))
             }
+            
+            // 1. Retrieve the stored SMS verification session
+            val sessionKey = "mfa_sms_session_${user.id}"
+            val sessionJson = secureStorage.retrieve(sessionKey)
+            
+            if (sessionJson == null) {
+                return Result.failure(IllegalStateException("No active SMS MFA session found"))
+            }
+            
+            val smsSession = Json.decodeFromString<SmsMfaSession>(sessionJson)
+            
+            // 2. Use the real SMS provider to verify the code
+            when (val result = smsProvider.verifySmsCode(phoneNumber, code, smsSession.sessionId)) {
+                is app.multiauth.models.AuthResult.Success -> {
+                    // Remove the used session
+                    secureStorage.remove(sessionKey)
+                    
+                    logger.info("mfa", "SMS MFA verification successful for user: ${user.id}")
+                    Result.success(Unit)
+                }
+                is app.multiauth.models.AuthResult.Failure -> {
+                    logger.warn("mfa", "SMS MFA verification failed for user: ${user.id}")
+                    Result.failure(Exception("SMS verification failed: ${result.error.message}"))
+                }
+            }
+            
         } catch (e: Exception) {
+            logger.error("mfa", "SMS MFA verification error", e)
             Result.failure(e)
         }
     }
     
     private suspend fun verifyBackupCode(user: User, code: String): Result<Unit> {
-        // In a real implementation, this would:
-        // 1. Hash the provided backup code
-        // 2. Compare with stored hashed backup codes
-        // 3. Remove the used backup code
-        
         return try {
-            val storedCodes = _backupCodes.value
-            if (storedCodes.contains(code)) {
-                // Remove the used backup code
-                _backupCodes.value = storedCodes - code
+            // 1. Retrieve stored backup codes
+            val storageKey = "backup_codes_${user.id}"
+            val codesJson = secureStorage.retrieve(storageKey)
+            
+            if (codesJson == null) {
+                return Result.failure(IllegalStateException("No backup codes found for this user"))
+            }
+            
+            val backupCodeData = Json.decodeFromString<UserBackupCodes>(codesJson)
+            
+            // 2. Hash the provided backup code and compare with stored hashes
+            val providedCodeHash = simpleHash(code)
+            
+            var codeFound = false
+            val remainingCodes = backupCodeData.hashedCodes.filter { storedHash ->
+                if (storedHash == providedCodeHash) {
+                    codeFound = true
+                    false // Remove this code from the list
+                } else {
+                    true // Keep this code
+                }
+            }
+            
+            if (codeFound) {
+                // 3. Update stored backup codes (remove the used one)
+                val updatedBackupCodes = backupCodeData.copy(hashedCodes = remainingCodes)
+                secureStorage.store(storageKey, Json.encodeToString(updatedBackupCodes))
+                
+                // Update in-memory state
+                _backupCodes.value = remainingCodes.map { "***USED***" } // Don't expose actual codes
+                
+                logger.info("mfa", "Backup code verification successful for user: ${user.id}")
                 Result.success(Unit)
             } else {
+                logger.warn("mfa", "Backup code verification failed for user: ${user.id}")
                 Result.failure(IllegalArgumentException("Invalid backup code"))
             }
+            
         } catch (e: Exception) {
+            logger.error("mfa", "Backup code verification error", e)
             Result.failure(e)
         }
     }
@@ -397,6 +504,19 @@ class MfaManager(
         }
         
         return codes
+    }
+    
+    /**
+     * Simple hash function for backup codes.
+     */
+    private fun simpleHash(input: String): String {
+        // Use SHA256 for backup code hashing
+        val sha256 = org.kotlincrypto.hash.sha2.SHA256()
+        sha256.update(input.encodeToByteArray())
+        val hash = sha256.digest()
+        return hash.joinToString("") { byte ->
+            (byte.toInt() and 0xFF).toString(16).padStart(2, '0')
+        }
     }
 }
 
@@ -420,3 +540,39 @@ enum class MfaMethod {
     SMS,
     BACKUP_CODES
 }
+
+/**
+ * TOTP settings stored securely for each user.
+ */
+@Serializable
+data class UserTotpSettings(
+    val userId: String,
+    val secret: String,
+    val algorithm: String = "HmacSHA1",
+    val digits: Int = 6,
+    val period: Int = 30,
+    val enabled: Boolean = true,
+    val createdAt: @kotlinx.serialization.Contextual kotlinx.datetime.Instant = kotlinx.datetime.Clock.System.now()
+)
+
+/**
+ * Backup codes stored securely for each user.
+ */
+@Serializable
+data class UserBackupCodes(
+    val userId: String,
+    val hashedCodes: List<String>, // Store as hashed strings for simplicity
+    val createdAt: @kotlinx.serialization.Contextual kotlinx.datetime.Instant = kotlinx.datetime.Clock.System.now(),
+    val lastUsedAt: @kotlinx.serialization.Contextual kotlinx.datetime.Instant? = null
+)
+
+/**
+ * SMS MFA session data.
+ */
+@Serializable
+data class SmsMfaSession(
+    val userId: String,
+    val sessionId: String,
+    val phoneNumber: String,
+    val createdAt: @kotlinx.serialization.Contextual kotlinx.datetime.Instant = kotlinx.datetime.Clock.System.now()
+)

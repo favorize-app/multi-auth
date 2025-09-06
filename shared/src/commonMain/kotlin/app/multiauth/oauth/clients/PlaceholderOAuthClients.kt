@@ -302,42 +302,240 @@ class RedditOAuthClient(
         authorizationCode: String,
         codeVerifier: String
     ): OAuthResult {
-        logger.warn("oath", "Reddit OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Failure(
-            OAuthError.fromOAuthResponse(
-                error = "not_implemented",
-                errorDescription = "Reddit OAuth client not fully implemented"
+        logger.debug("oauth", "Exchanging Reddit authorization code for tokens")
+        
+        return try {
+            val tokenRequest = "grant_type=authorization_code" +
+                "&code=$authorizationCode" +
+                "&redirect_uri=${config.redirectUri}"
+            
+            val response = httpClient.post("https://www.reddit.com/api/v1/access_token") {
+                header("Authorization", "Basic ${encodeBasicAuth(config.clientId, config.clientSecret)}")
+                header("Content-Type", "application/x-www-form-urlencoded")
+                header("User-Agent", "MultiAuth/1.0.0")
+                setBody(tokenRequest)
+            }
+            
+            if (response.status.isSuccess) {
+                val tokenData = Json.decodeFromString<RedditTokenResponse>(response.bodyAsText())
+                
+                // Get user info
+                val userInfo = getRedditUserInfo(tokenData.access_token)
+                
+                OAuthResult.Success(
+                    accessToken = tokenData.access_token,
+                    refreshToken = tokenData.refresh_token,
+                    expiresIn = tokenData.expires_in,
+                    tokenType = tokenData.token_type ?: "Bearer",
+                    scope = tokenData.scope,
+                    userInfo = userInfo
+                )
+            } else {
+                val errorBody = response.bodyAsText()
+                logger.error("oauth", "Reddit token exchange failed: $errorBody")
+                
+                OAuthResult.Failure(
+                    OAuthError.fromOAuthResponse(
+                        error = "token_exchange_failed",
+                        errorDescription = "Failed to exchange code for tokens: HTTP ${response.status}"
+                    )
+                )
+            }
+            
+        } catch (e: Exception) {
+            logger.error("oauth", "Reddit OAuth error", e)
+            OAuthResult.Failure(
+                OAuthError.networkError("Token exchange failed: ${e.message}", e)
             )
-        )
+        }
     }
     
     override suspend fun refreshAccessToken(refreshToken: String): OAuthResult {
-        logger.warn("oath", "Reddit OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Failure(
-            OAuthError.networkError(
-                message = "Reddit OAuth client not fully implemented"
+        logger.debug("oauth", "Refreshing Reddit access token")
+        
+        return try {
+            val refreshRequest = "grant_type=refresh_token&refresh_token=$refreshToken"
+            
+            val response = httpClient.post("https://www.reddit.com/api/v1/access_token") {
+                header("Authorization", "Basic ${encodeBasicAuth(config.clientId, config.clientSecret)}")
+                header("Content-Type", "application/x-www-form-urlencoded")
+                header("User-Agent", "MultiAuth/1.0.0")
+                setBody(refreshRequest)
+            }
+            
+            if (response.status.isSuccess) {
+                val tokenData = Json.decodeFromString<RedditTokenResponse>(response.bodyAsText())
+                
+                OAuthResult.Success(
+                    accessToken = tokenData.access_token,
+                    refreshToken = tokenData.refresh_token ?: refreshToken,
+                    expiresIn = tokenData.expires_in,
+                    tokenType = tokenData.token_type ?: "Bearer",
+                    scope = tokenData.scope
+                )
+            } else {
+                val errorBody = response.bodyAsText()
+                logger.error("oauth", "Reddit token refresh failed: $errorBody")
+                
+                OAuthResult.Failure(
+                    OAuthError.fromOAuthResponse(
+                        error = "token_refresh_failed",
+                        errorDescription = "Failed to refresh token: HTTP ${response.status}"
+                    )
+                )
+            }
+            
+        } catch (e: Exception) {
+            logger.error("oauth", "Reddit token refresh error", e)
+            OAuthResult.Failure(
+                OAuthError.networkError("Token refresh failed: ${e.message}", e)
             )
-        )
+        }
     }
     
     override suspend fun getUserInfo(accessToken: String): OAuthResult {
-        logger.warn("oath", "Reddit OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Failure(
-            OAuthError.fromOAuthResponse(
-                error = "not_implemented",
-                errorDescription = "Reddit OAuth client not fully implemented"
+        logger.debug("oauth", "Getting Reddit user info")
+        
+        return try {
+            val response = httpClient.get("https://oauth.reddit.com/api/v1/me") {
+                header("Authorization", "Bearer $accessToken")
+                header("User-Agent", "MultiAuth/1.0.0")
+            }
+            
+            if (response.status.isSuccess) {
+                val userData = Json.decodeFromString<RedditUser>(response.bodyAsText())
+                
+                val userInfo = OAuthUserInfo(
+                    id = userData.id,
+                    email = userData.email,
+                    name = userData.name,
+                    displayName = userData.name,
+                    picture = userData.icon_img?.takeIf { it.isNotEmpty() },
+                    provider = "reddit",
+                    providerId = userData.id
+                )
+                
+                OAuthResult.Success(
+                    accessToken = accessToken,
+                    refreshToken = null,
+                    expiresIn = null,
+                    userInfo = userInfo
+                )
+            } else {
+                val errorBody = response.bodyAsText()
+                logger.error("oauth", "Reddit user info failed: $errorBody")
+                
+                OAuthResult.Failure(
+                    OAuthError.fromOAuthResponse(
+                        error = "user_info_failed",
+                        errorDescription = "Failed to get user info: HTTP ${response.status}"
+                    )
+                )
+            }
+            
+        } catch (e: Exception) {
+            logger.error("oauth", "Reddit user info error", e)
+            OAuthResult.Failure(
+                OAuthError.networkError("User info request failed: ${e.message}", e)
             )
-        )
+        }
     }
     
     override suspend fun revokeToken(token: String): Boolean {
-        logger.warn("oath", "Reddit OAuth client not fully implemented - using placeholder")
-        return false
+        logger.debug("oauth", "Revoking Reddit token")
+        
+        return try {
+            val response = httpClient.post("https://www.reddit.com/api/v1/revoke_token") {
+                header("Authorization", "Basic ${encodeBasicAuth(config.clientId, config.clientSecret)}")
+                header("Content-Type", "application/x-www-form-urlencoded")
+                header("User-Agent", "MultiAuth/1.0.0")
+                setBody("token=$token")
+            }
+            
+            response.status.isSuccess
+            
+        } catch (e: Exception) {
+            logger.error("oauth", "Reddit token revocation error", e)
+            false
+        }
     }
     
     override suspend fun validateToken(accessToken: String): Boolean {
-        logger.warn("placeholder", "Reddit OAuth client not fully implemented - using placeholder")
-        return false
+        logger.debug("oauth", "Validating Reddit token")
+        
+        return try {
+            val response = httpClient.get("https://oauth.reddit.com/api/v1/me") {
+                header("Authorization", "Bearer $accessToken")
+                header("User-Agent", "MultiAuth/1.0.0")
+            }
+            
+            response.status.isSuccess
+            
+        } catch (e: Exception) {
+            logger.error("oauth", "Reddit token validation error", e)
+            false
+        }
+    }
+    
+    // Helper method to get user info during token exchange
+    private suspend fun getRedditUserInfo(accessToken: String): OAuthUserInfo? {
+        return try {
+            val response = httpClient.get("https://oauth.reddit.com/api/v1/me") {
+                header("Authorization", "Bearer $accessToken")
+                header("User-Agent", "MultiAuth/1.0.0")
+            }
+            
+            if (response.status.isSuccess) {
+                val userData = Json.decodeFromString<RedditUser>(response.bodyAsText())
+                
+                OAuthUserInfo(
+                    id = userData.id,
+                    email = userData.email,
+                    name = userData.name,
+                    displayName = userData.name,
+                    picture = userData.icon_img?.takeIf { it.isNotEmpty() },
+                    provider = "reddit",
+                    providerId = userData.id
+                )
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            logger.error("oauth", "Failed to get Reddit user info during token exchange", e)
+            null
+        }
+    }
+    
+    // Helper method for basic auth encoding
+    private fun encodeBasicAuth(username: String, password: String): String {
+        val credentials = "$username:$password"
+        return credentials.encodeToByteArray().encodeBase64()
+    }
+    
+    /**
+     * Simple Base64 encoding for multiplatform compatibility.
+     */
+    private fun ByteArray.encodeBase64(): String {
+        val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+        val result = StringBuilder()
+        
+        var i = 0
+        while (i < size) {
+            val b1 = this[i].toInt() and 0xFF
+            val b2 = if (i + 1 < size) this[i + 1].toInt() and 0xFF else 0
+            val b3 = if (i + 2 < size) this[i + 2].toInt() and 0xFF else 0
+            
+            val bitmap = (b1 shl 16) or (b2 shl 8) or b3
+            
+            result.append(chars[(bitmap shr 18) and 0x3F])
+            result.append(chars[(bitmap shr 12) and 0x3F])
+            result.append(if (i + 1 < size) chars[(bitmap shr 6) and 0x3F] else '=')
+            result.append(if (i + 2 < size) chars[bitmap and 0x3F] else '=')
+            
+            i += 3
+        }
+        
+        return result.toString()
     }
 }
 
@@ -502,42 +700,224 @@ class SpotifyOAuthClient(
         authorizationCode: String,
         codeVerifier: String
     ): OAuthResult {
-        logger.warn("oath", "Spotify OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Failure(
-            OAuthError.fromOAuthResponse(
-                error = "not_implemented",
-                errorDescription = "Spotify OAuth client not fully implemented"
+        logger.debug("oauth", "Exchanging Spotify authorization code for tokens")
+        
+        return try {
+            val tokenRequest = "grant_type=authorization_code" +
+                "&code=$authorizationCode" +
+                "&redirect_uri=${config.redirectUri}" +
+                "&code_verifier=$codeVerifier"
+            
+            val response = httpClient.post("https://accounts.spotify.com/api/token") {
+                header("Authorization", "Basic ${encodeBasicAuth(config.clientId, config.clientSecret)}")
+                header("Content-Type", "application/x-www-form-urlencoded")
+                setBody(tokenRequest)
+            }
+            
+            if (response.status.isSuccess) {
+                val tokenData = Json.decodeFromString<SpotifyTokenResponse>(response.bodyAsText())
+                
+                // Get user info
+                val userInfo = getSpotifyUserInfo(tokenData.access_token)
+                
+                OAuthResult.Success(
+                    accessToken = tokenData.access_token,
+                    refreshToken = tokenData.refresh_token,
+                    expiresIn = tokenData.expires_in,
+                    tokenType = tokenData.token_type ?: "Bearer",
+                    scope = tokenData.scope,
+                    userInfo = userInfo
+                )
+            } else {
+                val errorBody = response.bodyAsText()
+                logger.error("oauth", "Spotify token exchange failed: $errorBody")
+                
+                OAuthResult.Failure(
+                    OAuthError.fromOAuthResponse(
+                        error = "token_exchange_failed",
+                        errorDescription = "Failed to exchange code for tokens: HTTP ${response.status}"
+                    )
+                )
+            }
+            
+        } catch (e: Exception) {
+            logger.error("oauth", "Spotify OAuth error", e)
+            OAuthResult.Failure(
+                OAuthError.networkError("Token exchange failed: ${e.message}", e)
             )
-        )
+        }
     }
     
     override suspend fun refreshAccessToken(refreshToken: String): OAuthResult {
-        logger.warn("oath", "Spotify OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Failure(
-            OAuthError.networkError(
-                message = "Spotify OAuth client not fully implemented"
+        logger.debug("oauth", "Refreshing Spotify access token")
+        
+        return try {
+            val refreshRequest = "grant_type=refresh_token&refresh_token=$refreshToken"
+            
+            val response = httpClient.post("https://accounts.spotify.com/api/token") {
+                header("Authorization", "Basic ${encodeBasicAuth(config.clientId, config.clientSecret)}")
+                header("Content-Type", "application/x-www-form-urlencoded")
+                setBody(refreshRequest)
+            }
+            
+            if (response.status.isSuccess) {
+                val tokenData = Json.decodeFromString<SpotifyTokenResponse>(response.bodyAsText())
+                
+                OAuthResult.Success(
+                    accessToken = tokenData.access_token,
+                    refreshToken = tokenData.refresh_token ?: refreshToken,
+                    expiresIn = tokenData.expires_in,
+                    tokenType = tokenData.token_type ?: "Bearer",
+                    scope = tokenData.scope
+                )
+            } else {
+                OAuthResult.Failure(
+                    OAuthError.fromOAuthResponse(
+                        error = "token_refresh_failed",
+                        errorDescription = "Failed to refresh token: HTTP ${response.status}"
+                    )
+                )
+            }
+            
+        } catch (e: Exception) {
+            OAuthResult.Failure(
+                OAuthError.networkError("Token refresh failed: ${e.message}", e)
             )
-        )
+        }
     }
     
     override suspend fun getUserInfo(accessToken: String): OAuthResult {
-        logger.warn("oath", "Spotify OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Failure(
-            OAuthError.fromOAuthResponse(
-                error = "not_implemented",
-                errorDescription = "Spotify OAuth client not fully implemented"
+        logger.debug("oauth", "Getting Spotify user info")
+        
+        return try {
+            val response = httpClient.get("https://api.spotify.com/v1/me") {
+                header("Authorization", "Bearer $accessToken")
+            }
+            
+            if (response.status.isSuccess) {
+                val userData = Json.decodeFromString<SpotifyUser>(response.bodyAsText())
+                
+                val userInfo = OAuthUserInfo(
+                    id = userData.id,
+                    email = userData.email,
+                    name = userData.display_name,
+                    displayName = userData.display_name,
+                    picture = userData.images?.firstOrNull()?.url,
+                    provider = "spotify",
+                    providerId = userData.id
+                )
+                
+                OAuthResult.Success(
+                    accessToken = accessToken,
+                    refreshToken = null,
+                    expiresIn = null,
+                    userInfo = userInfo
+                )
+            } else {
+                OAuthResult.Failure(
+                    OAuthError.fromOAuthResponse(
+                        error = "user_info_failed",
+                        errorDescription = "Failed to get user info: HTTP ${response.status}"
+                    )
+                )
+            }
+            
+        } catch (e: Exception) {
+            OAuthResult.Failure(
+                OAuthError.networkError("User info request failed: ${e.message}", e)
             )
-        )
+        }
     }
     
     override suspend fun revokeToken(token: String): Boolean {
-        logger.warn("oath", "Spotify OAuth client not fully implemented - using placeholder")
-        return false
+        logger.debug("oauth", "Revoking Spotify token")
+        
+        return try {
+            // Spotify doesn't have a standard revoke endpoint
+            // Token revocation happens automatically on expiration
+            logger.info("oauth", "Spotify token revocation not supported - tokens expire automatically")
+            true
+            
+        } catch (e: Exception) {
+            logger.error("oauth", "Spotify token revocation error", e)
+            false
+        }
     }
     
     override suspend fun validateToken(accessToken: String): Boolean {
-        logger.warn("placeholder", "Spotify OAuth client not fully implemented - using placeholder")
-        return false
+        logger.debug("oauth", "Validating Spotify token")
+        
+        return try {
+            val response = httpClient.get("https://api.spotify.com/v1/me") {
+                header("Authorization", "Bearer $accessToken")
+            }
+            
+            response.status.isSuccess
+            
+        } catch (e: Exception) {
+            logger.error("oauth", "Spotify token validation error", e)
+            false
+        }
+    }
+    
+    // Helper method to get user info during token exchange
+    private suspend fun getSpotifyUserInfo(accessToken: String): OAuthUserInfo? {
+        return try {
+            val response = httpClient.get("https://api.spotify.com/v1/me") {
+                header("Authorization", "Bearer $accessToken")
+            }
+            
+            if (response.status.isSuccess) {
+                val userData = Json.decodeFromString<SpotifyUser>(response.bodyAsText())
+                
+                OAuthUserInfo(
+                    id = userData.id,
+                    email = userData.email,
+                    name = userData.display_name,
+                    displayName = userData.display_name,
+                    picture = userData.images?.firstOrNull()?.url,
+                    provider = "spotify",
+                    providerId = userData.id
+                )
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            logger.error("oauth", "Failed to get Spotify user info during token exchange", e)
+            null
+        }
+    }
+    
+    // Helper method for basic auth encoding
+    private fun encodeBasicAuth(username: String, password: String): String {
+        val credentials = "$username:$password"
+        return credentials.encodeToByteArray().encodeBase64()
+    }
+    
+    /**
+     * Simple Base64 encoding for multiplatform compatibility.
+     */
+    private fun ByteArray.encodeBase64(): String {
+        val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+        val result = StringBuilder()
+        
+        var i = 0
+        while (i < size) {
+            val b1 = this[i].toInt() and 0xFF
+            val b2 = if (i + 1 < size) this[i + 1].toInt() and 0xFF else 0
+            val b3 = if (i + 2 < size) this[i + 2].toInt() and 0xFF else 0
+            
+            val bitmap = (b1 shl 16) or (b2 shl 8) or b3
+            
+            result.append(chars[(bitmap shr 18) and 0x3F])
+            result.append(chars[(bitmap shr 12) and 0x3F])
+            result.append(if (i + 1 < size) chars[(bitmap shr 6) and 0x3F] else '=')
+            result.append(if (i + 2 < size) chars[bitmap and 0x3F] else '=')
+            
+            i += 3
+        }
+        
+        return result.toString()
     }
 }
 
@@ -708,4 +1088,65 @@ private data class TwitchUser(
     val description: String? = null,
     val view_count: Int? = null,
     val created_at: String? = null
+)
+
+// Data classes for Reddit API responses
+@Serializable
+private data class RedditTokenResponse(
+    val access_token: String,
+    val refresh_token: String? = null,
+    val expires_in: Long? = null,
+    val token_type: String? = null,
+    val scope: String? = null
+)
+
+@Serializable
+private data class RedditUser(
+    val id: String,
+    val name: String,
+    val email: String? = null,
+    val icon_img: String? = null,
+    val created: Double? = null,
+    val created_utc: Double? = null,
+    val link_karma: Int? = null,
+    val comment_karma: Int? = null,
+    val is_gold: Boolean? = null,
+    val is_mod: Boolean? = null,
+    val verified: Boolean? = null
+)
+
+// Data classes for Spotify API responses
+@Serializable
+private data class SpotifyTokenResponse(
+    val access_token: String,
+    val refresh_token: String? = null,
+    val expires_in: Long? = null,
+    val token_type: String? = null,
+    val scope: String? = null
+)
+
+@Serializable
+private data class SpotifyUser(
+    val id: String,
+    val display_name: String? = null,
+    val email: String? = null,
+    val country: String? = null,
+    val followers: SpotifyFollowers? = null,
+    val images: List<SpotifyImage>? = null,
+    val product: String? = null,
+    val type: String? = null,
+    val uri: String? = null,
+    val external_urls: Map<String, String>? = null
+)
+
+@Serializable
+private data class SpotifyFollowers(
+    val total: Int? = null
+)
+
+@Serializable
+private data class SpotifyImage(
+    val url: String,
+    val height: Int? = null,
+    val width: Int? = null
 )
