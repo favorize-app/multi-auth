@@ -630,42 +630,242 @@ class EpicGamesOAuthClient(
         authorizationCode: String,
         codeVerifier: String
     ): OAuthResult {
-        logger.warn("oath", "Epic Games OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Failure(
-            OAuthError.fromOAuthResponse(
-                error = "not_implemented",
-                errorDescription = "Epic Games OAuth client not fully implemented"
+        logger.debug("oauth", "Exchanging Epic Games authorization code for tokens")
+        
+        return try {
+            val tokenRequest = mapOf(
+                "grant_type" to "authorization_code",
+                "client_id" to config.clientId,
+                "client_secret" to config.clientSecret,
+                "code" to authorizationCode,
+                "redirect_uri" to config.redirectUri
             )
-        )
+            
+            val response = httpClient.post("https://api.epicgames.dev/epic/oauth/v1/token") {
+                header("Content-Type", "application/x-www-form-urlencoded")
+                setBody(tokenRequest.entries.joinToString("&") { "${it.key}=${it.value}" })
+            }
+            
+            if (response.status.isSuccess) {
+                val tokenData = Json.decodeFromString<EpicTokenResponse>(response.bodyAsText())
+                
+                // Get user info
+                val userInfo = getEpicUserInfo(tokenData.access_token)
+                
+                OAuthResult.Success(
+                    accessToken = tokenData.access_token,
+                    refreshToken = tokenData.refresh_token,
+                    expiresIn = tokenData.expires_in,
+                    tokenType = tokenData.token_type ?: "Bearer",
+                    scope = tokenData.scope,
+                    userInfo = userInfo
+                )
+            } else {
+                OAuthResult.Failure(
+                    OAuthError.fromOAuthResponse(
+                        error = "token_exchange_failed",
+                        errorDescription = "Failed to exchange code for tokens: HTTP ${response.status}"
+                    )
+                )
+            }
+            
+        } catch (e: Exception) {
+            OAuthResult.Failure(
+                OAuthError.networkError("Token exchange failed: ${e.message}", e)
+            )
+        }
     }
     
     override suspend fun refreshAccessToken(refreshToken: String): OAuthResult {
-        logger.warn("oath", "Epic Games OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Failure(
-            OAuthError.networkError(
-                message = "Epic Games OAuth client not fully implemented"
+        logger.debug("oauth", "Refreshing Epic Games access token")
+        
+        return try {
+            val refreshRequest = mapOf(
+                "grant_type" to "refresh_token",
+                "client_id" to config.clientId,
+                "client_secret" to config.clientSecret,
+                "refresh_token" to refreshToken
             )
-        )
+            
+            val response = httpClient.post("https://api.epicgames.dev/epic/oauth/v1/token") {
+                header("Content-Type", "application/x-www-form-urlencoded")
+                setBody(refreshRequest.entries.joinToString("&") { "${it.key}=${it.value}" })
+            }
+            
+            if (response.status.isSuccess) {
+                val tokenData = Json.decodeFromString<EpicTokenResponse>(response.bodyAsText())
+                
+                OAuthResult.Success(
+                    accessToken = tokenData.access_token,
+                    refreshToken = tokenData.refresh_token ?: refreshToken,
+                    expiresIn = tokenData.expires_in,
+                    tokenType = tokenData.token_type ?: "Bearer",
+                    scope = tokenData.scope
+                )
+            } else {
+                OAuthResult.Failure(
+                    OAuthError.fromOAuthResponse(
+                        error = "token_refresh_failed",
+                        errorDescription = "Failed to refresh token: HTTP ${response.status}"
+                    )
+                )
+            }
+            
+        } catch (e: Exception) {
+            OAuthResult.Failure(
+                OAuthError.networkError("Token refresh failed: ${e.message}", e)
+            )
+        }
     }
     
     override suspend fun getUserInfo(accessToken: String): OAuthResult {
-        logger.warn("oath", "Epic Games OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Failure(
-            OAuthError.fromOAuthResponse(
-                error = "not_implemented",
-                errorDescription = "Epic Games OAuth client not fully implemented"
+        logger.debug("oauth", "Getting Epic Games user info")
+        
+        return try {
+            val response = httpClient.get("https://api.epicgames.dev/epic/id/v1/accounts") {
+                header("Authorization", "Bearer $accessToken")
+            }
+            
+            if (response.status.isSuccess) {
+                val userData = Json.decodeFromString<List<EpicUser>>(response.bodyAsText())
+                val user = userData.firstOrNull()
+                
+                if (user != null) {
+                    val userInfo = OAuthUserInfo(
+                        id = user.accountId,
+                        email = user.email,
+                        name = user.displayName,
+                        displayName = user.displayName,
+                        picture = null, // Epic doesn't provide profile pictures in this endpoint
+                        provider = "epic",
+                        providerId = user.accountId
+                    )
+                    
+                    OAuthResult.Success(
+                        accessToken = accessToken,
+                        refreshToken = null,
+                        expiresIn = null,
+                        userInfo = userInfo
+                    )
+                } else {
+                    OAuthResult.Failure(
+                        OAuthError.fromOAuthResponse(
+                            error = "user_info_failed",
+                            errorDescription = "No user data returned from Epic API"
+                        )
+                    )
+                }
+            } else {
+                OAuthResult.Failure(
+                    OAuthError.fromOAuthResponse(
+                        error = "user_info_failed",
+                        errorDescription = "Failed to get user info: HTTP ${response.status}"
+                    )
+                )
+            }
+            
+        } catch (e: Exception) {
+            OAuthResult.Failure(
+                OAuthError.networkError("User info request failed: ${e.message}", e)
             )
-        )
+        }
     }
     
     override suspend fun revokeToken(token: String): Boolean {
-        logger.warn("oath", "Epic Games OAuth client not fully implemented - using placeholder")
-        return false
+        logger.debug("oauth", "Revoking Epic Games token")
+        
+        return try {
+            val response = httpClient.post("https://api.epicgames.dev/epic/oauth/v1/revoke") {
+                header("Authorization", "Basic ${encodeBasicAuth(config.clientId, config.clientSecret)}")
+                header("Content-Type", "application/x-www-form-urlencoded")
+                setBody("token=$token")
+            }
+            
+            response.status.isSuccess
+            
+        } catch (e: Exception) {
+            logger.error("oauth", "Epic Games token revocation error", e)
+            false
+        }
     }
     
     override suspend fun validateToken(accessToken: String): Boolean {
-        logger.warn("placeholder", "Epic Games OAuth client not fully implemented - using placeholder")
-        return false
+        logger.debug("oauth", "Validating Epic Games token")
+        
+        return try {
+            val response = httpClient.get("https://api.epicgames.dev/epic/id/v1/accounts") {
+                header("Authorization", "Bearer $accessToken")
+            }
+            
+            response.status.isSuccess
+            
+        } catch (e: Exception) {
+            logger.error("oauth", "Epic Games token validation error", e)
+            false
+        }
+    }
+    
+    // Helper method to get user info during token exchange
+    private suspend fun getEpicUserInfo(accessToken: String): OAuthUserInfo? {
+        return try {
+            val response = httpClient.get("https://api.epicgames.dev/epic/id/v1/accounts") {
+                header("Authorization", "Bearer $accessToken")
+            }
+            
+            if (response.status.isSuccess) {
+                val userData = Json.decodeFromString<List<EpicUser>>(response.bodyAsText())
+                val user = userData.firstOrNull()
+                
+                user?.let {
+                    OAuthUserInfo(
+                        id = it.accountId,
+                        email = it.email,
+                        name = it.displayName,
+                        displayName = it.displayName,
+                        picture = null,
+                        provider = "epic",
+                        providerId = it.accountId
+                    )
+                }
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            logger.error("oauth", "Failed to get Epic user info during token exchange", e)
+            null
+        }
+    }
+    
+    // Helper method for basic auth encoding
+    private fun encodeBasicAuth(username: String, password: String): String {
+        val credentials = "$username:$password"
+        return credentials.encodeToByteArray().encodeBase64()
+    }
+    
+    /**
+     * Simple Base64 encoding for multiplatform compatibility.
+     */
+    private fun ByteArray.encodeBase64(): String {
+        val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+        val result = StringBuilder()
+        
+        var i = 0
+        while (i < size) {
+            val b1 = this[i].toInt() and 0xFF
+            val b2 = if (i + 1 < size) this[i + 1].toInt() and 0xFF else 0
+            val b3 = if (i + 2 < size) this[i + 2].toInt() and 0xFF else 0
+            
+            val bitmap = (b1 shl 16) or (b2 shl 8) or b3
+            
+            result.append(chars[(bitmap shr 18) and 0x3F])
+            result.append(chars[(bitmap shr 12) and 0x3F])
+            result.append(if (i + 1 < size) chars[(bitmap shr 6) and 0x3F] else '=')
+            result.append(if (i + 2 < size) chars[bitmap and 0x3F] else '=')
+            
+            i += 3
+        }
+        
+        return result.toString()
     }
 }
 
@@ -952,42 +1152,168 @@ class FacebookOAuthClient(
         authorizationCode: String,
         codeVerifier: String
     ): OAuthResult {
-        logger.warn("oath", "Facebook OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Failure(
-            OAuthError.fromOAuthResponse(
-                error = "not_implemented",
-                errorDescription = "Facebook OAuth client not fully implemented"
+        logger.debug("oauth", "Exchanging Facebook authorization code for tokens")
+        
+        return try {
+            val tokenRequest = "grant_type=authorization_code" +
+                "&client_id=${config.clientId}" +
+                "&client_secret=${config.clientSecret}" +
+                "&redirect_uri=${config.redirectUri}" +
+                "&code=$authorizationCode"
+            
+            val response = httpClient.post("https://graph.facebook.com/v18.0/oauth/access_token") {
+                header("Content-Type", "application/x-www-form-urlencoded")
+                setBody(tokenRequest)
+            }
+            
+            if (response.status.isSuccess) {
+                val tokenData = Json.decodeFromString<FacebookTokenResponse>(response.bodyAsText())
+                
+                // Get user info
+                val userInfo = getFacebookUserInfo(tokenData.access_token)
+                
+                OAuthResult.Success(
+                    accessToken = tokenData.access_token,
+                    refreshToken = null, // Facebook doesn't use refresh tokens
+                    expiresIn = tokenData.expires_in,
+                    tokenType = tokenData.token_type ?: "Bearer",
+                    scope = null,
+                    userInfo = userInfo
+                )
+            } else {
+                val errorBody = response.bodyAsText()
+                logger.error("oauth", "Facebook token exchange failed: $errorBody")
+                
+                OAuthResult.Failure(
+                    OAuthError.fromOAuthResponse(
+                        error = "token_exchange_failed",
+                        errorDescription = "Failed to exchange code for tokens: HTTP ${response.status}"
+                    )
+                )
+            }
+            
+        } catch (e: Exception) {
+            logger.error("oauth", "Facebook OAuth error", e)
+            OAuthResult.Failure(
+                OAuthError.networkError("Token exchange failed: ${e.message}", e)
             )
-        )
+        }
     }
     
     override suspend fun refreshAccessToken(refreshToken: String): OAuthResult {
-        logger.warn("oath", "Facebook OAuth client not fully implemented - using placeholder")
+        logger.debug("oauth", "Facebook does not support refresh tokens")
+        
         return OAuthResult.Failure(
-            OAuthError.networkError(
-                message = "Facebook OAuth client not fully implemented"
+            OAuthError.fromOAuthResponse(
+                error = "refresh_not_supported",
+                errorDescription = "Facebook OAuth does not support refresh tokens"
             )
         )
     }
     
     override suspend fun getUserInfo(accessToken: String): OAuthResult {
-        logger.warn("oath", "Facebook OAuth client not fully implemented - using placeholder")
-        return OAuthResult.Failure(
-            OAuthError.fromOAuthResponse(
-                error = "not_implemented",
-                errorDescription = "Facebook OAuth client not fully implemented"
+        logger.debug("oauth", "Getting Facebook user info")
+        
+        return try {
+            val response = httpClient.get("https://graph.facebook.com/me?fields=id,email,name,picture") {
+                header("Authorization", "Bearer $accessToken")
+            }
+            
+            if (response.status.isSuccess) {
+                val userData = Json.decodeFromString<FacebookUser>(response.bodyAsText())
+                
+                val userInfo = OAuthUserInfo(
+                    id = userData.id,
+                    email = userData.email,
+                    name = userData.name,
+                    displayName = userData.name,
+                    picture = userData.picture?.data?.url,
+                    provider = "facebook",
+                    providerId = userData.id
+                )
+                
+                OAuthResult.Success(
+                    accessToken = accessToken,
+                    refreshToken = null,
+                    expiresIn = null,
+                    userInfo = userInfo
+                )
+            } else {
+                OAuthResult.Failure(
+                    OAuthError.fromOAuthResponse(
+                        error = "user_info_failed",
+                        errorDescription = "Failed to get user info: HTTP ${response.status}"
+                    )
+                )
+            }
+            
+        } catch (e: Exception) {
+            OAuthResult.Failure(
+                OAuthError.networkError("User info request failed: ${e.message}", e)
             )
-        )
+        }
     }
     
     override suspend fun revokeToken(token: String): Boolean {
-        logger.warn("oath", "Facebook OAuth client not fully implemented - using placeholder")
-        return false
+        logger.debug("oauth", "Revoking Facebook token")
+        
+        return try {
+            val response = httpClient.post("https://graph.facebook.com/me/permissions") {
+                header("Authorization", "Bearer $token")
+                header("Content-Type", "application/x-www-form-urlencoded")
+                setBody("method=delete")
+            }
+            
+            response.status.isSuccess
+            
+        } catch (e: Exception) {
+            logger.error("oauth", "Facebook token revocation error", e)
+            false
+        }
     }
     
     override suspend fun validateToken(accessToken: String): Boolean {
-        logger.warn("placeholder", "Facebook OAuth client not fully implemented - using placeholder")
-        return false
+        logger.debug("oauth", "Validating Facebook token")
+        
+        return try {
+            val response = httpClient.get("https://graph.facebook.com/me") {
+                header("Authorization", "Bearer $accessToken")
+            }
+            
+            response.status.isSuccess
+            
+        } catch (e: Exception) {
+            logger.error("oauth", "Facebook token validation error", e)
+            false
+        }
+    }
+    
+    // Helper method to get user info during token exchange
+    private suspend fun getFacebookUserInfo(accessToken: String): OAuthUserInfo? {
+        return try {
+            val response = httpClient.get("https://graph.facebook.com/me?fields=id,email,name,picture") {
+                header("Authorization", "Bearer $accessToken")
+            }
+            
+            if (response.status.isSuccess) {
+                val userData = Json.decodeFromString<FacebookUser>(response.bodyAsText())
+                
+                OAuthUserInfo(
+                    id = userData.id,
+                    email = userData.email,
+                    name = userData.name,
+                    displayName = userData.name,
+                    picture = userData.picture?.data?.url,
+                    provider = "facebook",
+                    providerId = userData.id
+                )
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            logger.error("oauth", "Failed to get Facebook user info during token exchange", e)
+            null
+        }
     }
 }
 
@@ -1113,6 +1439,60 @@ private data class RedditUser(
     val is_gold: Boolean? = null,
     val is_mod: Boolean? = null,
     val verified: Boolean? = null
+)
+
+// Data classes for Facebook API responses
+@Serializable
+private data class FacebookTokenResponse(
+    val access_token: String,
+    val expires_in: Long? = null,
+    val token_type: String? = null
+)
+
+@Serializable
+private data class FacebookUser(
+    val id: String,
+    val name: String? = null,
+    val email: String? = null,
+    val picture: FacebookPicture? = null
+)
+
+@Serializable
+private data class FacebookPicture(
+    val data: FacebookPictureData? = null
+)
+
+@Serializable
+private data class FacebookPictureData(
+    val url: String? = null,
+    val is_silhouette: Boolean? = null,
+    val height: Int? = null,
+    val width: Int? = null
+)
+
+// Data classes for Epic Games API responses
+@Serializable
+private data class EpicTokenResponse(
+    val access_token: String,
+    val refresh_token: String? = null,
+    val expires_in: Long? = null,
+    val token_type: String? = null,
+    val scope: String? = null,
+    val account_id: String? = null
+)
+
+@Serializable
+private data class EpicUser(
+    val accountId: String,
+    val displayName: String? = null,
+    val email: String? = null,
+    val externalAuths: Map<String, EpicExternalAuth>? = null
+)
+
+@Serializable
+private data class EpicExternalAuth(
+    val accountId: String? = null,
+    val type: String? = null
 )
 
 // Data classes for Spotify API responses
