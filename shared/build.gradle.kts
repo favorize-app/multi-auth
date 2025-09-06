@@ -46,6 +46,8 @@ kotlin {
                 // Use individual dependencies for better platform compatibility
                 implementation("org.kotlincrypto.macs:hmac-sha1:0.7.1")
                 implementation("org.kotlincrypto.macs:hmac-sha2:0.7.1")
+                // Password hashing for secure authentication
+                implementation("org.kotlincrypto.hash:sha2:0.7.1")
             }
         }
         

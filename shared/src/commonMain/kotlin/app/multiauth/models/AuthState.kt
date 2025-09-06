@@ -106,6 +106,11 @@ sealed class AuthError : Exception() {
         val retryAfter: Instant? = null
     ) : AuthError()
     
+    data class RateLimitError(
+        override val message: String,
+        val retryAfterDuration: kotlin.time.Duration
+    ) : AuthError()
+    
     data class ProviderError(
         override val message: String,
         val provider: String,
