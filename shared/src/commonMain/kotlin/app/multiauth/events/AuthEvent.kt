@@ -84,13 +84,14 @@ sealed class AuthEvent {
      * Events related to session management.
      */
     sealed class Session : AuthEvent() {
-        data class SessionCreated(val session: app.multiauth.core.Session) : Session()
-        data class SessionUpdated(val session: app.multiauth.core.Session) : Session()
-        data class SessionEnded(val session: app.multiauth.core.Session) : Session()
-        object SessionExpired : Session()
-        object SessionRefreshed : Session()
+        data class SessionCreated(val session: app.multiauth.core.UserSession) : Session()
+        data class SessionUpdated(val session: app.multiauth.core.UserSession) : Session()
+        data class SessionRefreshed(val session: app.multiauth.core.UserSession) : Session()
+        data class SessionExpired(val session: app.multiauth.core.UserSession) : Session()
+        data class SessionEnded(val session: app.multiauth.core.UserSession) : Session()
         data class SessionRefreshFailed(val error: AuthError) : Session()
         data class SessionInvalidated(val reason: String) : Session()
+        data class TokensRefreshed(val tokens: TokenPair) : Session()
         
         object AutoSignInAttempted : Session()
         data class AutoSignInCompleted(val user: User, val tokens: TokenPair) : Session()
