@@ -1,6 +1,8 @@
 package app.multiauth.oauth
 
 import app.multiauth.oauth.clients.*
+import app.multiauth.oauth.clients.implemented.*
+import app.multiauth.oauth.clients.placeholders.*
 import app.multiauth.util.Logger
 
 /**
