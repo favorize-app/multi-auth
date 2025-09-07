@@ -3,6 +3,7 @@ package app.multiauth.core
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import app.multiauth.models.*
+import app.multiauth.models.TokenError
 import app.multiauth.security.JwtTokenManager
 import app.multiauth.security.TokenValidationResult
 import app.multiauth.util.Logger
