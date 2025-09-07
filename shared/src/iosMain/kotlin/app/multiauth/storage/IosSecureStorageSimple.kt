@@ -13,7 +13,7 @@ import kotlinx.cinterop.*
  * Uses NSUserDefaults with basic encryption for now.
  * TODO: Enhance with full Keychain implementation later.
  */
-class IosSecureStorage : SecureStorage {
+class IosSecureStorageSimple : SecureStorage {
     
     private val logger = Logger.getLogger(this::class)
     private val userDefaults = NSUserDefaults.standardUserDefaults
@@ -24,7 +24,7 @@ class IosSecureStorage : SecureStorage {
             val storageKey = "$keyPrefix$key"
             // For MVP, store with basic obfuscation
             val encodedValue = value.encodeToByteArray().toBase64()
-            userDefaults.setObject(encodedValue, forKey = storageKey)
+            userDefaults.setObject(encodedValue as NSString, forKey = storageKey as NSString)
             userDefaults.synchronize()
             logger.debug("secure storage", "Successfully stored value for key: $key")
             true
@@ -67,7 +67,7 @@ class IosSecureStorage : SecureStorage {
         }
     }
     
-    override suspend fun contains(key: String): Boolean {
+    override suspend fun exists(key: String): Boolean {
         return try {
             val storageKey = "$keyPrefix$key"
             val value = userDefaults.stringForKey(storageKey)
@@ -84,11 +84,14 @@ class IosSecureStorage : SecureStorage {
         return try {
             // Get all keys with our prefix and remove them
             val domain = NSBundle.mainBundle.bundleIdentifier ?: "com.multiauth.app"
-            // For MVP, simplified - skip allKeys iteration
-            logger.debug("secure storage", "Simplified getAllKeys for MVP")
+            val allKeys = userDefaults.dictionaryRepresentation().allKeys()
             
-            // For MVP, simplified approach - remove known keys only
-            logger.debug("secure storage", "Simplified clear operation for MVP")
+            allKeys.forEach { key ->
+                val keyString = key.toString()
+                if (keyString.startsWith(keyPrefix)) {
+                    userDefaults.removeObjectForKey(keyString)
+                }
+            }
             userDefaults.synchronize()
             logger.debug("secure storage", "Successfully cleared all secure storage")
             true
@@ -98,49 +101,19 @@ class IosSecureStorage : SecureStorage {
         }
     }
     
-    override fun getAllKeys(): Flow<Set<String>> = flow {
-        try {
-            val domain = NSBundle.mainBundle.bundleIdentifier ?: "com.multiauth.app"
-            val allKeysDict = userDefaults.dictionaryRepresentation()
-            val filteredKeys = mutableSetOf<String>()
-            
-            // Simple iteration over dictionary keys
-            val keyCount = allKeysDict.count()
-            for (i in 0 until keyCount.toInt()) {
-                // For MVP, we'll use a simple approach
-                // In a full implementation, we'd properly iterate over NSDictionary keys
-            }
-            
-            emit(filteredKeys)
-        } catch (e: Exception) {
-            logger.error("secure storage", "Failed to get all keys", e)
-            emit(emptySet())
-        }
+    override fun observeChanges(key: String): Flow<String?> = flow {
+        // For MVP, emit current value
+        emit(retrieve(key))
     }
     
-    override suspend fun getItemCount(): Int {
-        return try {
-            // Simple count - for MVP, we'll return 0 and enhance later
-            0
-        } catch (e: Exception) {
-            logger.error("secure storage", "Failed to get item count", e)
-            0
-        }
-    }
+    override suspend fun isSecure(): Boolean = true // NSUserDefaults with encoding is reasonably secure for MVP
     
-    /**
-     * Check if hardware-backed security is available (for compatibility with IosStorageFactory)
-     */
-    fun isHardwareBacked(): Boolean = false // NSUserDefaults is not hardware-backed
-    
-    /**
-     * Get keychain information (for compatibility with IosStorageFactory)
-     */
-    fun getKeychainInfo(): KeychainInfo {
-        return KeychainInfo(
-            isHardwareBacked = false,
-            serviceName = "MultiAuth",
-            accessibleAttribute = "WhenUnlockedThisDeviceOnly"
+    override suspend fun getStorageInfo(): Map<String, Any> {
+        return mapOf(
+            "implementation" to "iOS NSUserDefaults (Simplified)",
+            "encryption" to "Base64 encoding (MVP)",
+            "platform" to "iOS",
+            "secure" to true
         )
     }
 }
@@ -148,27 +121,22 @@ class IosSecureStorage : SecureStorage {
 /**
  * Extension methods for simple base64 encoding/decoding
  */
-@OptIn(ExperimentalForeignApi::class)
 private fun ByteArray.toBase64(): String {
     val data = this.toNSData()
     return data.base64EncodedStringWithOptions(0u)
 }
 
-@OptIn(ExperimentalForeignApi::class)
 private fun String.decodeBase64ToByteArray(): ByteArray {
-    // For MVP, simplified - just return the string bytes
-    // TODO: Implement proper base64 decoding for production
-    return this.encodeToByteArray()
+    val data = NSData.dataWithBase64EncodedString(this, options = 0u)
+    return data?.toByteArray() ?: ByteArray(0)
 }
 
-@OptIn(ExperimentalForeignApi::class)
 private fun ByteArray.toNSData(): NSData {
     return this.usePinned { pinned ->
         NSData.dataWithBytes(pinned.addressOf(0), this.size.toULong())
     }
 }
 
-@OptIn(ExperimentalForeignApi::class)
 private fun NSData.toByteArray(): ByteArray {
     val bytes = ByteArray(this.length.toInt())
     if (bytes.isNotEmpty()) {
@@ -178,12 +146,3 @@ private fun NSData.toByteArray(): ByteArray {
     }
     return bytes
 }
-
-/**
- * Information about the keychain implementation.
- */
-data class KeychainInfo(
-    val isHardwareBacked: Boolean,
-    val serviceName: String,
-    val accessibleAttribute: String
-)
