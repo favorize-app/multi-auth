@@ -1,6 +1,13 @@
 package app.multiauth.oauth
 
 import app.multiauth.oauth.clients.*
+import app.multiauth.oauth.clients.implemented.TwitchOAuthClient
+import app.multiauth.oauth.clients.implemented.RedditOAuthClient
+import app.multiauth.oauth.clients.implemented.SpotifyOAuthClient
+import app.multiauth.oauth.clients.implemented.FacebookOAuthClient
+import app.multiauth.oauth.clients.implemented.EpicGamesOAuthClient
+import app.multiauth.oauth.clients.placeholders.SteamOAuthClient
+import app.multiauth.oauth.clients.placeholders.AppleOAuthClient
 import app.multiauth.util.Logger
 
 /**
