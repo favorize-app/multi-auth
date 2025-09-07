@@ -1,8 +1,8 @@
 package app.multiauth.events
 
-import app.multiauth.core.UserSession
-import app.multiauth.core.AuthState
-import app.multiauth.core.UserPreferences
+// UserSession will be imported when needed to avoid circular dependencies
+import app.multiauth.models.AuthState
+import app.multiauth.models.UserPreferences
 import app.multiauth.models.AuthError
 import app.multiauth.models.TokenPair
 import app.multiauth.oauth.OAuthProvider
@@ -45,9 +45,9 @@ sealed interface Verification : AuthEvent {
 }
 
 sealed interface Session : AuthEvent {
-    data class Created(val session: UserSession) : Session
-    data class SessionExpired(val session: UserSession) : Session
-    data class SessionRefreshed(val session: UserSession) : Session
+    data class Created(val sessionId: String, val userId: String) : Session
+    data class SessionExpired(val sessionId: String, val userId: String) : Session
+    data class SessionRefreshed(val sessionId: String, val userId: String) : Session
     data class Error(val error: AuthError) : Session
     data class SessionError(val error: AuthError) : Session
 }

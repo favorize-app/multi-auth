@@ -2,6 +2,7 @@ package app.multiauth.core
 
 import kotlinx.datetime.Clock
 import app.multiauth.events.AuthEvent
+import app.multiauth.events.EventMetadata
 import app.multiauth.models.*
 import app.multiauth.util.Logger
 import app.multiauth.events.EventBus
@@ -11,6 +12,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+
+// Import specific sealed interfaces to avoid qualification issues
 
 /**
  * Centralized state manager for authentication system.
@@ -27,7 +30,7 @@ class AuthStateManager private constructor(
     val userPreferences: StateFlow<UserPreferences> = _userPreferences.asStateFlow()
     
     private val _authHistory = MutableStateFlow<List<AuthHistoryEntry>>(emptyList())
-    private val _userPreferences = MutableStateFlow(UserPreferences())
+    val authHistory: StateFlow<List<AuthHistoryEntry>> = _authHistory.asStateFlow()
 
     private val _lastError = MutableStateFlow<AuthError?>(null)
     val lastError: StateFlow<AuthError?> = _lastError.asStateFlow()
@@ -62,7 +65,21 @@ class AuthStateManager private constructor(
         
         scope.launch {
             val metadata = EventMetadata(source = "AuthStateManager")
-            eventBus.dispatch(AuthEvent.State.StateChanged(previousState, newState), metadata)
+            eventBus.dispatch(AuthEventState.StateChanged(previousState, newState), metadata)
+        }
+    }
+    
+    /**
+     * Update user preferences.
+     */
+    fun updateUserPreferences(preferences: UserPreferences) {
+        Logger.debug("AuthStateManager", "Updating user preferences")
+        _userPreferences.value = preferences
+        persistUserPreferences()
+        
+        scope.launch {
+            val metadata = EventMetadata(source = "AuthStateManager")
+            eventBus.dispatch(AuthEventState.PreferencesUpdated(preferences), metadata)
         }
     }
     
@@ -75,10 +92,36 @@ class AuthStateManager private constructor(
         scope.launch {
             val metadata = EventMetadata(source = "AuthStateManager")
             if (isLoading) {
-                eventBus.dispatch(AuthEvent.State.OperationStarted(operation), metadata)
+                eventBus.dispatch(AuthEventState.OperationStarted(operation), metadata)
             } else {
-                eventBus.dispatch(AuthEvent.State.OperationCompleted(operation), metadata)
+                eventBus.dispatch(AuthEventState.OperationCompleted(operation), metadata)
             }
+        }
+    }
+    
+    /**
+     * Set an error state.
+     */
+    fun setError(error: AuthError) {
+        Logger.error("AuthStateManager", "Setting error: ${error.message}")
+        _lastError.value = error
+        
+        scope.launch {
+            val metadata = EventMetadata(source = "AuthStateManager")
+            eventBus.dispatch(AuthEventState.ErrorOccurred(error), metadata)
+        }
+    }
+    
+    /**
+     * Clear the current error state.
+     */
+    fun clearError() {
+        Logger.debug("AuthStateManager", "Clearing error state")
+        _lastError.value = null
+        
+        scope.launch {
+            val metadata = EventMetadata(source = "AuthStateManager")
+            eventBus.dispatch(AuthEventState.ErrorCleared, metadata)
         }
     }
     
@@ -86,22 +129,22 @@ class AuthStateManager private constructor(
         scope.launch {
             eventBus.events.collect { eventWithMetadata ->
                 when (val event = eventWithMetadata.event) {
-                    is AuthEvent.Authentication.SignInCompleted -> {
+                    is AuthEventAuthentication.SignInCompleted -> {
                         updateAuthState(AuthState.Authenticated(event.user, event.tokens))
                     }
-                    is AuthEvent.Authentication.SignUpCompleted -> {
+                    is AuthEventAuthentication.SignUpCompleted -> {
                         updateAuthState(AuthState.VerificationRequired(
                             VerificationMethod.Email(event.user.email ?: ""),
                             event.user
                         ))
                     }
-                    is AuthEvent.Authentication.SignOutCompleted -> {
+                    is AuthEventAuthentication.SignOutCompleted -> {
                         updateAuthState(AuthState.Unauthenticated)
                     }
-                    is AuthEvent.Verification.PhoneVerificationCompleted -> {
+                    is AuthEventVerification.PhoneVerificationCompleted -> {
                         // TODO: Handle phone verification completion
                     }
-                    is AuthEvent.Session.SessionExpired -> {
+                    is AuthEventSession.SessionExpired -> {
                         updateAuthState(AuthState.Unauthenticated)
                     }
                     else -> {
@@ -116,28 +159,28 @@ class AuthStateManager private constructor(
         val entry = AuthHistoryEntry(
             timestamp = Clock.System.now(),
             state = newState,
-            previousState = previousState
+            previousState = previousState,
+            source = "AuthStateManager"
         )
-
-    private fun handleVerificationEvent(event: AuthEvent.Verification) {
-
-            is AuthEvent.Verification.PhoneVerificationCompleted -> {
-        if (_authHistory.value.size > 100) {
-            _authHistory.value = _authHistory.value.takeLast(100)
+        
+        val currentHistory = _authHistory.value
+        val updatedHistory = if (currentHistory.size >= 100) {
+            // Keep only the last 99 entries plus the new one
+            currentHistory.takeLast(99) + entry
+        } else {
+            currentHistory + entry
         }
+        
+        _authHistory.value = updatedHistory
     }
     
     private fun loadPersistedState() {
-    private fun handleSessionEvent(event: AuthEvent.Session) {
+        // TODO: Implement state persistence loading
         // For now, start with initial state
-            is AuthEvent.Session.SessionExpired -> {
+        Logger.debug("AuthStateManager", "Loading persisted state")
     }
-            }
+    
     private fun persistState() {
-        }
-    }
-
-    private fun addToHistory(newState: AuthState, previousState: AuthState?) {
         // TODO: Implement state persistence
         // For now, just log the action
         Logger.debug("AuthStateManager", "Persisting state")
@@ -145,32 +188,18 @@ class AuthStateManager private constructor(
     
     private fun persistUserPreferences() {
         // TODO: Implement user preferences persistence
-
+        Logger.debug("AuthStateManager", "Persisting user preferences")
+    }
+    
     companion object {
         private var INSTANCE: AuthStateManager? = null
         
         fun getInstance(): AuthStateManager {
             return INSTANCE ?: AuthStateManager().also { INSTANCE = it }
+        }
+        
         fun reset() {
             INSTANCE = null
         }
     }
-/**
- * User preferences and settings.
- */
-data class UserPreferences(
-    val biometricEnabled: Boolean = false,
-    val rememberMe: Boolean = true,
-    val sessionTimeout: Long = 30 * 60 * 1000L, // 30 minutes
-    val language: String = "en",
-    val theme: String = "system",
-    val notifications: NotificationPreferences = NotificationPreferences()
-)
-
-/**
- * Notification preferences.
- */
-data class NotificationPreferences(
-    val emailNotifications: Boolean = true,
-    val smsNotifications: Boolean = false,
-    val pushNotifications: Boolean = true,
+}
