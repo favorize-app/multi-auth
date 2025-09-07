@@ -93,7 +93,14 @@ kotlin {
             iosSimulatorArm64Test.dependsOn(this)
         }
         
-        val jsMain by getting
+        val jsMain by getting {
+            dependencies {
+                implementation("org.jetbrains.kotlin-wrappers:kotlin-browser:1.0.0-pre.735")
+                implementation(compose.runtime)
+                implementation(compose.foundation)
+                implementation(compose.material)
+            }
+        }
         val jsTest by getting {
             dependencies {
                 implementation("org.jetbrains.kotlin:kotlin-test-js:2.1.0")
