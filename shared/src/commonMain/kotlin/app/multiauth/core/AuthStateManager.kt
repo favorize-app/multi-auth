@@ -2,18 +2,20 @@ package app.multiauth.core
 
 import kotlinx.datetime.Clock
 import app.multiauth.events.AuthEvent
+import app.multiauth.events.Authentication
 import app.multiauth.events.EventMetadata
 import app.multiauth.models.*
 import app.multiauth.util.Logger
 import app.multiauth.events.EventBus
 import app.multiauth.events.EventBusInstance
+import app.multiauth.events.Session
+import app.multiauth.events.State
+import app.multiauth.events.Verification
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-
-// Import specific sealed interfaces to avoid qualification issues
 
 /**
  * Centralized state manager for authentication system.
@@ -65,7 +67,7 @@ class AuthStateManager private constructor(
         
         scope.launch {
             val metadata = EventMetadata(source = "AuthStateManager")
-            eventBus.dispatch(AuthEventState.StateChanged(previousState, newState), metadata)
+            eventBus.dispatch(app.multiauth.events.State.StateChanged(previousState, newState), metadata)
         }
     }
     
@@ -79,7 +81,7 @@ class AuthStateManager private constructor(
         
         scope.launch {
             val metadata = EventMetadata(source = "AuthStateManager")
-            eventBus.dispatch(AuthEventState.PreferencesUpdated(preferences), metadata)
+            eventBus.dispatch(app.multiauth.events.State.PreferencesUpdated(preferences), metadata)
         }
     }
     
@@ -92,9 +94,9 @@ class AuthStateManager private constructor(
         scope.launch {
             val metadata = EventMetadata(source = "AuthStateManager")
             if (isLoading) {
-                eventBus.dispatch(AuthEventState.OperationStarted(operation), metadata)
+                eventBus.dispatch(State.OperationStarted(operation), metadata)
             } else {
-                eventBus.dispatch(AuthEventState.OperationCompleted(operation), metadata)
+                eventBus.dispatch(State.OperationCompleted(operation), metadata)
             }
         }
     }
@@ -108,7 +110,7 @@ class AuthStateManager private constructor(
         
         scope.launch {
             val metadata = EventMetadata(source = "AuthStateManager")
-            eventBus.dispatch(AuthEventState.ErrorOccurred(error), metadata)
+            eventBus.dispatch(State.ErrorOccurred(error), metadata)
         }
     }
     
@@ -121,7 +123,7 @@ class AuthStateManager private constructor(
         
         scope.launch {
             val metadata = EventMetadata(source = "AuthStateManager")
-            eventBus.dispatch(AuthEventState.ErrorCleared, metadata)
+            eventBus.dispatch(app.multiauth.events.State.ErrorCleared, metadata)
         }
     }
     
@@ -129,22 +131,22 @@ class AuthStateManager private constructor(
         scope.launch {
             eventBus.events.collect { eventWithMetadata ->
                 when (val event = eventWithMetadata.event) {
-                    is AuthEventAuthentication.SignInCompleted -> {
+                    is Authentication.SignInCompleted -> {
                         updateAuthState(AuthState.Authenticated(event.user, event.tokens))
                     }
-                    is AuthEventAuthentication.SignUpCompleted -> {
+                    is Authentication.SignUpCompleted -> {
                         updateAuthState(AuthState.VerificationRequired(
                             VerificationMethod.Email(event.user.email ?: ""),
                             event.user
                         ))
                     }
-                    is AuthEventAuthentication.SignOutCompleted -> {
+                    is Authentication.SignOutCompleted -> {
                         updateAuthState(AuthState.Unauthenticated)
                     }
-                    is AuthEventVerification.PhoneVerificationCompleted -> {
+                    is Verification.PhoneVerificationCompleted -> {
                         // TODO: Handle phone verification completion
                     }
-                    is AuthEventSession.SessionExpired -> {
+                    is Session.SessionExpired -> {
                         updateAuthState(AuthState.Unauthenticated)
                     }
                     else -> {

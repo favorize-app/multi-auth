@@ -11,6 +11,7 @@ import app.multiauth.security.TokenValidationResult
 import app.multiauth.storage.SecureStorage
 import app.multiauth.util.Logger
 import app.multiauth.events.*
+import app.multiauth.events.Session as AuthEventSession
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -96,21 +97,21 @@ class SessionManager(
                 _isSessionValid.value = true
 
                 val eventMetadata = EventMetadata(source = "SessionManager")
-                eventBus.dispatch(AuthEvent.Session.Created(session), eventMetadata)
+                eventBus.dispatch(AuthEventSession.Created(session.sessionId, session.user.id), eventMetadata)
                 Logger.info("SessionManager", "Session created successfully for user: ${user.id}")
                 
                 AuthResult.Success(session)
             } else {
                 val eventMetadata = EventMetadata(source = "SessionManager")
-                val error = AuthError.StorageFailure("Failed to store session data securely")
-                eventBus.dispatch(AuthEvent.Session.Error(error), eventMetadata)
+                val error = AuthError.UnknownError("Failed to store session data securely")
+                eventBus.dispatch(AuthEventSession.Error(error), eventMetadata)
                 Logger.error("SessionManager", "Failed to store session data securely")
                 AuthResult.Failure(error)
             }
         } catch (e: Exception) {
             val eventMetadata = EventMetadata(source = "SessionManager")
             val error = AuthError.UnknownError("Failed to create session: ${e.message}", e)
-            eventBus.dispatch(AuthEvent.Session.Error(error), eventMetadata)
+            eventBus.dispatch(AuthEventSession.Error(error), eventMetadata)
             Logger.error("SessionManager", "Failed to create session", e)
             AuthResult.Failure(error)
         }
@@ -180,7 +181,7 @@ class SessionManager(
                     // Update metadata
                     updateSessionMetadata()
                     
-                    eventBus.dispatch(AuthEvent.Session.SessionRefreshed(updatedSession), eventMetadata)
+                    eventBus.dispatch(AuthEventSession.SessionRefreshed(updatedSession.sessionId, updatedSession.user.id), eventMetadata)
                     Logger.info("SessionManager", "Session refreshed successfully")
                     
                     AuthResult.Success(newTokens)
@@ -189,7 +190,7 @@ class SessionManager(
                 is TokenValidationResult.Expired -> {
                     val session = _currentSession.value
                     if (session != null) {
-                        eventBus.dispatch(AuthEvent.Session.SessionExpired(session), eventMetadata)
+                        eventBus.dispatch(AuthEventSession.SessionExpired(session.sessionId, session.user.id), eventMetadata)
                     }
                     invalidateSession()
                     AuthResult.Failure(AuthError.SessionError("Refresh token expired"))
@@ -297,7 +298,7 @@ class SessionManager(
             _isSessionValid.value = false
             
             if (currentSession != null) {
-                eventBus.dispatch(AuthEvent.Session.SessionExpired(currentSession), metadata)
+                eventBus.dispatch(AuthEventSession.SessionExpired(currentSession.sessionId, currentSession.user.id), metadata)
             }
             
             Logger.info("SessionManager", "Session invalidated successfully")
@@ -379,10 +380,10 @@ class SessionManager(
                 if (validateSession().isSuccess()) {
                     _currentSession.value = session
                     _isSessionValid.value = true
-                    eventBus.dispatch(AuthEvent.Session.Created(session), eventMetadata)
+                    eventBus.dispatch(AuthEventSession.Created(session.sessionId, session.user.id), eventMetadata)
                     Logger.info("SessionManager", "Session restored successfully")
                 } else {
-                    eventBus.dispatch(AuthEvent.Session.SessionExpired(session), eventMetadata)
+                    eventBus.dispatch(AuthEventSession.SessionExpired(session.sessionId, session.user.id), eventMetadata)
                     Logger.warn("SessionManager", "Stored session has expired")
                     invalidateSession()
                 }
@@ -391,7 +392,7 @@ class SessionManager(
             }
         } catch (e: Exception) {
             val error = AuthError.UnknownError("Failed to restore session: ${e.message}", e)
-            eventBus.dispatch(AuthEvent.Session.SessionError(error), eventMetadata)
+            eventBus.dispatch(AuthEventSession.SessionError(error), eventMetadata)
             Logger.error("SessionManager", "Failed to restore session", e)
             invalidateSession()
         }
