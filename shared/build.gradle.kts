@@ -5,17 +5,10 @@ plugins {
     id("com.android.library")
 }
 
+
 kotlin {
-    androidTarget {
-        compilations.all {
-            compileTaskProvider.configure {
-                compilerOptions {
-                    jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
-                }
-            }
-        }
-    }
-    
+    androidTarget() // Ensure Android target is registered
+
     listOf(
         iosX64(),
         iosArm64(),
@@ -50,6 +43,8 @@ kotlin {
                 implementation("org.kotlincrypto.macs:hmac-sha2:0.7.1")
                 // Password hashing for secure authentication
                 implementation("org.kotlincrypto.hash:sha2:0.7.1")
+                implementation(compose.runtime)
+                implementation(compose.foundation)
             }
         }
         
@@ -64,6 +59,9 @@ kotlin {
             dependencies {
                 implementation("io.jsonwebtoken:jjwt-impl:0.12.3")
                 implementation("io.jsonwebtoken:jjwt-jackson:0.12.3")
+                implementation("androidx.compose.compiler:compiler:1.5.4")
+                implementation("androidx.compose.runtime:runtime:1.5.4")
+                implementation(project.dependencies.platform("androidx.compose:compose-bom:2023.10.01"))
             }
         }
         
@@ -102,18 +100,10 @@ kotlin {
     }
 }
 
-composeCompiler {
-    // Compose compiler configuration
-    // StrongSkipping and IntrinsicRemember are enabled by default in newer versions
-    
-    // Stability configuration file if needed
-    // stabilityConfigurationFile = rootProject.layout.projectDirectory.file("stability_config.conf")
-}
-
 android {
     namespace = "app.multiauth.shared"
-    compileSdk = 34
-    
+    compileSdk = 35
+
     defaultConfig {
         minSdk = 24
     }
@@ -121,5 +111,13 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    buildFeatures {
+        compose = true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.4"
     }
 }

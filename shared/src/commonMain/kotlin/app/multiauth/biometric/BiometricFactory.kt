@@ -165,13 +165,15 @@ class MockBiometricProvider : PlatformBiometric {
             kotlinx.coroutines.delay(1000)
             
             // Mock successful authentication
+            val now = Clock.System.now()
             val user = mockUser ?: app.multiauth.models.User(
                 id = "mock_user_001",
                 email = "mock@example.com",
                 displayName = "Mock User",
                 emailVerified = true,
-                createdAt = Clock.System.now(),
-                lastSignInAt = Clock.System.now()
+                createdAt = now,
+                updatedAt = now,
+                lastSignInAt = now
             )
             
             logger.debug("biometrics", "Mock biometric: authentication successful for user: ${user.displayName}")
