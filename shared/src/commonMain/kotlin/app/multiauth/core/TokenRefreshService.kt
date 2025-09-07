@@ -8,6 +8,7 @@ import app.multiauth.security.JwtTokenManager
 import app.multiauth.security.TokenValidationResult
 import app.multiauth.util.Logger
 import app.multiauth.events.*
+import app.multiauth.events.Session as AuthEventSession
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -187,7 +188,7 @@ class TokenRefreshService(
                         // Notify about refresh failure
                         val eventMetadata = EventMetadata(source="TokenRefreshService")
                         eventBus.dispatch(
-                            AuthEvent.Session.SessionRefreshFailed(result.error), 
+                            AuthEventSession.SessionRefreshFailed(result.error), 
                             eventMetadata
                         )
                         
@@ -209,7 +210,7 @@ class TokenRefreshService(
             when (refreshResult) {
                 is AuthResult.Success -> {
                     eventBus.dispatch(
-                        AuthEvent.Session.TokensRefreshed(refreshResult.data),
+                        AuthEventSession.TokensRefreshed(refreshResult.data),
                         metadata
                     )
                     refreshResult

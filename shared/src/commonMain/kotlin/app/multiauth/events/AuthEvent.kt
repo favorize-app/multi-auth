@@ -9,6 +9,7 @@ import app.multiauth.oauth.OAuthProvider
 import app.multiauth.auth.AnonymousUser
 import app.multiauth.biometric.BiometricType
 import app.multiauth.models.User
+import app.multiauth.mfa.MfaMethod
 
 sealed interface AuthEvent
 
@@ -44,10 +45,20 @@ sealed interface Verification : AuthEvent {
     data class PhoneVerificationFailed(val error: AuthError) : Verification
 }
 
+sealed interface Validation : AuthEvent {
+    data class TokenValidationCompleted(val token: String, val isValid: Boolean, val metadata: Map<String, String> = emptyMap()) : Validation
+    data class PermissionValidationCompleted(val userId: String, val permission: String, val granted: Boolean, val metadata: Map<String, String> = emptyMap()) : Validation
+    data class EmailValidationCompleted(val email: String, val isValid: Boolean, val metadata: Map<String, String> = emptyMap()) : Validation
+    data class PhoneValidationCompleted(val phoneNumber: String, val isValid: Boolean, val metadata: Map<String, String> = emptyMap()) : Validation
+    data class PasswordValidationCompleted(val strength: String, val isValid: Boolean, val metadata: Map<String, String> = emptyMap()) : Validation
+}
+
 sealed interface Session : AuthEvent {
     data class Created(val sessionId: String, val userId: String) : Session
-    data class SessionExpired(val sessionId: String, val userId: String) : Session
+    data class SessionExpired(val sessionId: String, val userId: String) : Session  
     data class SessionRefreshed(val sessionId: String, val userId: String) : Session
+    data class SessionRefreshFailed(val error: AuthError) : Session
+    data class TokensRefreshed(val tokens: TokenPair, val sessionId: String? = null) : Session
     data class Error(val error: AuthError) : Session
     data class SessionError(val error: AuthError) : Session
 }
@@ -67,6 +78,16 @@ sealed interface Biometric : AuthEvent {
     data class BiometricEnableFailed(val error: Throwable) : Biometric
     data class BiometricDisabled(val user: User) : Biometric
     data class BiometricDisableFailed(val error: Throwable) : Biometric
+}
+
+sealed interface Mfa : AuthEvent {
+    data class MfaMethodEnabled(val user: User, val method: MfaMethod, val metadata: Map<String, String> = emptyMap()) : Mfa
+    data class MfaMethodEnabledFailed(val user: User, val method: MfaMethod, val error: AuthError, val metadata: Map<String, String> = emptyMap()) : Mfa
+    data class MfaMethodDisabled(val user: User, val method: MfaMethod, val metadata: Map<String, String> = emptyMap()) : Mfa
+    data class MfaMethodDisabledFailed(val user: User, val method: MfaMethod, val error: AuthError, val metadata: Map<String, String> = emptyMap()) : Mfa
+    data class MfaVerificationCompleted(val user: User, val method: MfaMethod, val metadata: Map<String, String> = emptyMap()) : Mfa
+    data class MfaVerificationFailed(val user: User, val method: MfaMethod, val error: AuthError, val metadata: Map<String, String> = emptyMap()) : Mfa
+    data class MfaBackupCodesGenerated(val user: User, val codes: List<String>, val metadata: Map<String, String> = emptyMap()) : Mfa
 }
 
 sealed interface State : AuthEvent {

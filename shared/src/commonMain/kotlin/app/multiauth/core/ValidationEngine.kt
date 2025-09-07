@@ -3,6 +3,7 @@ package app.multiauth.core
 import kotlinx.datetime.Instant
 import kotlinx.datetime.Clock
 import app.multiauth.events.*
+import app.multiauth.events.Validation as AuthEventValidation
 import app.multiauth.util.Logger
 import app.multiauth.security.JwtTokenManager
 import app.multiauth.security.TokenValidationResult
@@ -63,19 +64,19 @@ class ValidationEngine private constructor(
                     
                     // Cache validation result
                     cacheValidationResult(token, result)
-                    eventBus.dispatch(AuthEvent.Validation.TokenValidationCompleted(token, true), metadata)
+                    eventBus.dispatch(AuthEventValidation.TokenValidationCompleted(token, true), metadata)
                     result
                 }
                 
                 is TokenValidationResult.Expired -> {
                     val result = ValidationResult.Failure(ValidationError.TokenExpired("JWT token has expired"))
-                    eventBus.dispatch(AuthEvent.Validation.TokenValidationCompleted(token, false), metadata)
+                    eventBus.dispatch(AuthEventValidation.TokenValidationCompleted(token, false), metadata)
                     result
                 }
                 
                 is TokenValidationResult.Invalid -> {
                     val result = ValidationResult.Failure(ValidationError.InvalidToken("JWT validation failed: ${jwtResult.reason}"))
-                    eventBus.dispatch(AuthEvent.Validation.TokenValidationCompleted(token, false), metadata)
+                    eventBus.dispatch(AuthEventValidation.TokenValidationCompleted(token, false), metadata)
                     result
                 }
             }
@@ -83,7 +84,7 @@ class ValidationEngine private constructor(
         } catch (e: Exception) {
             val metadata = EventMetadata(source = "ValidationEngine")
             val result = ValidationResult.Failure(ValidationError.InvalidToken("Token validation failed: ${e.message}"))
-            eventBus.dispatch(AuthEvent.Validation.TokenValidationCompleted(token, false), metadata)
+            eventBus.dispatch(AuthEventValidation.TokenValidationCompleted(token, false), metadata)
             result
         }
     }
@@ -119,7 +120,7 @@ class ValidationEngine private constructor(
                 )
                 
                 eventBus.dispatch(
-                    AuthEvent.Validation.PermissionValidationCompleted(userId, requiredPermissions, true),
+                    AuthEventValidation.PermissionValidationCompleted(userId, requiredPermissions.joinToString(","), true),
                     metadata
                 )
                 
@@ -135,7 +136,7 @@ class ValidationEngine private constructor(
 
                 val eventMetadata = EventMetadata(source="ValidationEngine")
                 eventBus.dispatch(
-                    AuthEvent.Validation.PermissionValidationCompleted(userId, requiredPermissions, false),
+                    AuthEventValidation.PermissionValidationCompleted(userId, requiredPermissions.joinToString(","), false),
                     eventMetadata
                 )
                 

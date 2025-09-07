@@ -4,9 +4,10 @@ import app.multiauth.core.AuthEngine
 import app.multiauth.events.AuthEvent
 import app.multiauth.events.EventBus
 import app.multiauth.events.EventBusInstance
+import app.multiauth.events.EventMetadata
 import app.multiauth.models.User
 import app.multiauth.models.AuthError
-import app.multiauth.models.Mfa
+import app.multiauth.events.Mfa as AuthEventMfa
 import app.multiauth.models.Validation
 import app.multiauth.models.RateLimitResult
 import app.multiauth.util.Logger
@@ -75,7 +76,8 @@ class MfaManager(
                 _mfaState.value = MfaState.Idle
                 
                 // Dispatch success event
-                eventBus.dispatch(AuthEvent.Mfa.MfaMethodEnabled(user, method))
+                val metadata = EventMetadata(source = "MfaManager")
+                eventBus.dispatch(AuthEventMfa.MfaMethodEnabled(user, method), metadata)
                 
                 logger.info("mfa", "MFA method ${method.name} enabled successfully for user: ${user.displayName}")
             }.onFailure { error ->
@@ -85,7 +87,8 @@ class MfaManager(
                 
                 // Dispatch failure event
                 val authError = if (error is AuthError) error else AuthError.UnknownError(error.message ?: "MFA enable failed", error)
-                eventBus.dispatch(AuthEvent.Mfa.MfaMethodEnabledFailed(user, method, authError))
+                val metadata = EventMetadata(source = "MfaManager")
+                eventBus.dispatch(AuthEventMfa.MfaMethodEnabledFailed(user, method, authError), metadata)
             }
             
             result
@@ -122,7 +125,8 @@ class MfaManager(
                 _mfaState.value = MfaState.Idle
                 
                 // Dispatch success event
-                eventBus.dispatch(AuthEvent.Mfa.MfaMethodDisabled(user, method))
+                val metadata = EventMetadata(source = "MfaManager")
+                eventBus.dispatch(AuthEventMfa.MfaMethodDisabled(user, method), metadata)
                 
                 logger.info("mfa", "MFA method ${method.name} disabled successfully for user: ${user.displayName}")
             }.onFailure { error ->
@@ -132,7 +136,8 @@ class MfaManager(
                 
                 // Dispatch failure event
                 val authError = if (error is AuthError) error else AuthError.UnknownError(error.message ?: "MFA disable failed", error)
-                eventBus.dispatch(AuthEvent.Mfa.MfaMethodDisabledFailed(user, method, authError))
+                val metadata = EventMetadata(source = "MfaManager")
+                eventBus.dispatch(AuthEventMfa.MfaMethodDisabledFailed(user, method, authError), metadata)
             }
             
             result
@@ -173,7 +178,8 @@ class MfaManager(
                 _mfaState.value = MfaState.Idle
                 
                 // Dispatch success event
-                eventBus.dispatch(AuthEvent.Mfa.MfaVerificationCompleted(user, method))
+                val metadata = EventMetadata(source = "MfaManager")
+                eventBus.dispatch(AuthEventMfa.MfaVerificationCompleted(user, method), metadata)
                 
                 logger.info("mfa", "MFA verification successful for method ${method.name} and user: ${user.displayName}")
             }.onFailure { error ->
@@ -183,7 +189,8 @@ class MfaManager(
                 
                 // Dispatch failure event
                 val authError = if (error is AuthError) error else AuthError.UnknownError(error.message ?: "MFA verification failed", error)
-                eventBus.dispatch(AuthEvent.Mfa.MfaVerificationFailed(user, method, authError))
+                val metadata = EventMetadata(source = "MfaManager")
+                eventBus.dispatch(AuthEventMfa.MfaVerificationFailed(user, method, authError), metadata)
             }
             
             result
@@ -214,7 +221,8 @@ class MfaManager(
             _mfaState.value = MfaState.Idle
             
             // Dispatch success event
-            eventBus.dispatch(AuthEvent.Mfa.MfaBackupCodesGenerated(user, codes))
+            val metadata = EventMetadata(source = "MfaManager")
+            eventBus.dispatch(AuthEventMfa.MfaBackupCodesGenerated(user, codes), metadata)
             
             logger.info("mfa", "Backup codes generated successfully for user: ${user.displayName}")
             Result.success(codes)

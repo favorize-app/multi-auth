@@ -3,9 +3,9 @@ package app.multiauth.models
 import kotlin.time.Duration
 
 sealed class AuthError(
-    open val message: String,
-    open val cause: Throwable? = null
-) {
+    override val message: String,
+    override val cause: Throwable? = null
+) : Exception(message, cause) {
     data class ValidationError(
         override val message: String,
         val field: String,
@@ -38,6 +38,32 @@ sealed class AuthError(
     data class ConfigurationError(
         override val message: String,
         val configKey: String? = null,
+        override val cause: Throwable? = null
+    ) : AuthError(message, cause)
+
+    data class InvalidCredentials(
+        override val message: String,
+        override val cause: Throwable? = null
+    ) : AuthError(message, cause)
+
+    data class InvalidToken(
+        override val message: String,
+        override val cause: Throwable? = null
+    ) : AuthError(message, cause)
+
+    data class TokenExpired(
+        override val message: String,
+        override val cause: Throwable? = null
+    ) : AuthError(message, cause)
+
+    data class SessionError(
+        override val message: String,
+        override val cause: Throwable? = null
+    ) : AuthError(message, cause)
+
+    data class RateLimitExceeded(
+        override val message: String,
+        val retryAfterSeconds: Long = 60,
         override val cause: Throwable? = null
     ) : AuthError(message, cause)
 
