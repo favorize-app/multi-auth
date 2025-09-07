@@ -2,10 +2,20 @@ package app.multiauth.core
 
 import kotlinx.datetime.Clock
 import app.multiauth.events.*
-import app.multiauth.models.*
+import app.multiauth.models.User
+import app.multiauth.models.AuthError
+import app.multiauth.models.AuthResult
+import app.multiauth.models.AuthState
+import app.multiauth.models.AuthMethod
+import app.multiauth.models.TokenPair
+import app.multiauth.models.VerificationMethod
 import app.multiauth.providers.*
 import app.multiauth.util.Logger
 import app.multiauth.oauth.OAuthProvider
+import app.multiauth.security.PasswordHasher
+import app.multiauth.security.JwtTokenManager
+import app.multiauth.security.RateLimiter
+import app.multiauth.security.RateLimitResult
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +33,12 @@ class AuthEngine private constructor(
     private val oauthProvider: OAuthProvider,
     private val eventBus: EventBus = EventBusInstance()
 ) {
+    
+    private val jwtTokenManager = JwtTokenManager()
+    private val rateLimiter = RateLimiter()
+    
+    // Simple in-memory user storage for now (Phase 3 will add real database)
+    private val userStorage = mutableMapOf<String, StoredUser>()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     
     private val _authState = MutableStateFlow<AuthState>(AuthState.Initial)
@@ -45,31 +61,82 @@ class AuthEngine private constructor(
         
         return try {
             _isLoading.value = true
-            eventBus.dispatch(AuthEvent.Authentication.SignInRequested, "AuthEngine")
+            val metadata = EventMetadata(source = "AuthEngine")
+            eventBus.dispatch(Authentication.SignInRequested, metadata)
+
+            // Check rate limiting first
+            when (val rateLimitResult = rateLimiter.checkRateLimit(email)) {
+                is RateLimitResult.RateLimited -> {
+                    val error = AuthError.RateLimitError(
+                        "Too many failed attempts. Please try again in ${rateLimitResult.retryAfter.inWholeMinutes} minutes.",
+                        rateLimitResult.retryAfter
+                    )
+                    eventBus.dispatch(Authentication.SignInFailed(error), metadata)
+                    _isLoading.value = false
+                    return AuthResult.Failure(error)
+                }
+                is RateLimitResult.Allowed -> {
+                    Logger.debug("AuthEngine", "Rate limit check passed. ${rateLimitResult.attemptsRemaining} attempts remaining")
+                }
+            }
             
             // Validate email format
             val emailValidation = emailProvider.validateEmail(email)
             if (emailValidation.isFailure()) {
                 val error = AuthError.ValidationError("Invalid email format", "email")
-                eventBus.dispatch(AuthEvent.Authentication.SignInFailed(error), "AuthEngine")
+                eventBus.dispatch(Authentication.SignInFailed(error), metadata)
                 _isLoading.value = false
                 return AuthResult.Failure(error)
             }
             
-            // TODO: Implement actual email/password authentication
-            // For now, simulate successful authentication
-            val user = createMockUser(email, AuthMethod.Email(email, true, Clock.System.now()))
-            val tokens = createMockTokens(user.id)
+            // Find user by email
+            val storedUser = userStorage.values.find { it.user.email == email }
+            if (storedUser == null) {
+                // Record failed attempt for rate limiting (even for non-existent users)
+                rateLimiter.recordFailedAttempt(email)
+                
+                val error = AuthError.ValidationError("User not found", "email")
+                eventBus.dispatch(Authentication.SignInFailed(error), metadata)
+                _isLoading.value = false
+                return AuthResult.Failure(error)
+            }
             
-            _authState.value = AuthState.Authenticated(user, tokens)
-            eventBus.dispatch(AuthEvent.Authentication.SignInCompleted(user, tokens), "AuthEngine")
+            // Verify password
+            if (storedUser.passwordHash == null) {
+                val error = AuthError.ValidationError("Password authentication not available for this user", "password")
+                eventBus.dispatch(Authentication.SignInFailed(error), metadata)
+                _isLoading.value = false
+                return AuthResult.Failure(error)
+            }
             
+            if (!PasswordHasher.verifyPassword(password, storedUser.passwordHash)) {
+                // Record failed attempt for rate limiting
+                rateLimiter.recordFailedAttempt(email)
+                
+                val error = AuthError.ValidationError("Invalid password", "password")
+                eventBus.dispatch(Authentication.SignInFailed(error), metadata)
+                _isLoading.value = false
+                return AuthResult.Failure(error)
+            }
+            
+            // Record successful authentication to reset rate limiting
+            rateLimiter.recordSuccessfulAttempt(email)
+            
+            // Create real JWT tokens
+            val accessToken = jwtTokenManager.createAccessToken(storedUser.user.id, storedUser.user.email)
+            val refreshToken = jwtTokenManager.createRefreshToken(storedUser.user.id)
+            val tokens = TokenPair(accessToken, refreshToken, Clock.System.now() + 30.minutes)
+            
+            _authState.value = AuthState.Authenticated(storedUser.user, tokens)
+            eventBus.dispatch(Authentication.SignInCompleted(storedUser.user, tokens), metadata)
+
             _isLoading.value = false
-            AuthResult.Success(user)
+            AuthResult.Success(storedUser.user)
             
         } catch (e: Exception) {
+            val metadata = EventMetadata(source = "AuthEngine")
             val error = AuthError.UnknownError("Sign in failed: ${e.message}", e)
-            eventBus.dispatch(AuthEvent.Authentication.SignInFailed(error), "AuthEngine")
+            eventBus.dispatch(Authentication.SignInFailed(error), metadata)
             _authState.value = AuthState.Error(error, _authState.value)
             _isLoading.value = false
             AuthResult.Failure(error)
@@ -84,30 +151,45 @@ class AuthEngine private constructor(
         
         return try {
             _isLoading.value = true
-            eventBus.dispatch(AuthEvent.Authentication.SignUpRequested, "AuthEngine")
-            
+            val metadata = EventMetadata(source = "AuthEngine")
+            eventBus.dispatch(Authentication.SignUpRequested, metadata)
+
             // Validate email format
             val emailValidation = emailProvider.validateEmail(email)
             if (emailValidation.isFailure()) {
                 val error = AuthError.ValidationError("Invalid email format", "email")
-                eventBus.dispatch(AuthEvent.Authentication.SignUpFailed(error), "AuthEngine")
+                eventBus.dispatch(Authentication.SignUpFailed(error), metadata)
                 _isLoading.value = false
                 return AuthResult.Failure(error)
             }
             
-            // TODO: Check if user already exists
-            // TODO: Hash password securely
+            // Check if user already exists
+            if (userStorage.values.any { it.user.email == email }) {
+                val error = AuthError.ValidationError("User with this email already exists", "email")
+                eventBus.dispatch(Authentication.SignUpFailed(error), metadata)
+                _isLoading.value = false
+                return AuthResult.Failure(error)
+            }
+            
+            // Hash password securely
+            val hashedPassword = PasswordHasher.hashPassword(password)
             
             // Create new user
             val user = createNewUser(email, displayName, AuthMethod.Email(email, false, null))
-            val tokens = createMockTokens(user.id)
+            val storedUser = StoredUser(user, hashedPassword)
+            userStorage[user.id] = storedUser
+            
+            // Create real JWT tokens
+            val accessToken = jwtTokenManager.createAccessToken(user.id, user.email)
+            val refreshToken = jwtTokenManager.createRefreshToken(user.id)
+            val tokens = TokenPair(accessToken, refreshToken, Clock.System.now() + 30.minutes)
             
             // Send verification email
             val verificationResult = emailProvider.sendVerificationEmail(email)
             if (verificationResult.isFailure()) {
                 Logger.warn("AuthEngine", "Failed to send verification email: ${verificationResult.getOrNull()}")
             } else {
-                eventBus.dispatch(AuthEvent.Verification.EmailVerificationCodeSent(email), "AuthEngine")
+                eventBus.dispatch(Verification.EmailVerificationCodeSent(email), metadata)
             }
             
             _authState.value = AuthState.VerificationRequired(
@@ -115,14 +197,15 @@ class AuthEngine private constructor(
                 user
             )
             
-            eventBus.dispatch(AuthEvent.Authentication.SignUpCompleted(user, tokens), "AuthEngine")
-            
+            eventBus.dispatch(Authentication.SignUpCompleted(user, tokens), metadata)
+
             _isLoading.value = false
             AuthResult.Success(user)
             
         } catch (e: Exception) {
+            val metadata = EventMetadata(source = "AuthEngine")
             val error = AuthError.UnknownError("Sign up failed: ${e.message}", e)
-            eventBus.dispatch(AuthEvent.Authentication.SignUpFailed(error), "AuthEngine")
+            eventBus.dispatch(Authentication.SignUpFailed(error), metadata)
             _authState.value = AuthState.Error(error, _authState.value)
             _isLoading.value = false
             AuthResult.Failure(error)
@@ -137,25 +220,29 @@ class AuthEngine private constructor(
         
         return try {
             _isLoading.value = true
-            eventBus.dispatch(AuthEvent.OAuth.OAuthFlowStarted(OAuthProvider.GOOGLE, "state"), "AuthEngine")
-            
+            val metadata = EventMetadata(source = "AuthEngine")
+            eventBus.dispatch(OAuth.OAuthFlowStarted(OAuthProvider.GOOGLE, "state"), metadata)
+
             // TODO: Implement actual OAuth flow
             // For now, simulate successful OAuth authentication
             val user = createMockUser(
                 "oauth-user@example.com",
                 AuthMethod.OAuth(OAuthProvider.GOOGLE, "google-user-123", true, Clock.System.now())
             )
-            val tokens = createMockTokens(user.id)
+            val accessToken = jwtTokenManager.createAccessToken(user.id, user.email)
+            val refreshToken = jwtTokenManager.createRefreshToken(user.id)
+            val tokens = TokenPair(accessToken, refreshToken, Clock.System.now() + 30.minutes)
             
             _authState.value = AuthState.Authenticated(user, tokens)
-            eventBus.dispatch(AuthEvent.OAuth.OAuthFlowCompleted(provider, user, tokens), "AuthEngine")
-            
+            eventBus.dispatch(OAuth.OAuthFlowCompleted(provider, user, tokens), metadata)
+
             _isLoading.value = false
             AuthResult.Success(user)
             
         } catch (e: Exception) {
+            val metadata = EventMetadata(source = "AuthEngine")
             val error = AuthError.UnknownError("OAuth sign in failed: ${e.message}", e)
-            eventBus.dispatch(AuthEvent.OAuth.OAuthFlowFailed(provider, error), "AuthEngine")
+            eventBus.dispatch(OAuth.OAuthFlowFailed(provider, error), metadata)
             _authState.value = AuthState.Error(error, _authState.value)
             _isLoading.value = false
             AuthResult.Failure(error)
@@ -170,13 +257,14 @@ class AuthEngine private constructor(
         
         return try {
             _isLoading.value = true
-            eventBus.dispatch(AuthEvent.Verification.PhoneVerificationRequested(phoneNumber), "AuthEngine")
-            
+            val metadata = EventMetadata(source = "AuthEngine")
+            eventBus.dispatch(Verification.PhoneVerificationRequested(phoneNumber), metadata)
+
             // Validate phone number format
             val phoneValidation = smsProvider.validatePhoneNumber(phoneNumber)
             if (phoneValidation.isFailure()) {
                 val error = AuthError.ValidationError("Invalid phone number format", "phoneNumber")
-                eventBus.dispatch(AuthEvent.Verification.PhoneVerificationFailed(error), "AuthEngine")
+                eventBus.dispatch(Verification.PhoneVerificationFailed(error), metadata)
                 _isLoading.value = false
                 return AuthResult.Failure(error)
             }
@@ -191,17 +279,18 @@ class AuthEngine private constructor(
                 _authState.value = AuthState.VerificationRequired(
                     VerificationMethod.Phone(phoneNumber)
                 )
-                eventBus.dispatch(AuthEvent.Verification.PhoneVerificationCodeSent(phoneNumber), "AuthEngine")
+                eventBus.dispatch(Verification.PhoneVerificationCodeSent(phoneNumber), metadata)
                 AuthResult.Success(sessionId)
             } else {
                 val error = result as AuthResult.Failure
-                eventBus.dispatch(AuthEvent.Verification.PhoneVerificationFailed(error.error), "AuthEngine")
+                eventBus.dispatch(Verification.PhoneVerificationFailed(error.error), metadata)
                 AuthResult.Failure(error.error)
             }
             
         } catch (e: Exception) {
+            val metadata = EventMetadata(source = "AuthEngine")
             val error = AuthError.UnknownError("Phone verification failed: ${e.message}", e)
-            eventBus.dispatch(AuthEvent.Verification.PhoneVerificationFailed(error), "AuthEngine")
+            eventBus.dispatch(Verification.PhoneVerificationFailed(error), metadata)
             _isLoading.value = false
             AuthResult.Failure(error)
         }
@@ -215,7 +304,8 @@ class AuthEngine private constructor(
         
         return try {
             _isLoading.value = true
-            
+            val metadata = EventMetadata(source = "AuthEngine")
+
             val result = smsProvider.verifySmsCode(phoneNumber, code, sessionId)
             
             if (result.isSuccess()) {
@@ -224,23 +314,26 @@ class AuthEngine private constructor(
                     null,
                     AuthMethod.Phone(phoneNumber, true, Clock.System.now())
                 )
-                val tokens = createMockTokens(user.id)
+                val accessToken = jwtTokenManager.createAccessToken(user.id, user.email)
+            val refreshToken = jwtTokenManager.createRefreshToken(user.id)
+            val tokens = TokenPair(accessToken, refreshToken, Clock.System.now() + 30.minutes)
                 
                 _authState.value = AuthState.Authenticated(user, tokens)
-                eventBus.dispatch(AuthEvent.Verification.PhoneVerificationCompleted(phoneNumber), "AuthEngine")
-                
+                eventBus.dispatch(Verification.PhoneVerificationCompleted(phoneNumber), metadata)
+
                 _isLoading.value = false
                 AuthResult.Success(user)
             } else {
                 val error = result as AuthResult.Failure
-                eventBus.dispatch(AuthEvent.Verification.PhoneVerificationFailed(error.error), "AuthEngine")
+                eventBus.dispatch(Verification.PhoneVerificationFailed(error.error), metadata)
                 _isLoading.value = false
                 AuthResult.Failure(error.error)
             }
             
         } catch (e: Exception) {
+            val metadata = EventMetadata(source = "AuthEngine")
             val error = AuthError.UnknownError("Phone verification failed: ${e.message}", e)
-            eventBus.dispatch(AuthEvent.Verification.PhoneVerificationFailed(error), "AuthEngine")
+            eventBus.dispatch(Verification.PhoneVerificationFailed(error), metadata)
             _isLoading.value = false
             AuthResult.Failure(error)
         }
@@ -253,19 +346,21 @@ class AuthEngine private constructor(
         Logger.debug("AuthEngine", "Signing out user")
         
         return try {
-            eventBus.dispatch(AuthEvent.Authentication.SignOutRequested, "AuthEngine")
-            
+            val metadata = EventMetadata(source = "AuthEngine")
+            eventBus.dispatch(Authentication.SignOutRequested, metadata)
+
             // TODO: Invalidate tokens on server
             // TODO: Clear secure storage
             
             _authState.value = AuthState.Unauthenticated
-            eventBus.dispatch(AuthEvent.Authentication.SignOutCompleted, "AuthEngine")
-            
+            eventBus.dispatch(Authentication.SignOutCompleted, metadata)
+
             AuthResult.Success(Unit)
             
         } catch (e: Exception) {
+            val metadata = EventMetadata(source = "AuthEngine")
             val error = AuthError.UnknownError("Sign out failed: ${e.message}", e)
-            eventBus.dispatch(AuthEvent.Authentication.SignOutFailed(error), "AuthEngine")
+            eventBus.dispatch(Authentication.SignOutFailed(error), metadata)
             AuthResult.Failure(error)
         }
     }
@@ -291,6 +386,7 @@ class AuthEngine private constructor(
     private fun subscribeToAuthEvents() {
         scope.launch {
             eventBus.events.collect { eventWithMetadata ->
+                val event = eventWithMetadata.event
                 Logger.debug("AuthEngine", "Received event: ${eventWithMetadata.event::class.simpleName}")
                 // TODO: Handle specific events for logging, analytics, etc.
             }
@@ -328,16 +424,6 @@ class AuthEngine private constructor(
         )
     }
     
-    private fun createMockTokens(userId: String): TokenPair {
-        val now = Clock.System.now()
-        val expiresAt = Clock.System.now() + 30.minutes // 30 minutes
-        
-        return TokenPair(
-            accessToken = "access_token_${userId}_${now.toEpochMilliseconds()}",
-            refreshToken = "refresh_token_${userId}_${now.toEpochMilliseconds()}",
-            expiresAt = expiresAt
-        )
-    }
     
     companion object {
         private var INSTANCE: AuthEngine? = null
@@ -355,3 +441,12 @@ class AuthEngine private constructor(
         }
     }
 }
+
+/**
+ * Internal storage representation of a user with authentication data.
+ */
+private data class StoredUser(
+    val user: User,
+    val passwordHash: app.multiauth.security.HashedPassword? = null,
+    val createdAt: kotlinx.datetime.Instant = Clock.System.now()
+)

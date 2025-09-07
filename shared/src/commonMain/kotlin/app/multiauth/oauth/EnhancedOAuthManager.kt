@@ -1,14 +1,15 @@
 package app.multiauth.oauth
 
-import kotlinx.datetime.Instant
 import kotlinx.datetime.Clock
-import kotlin.time.Duration
+import kotlinx.datetime.Instant
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import app.multiauth.core.AuthEngine
 import app.multiauth.events.AuthEvent
+import app.multiauth.events.OAuth
 import app.multiauth.events.EventBus
 import app.multiauth.events.EventBusInstance
+import app.multiauth.events.EventMetadata
 import app.multiauth.models.User
 import app.multiauth.models.AuthError
 import app.multiauth.models.TokenPair
@@ -108,8 +109,9 @@ class EnhancedOAuthManager(
             _oauthState.value = EnhancedOAuthState.Idle
             
             // Dispatch success event
-            eventBus.dispatch(AuthEvent.OAuth.AccountLinked(user, provider))
-            
+            val metadata = EventMetadata(source = "EnhancedOAuthManager")
+            eventBus.dispatch(OAuth.AccountLinked(user, provider), metadata)
+
             logger.info("general", "OAuth account linked successfully for user: ${user.displayName}, provider: ${provider.name}")
             Result.success(Unit)
             
@@ -120,8 +122,9 @@ class EnhancedOAuthManager(
             
             // Dispatch failure event
             val authError = if (e is AuthError) e else AuthError.UnknownError("Account link failed: ${e.message}", e)
-            eventBus.dispatch(AuthEvent.OAuth.AccountLinkFailed(user, provider, authError))
-            
+            val metadata = EventMetadata(source = "EnhancedOAuthManager")
+            eventBus.dispatch(OAuth.AccountLinkFailed(user, provider, authError), metadata)
+
             Result.failure(e)
         }
     }
@@ -161,8 +164,9 @@ class EnhancedOAuthManager(
             _oauthState.value = EnhancedOAuthState.Idle
             
             // Dispatch success event
-            eventBus.dispatch(AuthEvent.OAuth.AccountUnlinked(user, provider))
-            
+            val metadata = EventMetadata(source = "EnhancedOAuthManager")
+            eventBus.dispatch(OAuth.AccountUnlinked(user, provider), metadata)
+
             logger.info("general", "OAuth account unlinked successfully for user: ${user.displayName}, provider: ${provider.name}")
             Result.success(Unit)
             
@@ -173,8 +177,9 @@ class EnhancedOAuthManager(
             
             // Dispatch failure event
             val authError = if (e is AuthError) e else AuthError.UnknownError("Account unlink failed: ${e.message}", e)
-            eventBus.dispatch(AuthEvent.OAuth.AccountUnlinkFailed(user, provider, authError))
-            
+            val metadata = EventMetadata(source = "EnhancedOAuthManager")
+            eventBus.dispatch(OAuth.AccountUnlinkFailed(user, provider, authError), metadata)
+
             Result.failure(e)
         }
     }
@@ -227,8 +232,9 @@ class EnhancedOAuthManager(
                 refreshToken = linkedAccount.refreshToken ?: "",
                 expiresAt = linkedAccount.tokenExpiry
             )
-            eventBus.dispatch(AuthEvent.OAuth.OAuthFlowCompleted(provider, user, tokens))
-            
+            val metadata = EventMetadata(source = "EnhancedOAuthManager")
+            eventBus.dispatch(OAuth.OAuthFlowCompleted(provider, user, tokens), metadata)
+
             logger.info("oath", "Sign in with linked OAuth account successful for user: ${user.displayName}")
             Result.success(user)
             
@@ -292,8 +298,9 @@ class EnhancedOAuthManager(
                 refreshToken = linkedAccount.refreshToken ?: "",
                 expiresAt = linkedAccount.tokenExpiry
             )
-            eventBus.dispatch(AuthEvent.OAuth.OAuthTokenRefreshCompleted(provider, tokens))
-            
+            val metadata = EventMetadata(source = "EnhancedOAuthManager")
+            eventBus.dispatch(OAuth.OAuthTokenRefreshCompleted(provider, tokens), metadata)
+
             logger.info("general", "OAuth tokens refreshed successfully for user: ${user.displayName}, provider: ${provider.name}")
             Result.success(Unit)
             

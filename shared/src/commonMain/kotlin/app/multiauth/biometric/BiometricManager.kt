@@ -2,8 +2,10 @@ package app.multiauth.biometric
 
 import app.multiauth.core.AuthEngine
 import app.multiauth.events.AuthEvent
+import app.multiauth.events.Biometric
 import app.multiauth.events.EventBus
 import app.multiauth.events.EventBusInstance
+import app.multiauth.events.EventMetadata
 import app.multiauth.models.User
 import app.multiauth.platform.Platform
 import app.multiauth.platform.PlatformUtils
@@ -68,7 +70,8 @@ class BiometricManager(
                 logger.info("biometrics", "Biometric availability: ${result.isAvailable}, types: ${result.supportedTypes}")
                 
                 if (result.isAvailable) {
-                    eventBus.dispatch(AuthEvent.Biometric.BiometricAvailable(result.supportedTypes))
+                    val metadata = EventMetadata(source = "BiometricManager")
+                    eventBus.dispatch(Biometric.BiometricAvailable(result.supportedTypes), metadata)
                 }
             }.onFailure { error ->
                 logger.error("biometrics", "Failed to check biometric availability", error)
@@ -116,8 +119,9 @@ class BiometricManager(
                 _biometricState.value = BiometricState.Idle
                 
                 // Dispatch success event
-                eventBus.dispatch(AuthEvent.Biometric.BiometricAuthenticationCompleted(user))
-                
+                val metadata = EventMetadata(source = "BiometricManager")
+                eventBus.dispatch(Biometric.BiometricAuthenticationCompleted(user), metadata)
+
                 Result.success(user)
             }.onFailure { error ->
                 logger.error("biometrics", "Biometric authentication failed", error)
@@ -125,8 +129,9 @@ class BiometricManager(
                 _biometricState.value = BiometricState.Idle
                 
                 // Dispatch failure event
-                eventBus.dispatch(AuthEvent.Biometric.BiometricAuthenticationFailed(error))
-                
+                val metadata = EventMetadata(source = "BiometricManager")
+                eventBus.dispatch(Biometric.BiometricAuthenticationFailed(error), metadata)
+
                 Result.failure<User>(error)
             }
             
@@ -163,8 +168,9 @@ class BiometricManager(
                 _biometricState.value = BiometricState.Idle
                 
                 // Dispatch success event
-                eventBus.dispatch(AuthEvent.Biometric.BiometricEnabled(user))
-                
+                val metadata = EventMetadata(source = "BiometricManager")
+                eventBus.dispatch(Biometric.BiometricEnabled(user), metadata)
+
                 Result.success(Unit)
             }.onFailure { error ->
                 logger.error("biometrics", "Failed to enable biometric authentication", error)
@@ -172,8 +178,9 @@ class BiometricManager(
                 _biometricState.value = BiometricState.Idle
                 
                 // Dispatch failure event
-                eventBus.dispatch(AuthEvent.Biometric.BiometricEnableFailed(error))
-                
+                val metadata = EventMetadata(source = "BiometricManager")
+                eventBus.dispatch(Biometric.BiometricEnableFailed(error), metadata)
+
                 Result.failure<Unit>(error)
             }
             
@@ -205,8 +212,9 @@ class BiometricManager(
                 _biometricState.value = BiometricState.Idle
                 
                 // Dispatch success event
-                eventBus.dispatch(AuthEvent.Biometric.BiometricDisabled(user))
-                
+                val metadata = EventMetadata(source = "BiometricManager")
+                eventBus.dispatch(Biometric.BiometricDisabled(user), metadata)
+
                 Result.success(Unit)
             }.onFailure { error ->
                 logger.error("biometrics", "Failed to disable biometric authentication", error)
@@ -214,8 +222,9 @@ class BiometricManager(
                 _biometricState.value = BiometricState.Idle
                 
                 // Dispatch failure event
-                eventBus.dispatch(AuthEvent.Biometric.BiometricDisableFailed(error))
-                
+                val metadata = EventMetadata(source = "BiometricManager")
+                eventBus.dispatch(Biometric.BiometricDisableFailed(error), metadata)
+
                 Result.failure<Unit>(error)
             }
             

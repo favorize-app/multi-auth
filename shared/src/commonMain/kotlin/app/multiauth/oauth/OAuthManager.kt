@@ -10,6 +10,8 @@ import app.multiauth.models.TokenPair
 import app.multiauth.platform.Platform
 import app.multiauth.platform.PlatformUtils
 import app.multiauth.util.Logger
+import app.multiauth.events.Authentication as AuthEventAuthentication
+import app.multiauth.events.EventMetadata
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -113,7 +115,8 @@ class OAuthManager(
                 refreshToken = tokens.refreshToken,
                 expiresAt = Clock.System.now() + tokens.expiresIn.seconds
             )
-            eventBus.dispatch(AuthEvent.Authentication.SignInCompleted(user, tokenPair))
+            val metadata = EventMetadata(source = "OAuthManager")
+            eventBus.dispatch(AuthEventAuthentication.SignInCompleted(user, tokenPair), metadata)
             
             logger.info("oath", "OAuth sign-in completed successfully for user: ${user.displayName}")
             Result.success(user)
@@ -287,6 +290,7 @@ class OAuthManager(
                 displayName = "OAuth User",
                 emailVerified = true,
                 createdAt = Clock.System.now(),
+                updatedAt = Clock.System.now(),
                 lastSignInAt = Clock.System.now()
             )
             Result.success(user)

@@ -20,7 +20,7 @@ subprojects {
     apply(plugin = "org.jetbrains.kotlin.multiplatform")
     apply(plugin = "org.jetbrains.kotlin.plugin.compose")
     apply(plugin = "org.jetbrains.compose")
-    
+
     group = "app.multiauth"
     version = "0.1.0-SNAPSHOT"
 }

@@ -3,7 +3,10 @@ package app.multiauth.core
 import kotlinx.datetime.Instant
 import kotlinx.datetime.Clock
 import app.multiauth.events.*
+import app.multiauth.events.Validation as AuthEventValidation
 import app.multiauth.util.Logger
+import app.multiauth.security.JwtTokenManager
+import app.multiauth.security.TokenValidationResult
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -16,6 +19,7 @@ import kotlinx.coroutines.SupervisorJob
 class ValidationEngine private constructor(
     private val eventBus: EventBus = EventBusInstance()
 ) {
+    private val jwtTokenManager = JwtTokenManager()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     
     private val _validationResults = MutableStateFlow<Map<String, ValidationResult>>(emptyMap())
@@ -29,62 +33,58 @@ class ValidationEngine private constructor(
      * Validate an access token.
      */
     suspend fun validateAccessToken(token: String): ValidationResult {
-        Logger.debug("ValidationEngine", "Validating access token")
+        Logger.debug("ValidationEngine", "Validating JWT access token")
         
         return try {
-            // TODO: Implement actual JWT validation
-            // For now, perform basic validation
-            
+            val metadata = EventMetadata(source = "ValidationEngine")
+
             if (token.isBlank()) {
                 return ValidationResult.Failure(ValidationError.InvalidToken("Token is empty"))
             }
             
-            if (!token.startsWith("access_token_")) {
-                return ValidationResult.Failure(ValidationError.InvalidToken("Invalid token format"))
+            // Use JWT token manager for validation
+            when (val jwtResult = jwtTokenManager.validateToken(token)) {
+                is TokenValidationResult.Valid -> {
+                    val payload = jwtResult.payload
+                    
+                    // Ensure this is an access token
+                    if (payload.tokenType != "access") {
+                        return ValidationResult.Failure(ValidationError.InvalidToken("Not an access token"))
+                    }
+                    
+                    val result = ValidationResult.Success(
+                        TokenValidation(
+                            isValid = true,
+                            userId = payload.sub,
+                            issuedAt = Instant.fromEpochSeconds(payload.iat),
+                            expiresAt = Instant.fromEpochSeconds(payload.exp),
+                            permissions = payload.roles
+                        )
+                    )
+                    
+                    // Cache validation result
+                    cacheValidationResult(token, result)
+                    eventBus.dispatch(AuthEventValidation.TokenValidationCompleted(token, true), metadata)
+                    result
+                }
+                
+                is TokenValidationResult.Expired -> {
+                    val result = ValidationResult.Failure(ValidationError.TokenExpired("JWT token has expired"))
+                    eventBus.dispatch(AuthEventValidation.TokenValidationCompleted(token, false), metadata)
+                    result
+                }
+                
+                is TokenValidationResult.Invalid -> {
+                    val result = ValidationResult.Failure(ValidationError.InvalidToken("JWT validation failed: ${jwtResult.reason}"))
+                    eventBus.dispatch(AuthEventValidation.TokenValidationCompleted(token, false), metadata)
+                    result
+                }
             }
-            
-            // Extract user ID and timestamp from token
-            val parts = token.split("_")
-            if (parts.size < 4) {
-                return ValidationResult.Failure(ValidationError.InvalidToken("Malformed token"))
-            }
-            
-            val timestamp = parts.last().toLongOrNull()
-            if (timestamp == null) {
-                return ValidationResult.Failure(ValidationError.InvalidToken("Invalid timestamp in token"))
-            }
-            
-            val tokenAge = Clock.System.now().toEpochMilliseconds() - timestamp
-            val maxAge = 30 * 60 * 1000L // 30 minutes in milliseconds
-            
-            if (tokenAge > maxAge) {
-                return ValidationResult.Failure(ValidationError.TokenExpired("Token has expired"))
-            }
-            
-            val result = ValidationResult.Success(
-                TokenValidation(
-                    isValid = true,
-                    userId = parts[2],
-                    issuedAt = Instant.fromEpochMilliseconds(timestamp),
-                    expiresAt = Instant.fromEpochMilliseconds(timestamp + maxAge),
-                    permissions = extractPermissions(token)
-                )
-            )
-            
-            // Cache validation result
-            cacheValidationResult(token, result)
-            
-            eventBus.dispatch(AuthEvent.Validation.TokenValidationCompleted(token, true), "ValidationEngine")
-            
-            result
             
         } catch (e: Exception) {
-            val error = ValidationError.ValidationFailed("Token validation failed: ${e.message}")
-            val result = ValidationResult.Failure(error)
-            
-            cacheValidationResult(token, result)
-            eventBus.dispatch(AuthEvent.Validation.TokenValidationCompleted(token, false), "ValidationEngine")
-            
+            val metadata = EventMetadata(source = "ValidationEngine")
+            val result = ValidationResult.Failure(ValidationError.InvalidToken("Token validation failed: ${e.message}"))
+            eventBus.dispatch(AuthEventValidation.TokenValidationCompleted(token, false), metadata)
             result
         }
     }
@@ -100,10 +100,11 @@ class ValidationEngine private constructor(
         Logger.debug("ValidationEngine", "Validating permissions for user: $userId")
         
         return try {
-            // TODO: Implement actual permission validation with backend
-            // For now, simulate permission checking
-            
+            val metadata = EventMetadata(source = "ValidationEngine")
+
+            // Get user permissions from cached validation results or backend
             val userPermissions = getUserPermissions(userId)
+
             val hasAllPermissions = requiredPermissions.all { permission ->
                 userPermissions.contains(permission)
             }
@@ -119,8 +120,8 @@ class ValidationEngine private constructor(
                 )
                 
                 eventBus.dispatch(
-                    AuthEvent.Validation.PermissionValidationCompleted(userId, requiredPermissions, true),
-                    "ValidationEngine"
+                    AuthEventValidation.PermissionValidationCompleted(userId, requiredPermissions.joinToString(","), true),
+                    metadata
                 )
                 
                 result
@@ -132,10 +133,11 @@ class ValidationEngine private constructor(
                 )
                 
                 val result = ValidationResult.Failure(error)
-                
+
+                val eventMetadata = EventMetadata(source="ValidationEngine")
                 eventBus.dispatch(
-                    AuthEvent.Validation.PermissionValidationCompleted(userId, requiredPermissions, false),
-                    "ValidationEngine"
+                    AuthEventValidation.PermissionValidationCompleted(userId, requiredPermissions.joinToString(","), false),
+                    eventMetadata
                 )
                 
                 result
