@@ -2,7 +2,13 @@ package app.multiauth.core
 
 import kotlinx.datetime.Clock
 import app.multiauth.events.*
-import app.multiauth.models.*
+import app.multiauth.models.User
+import app.multiauth.models.AuthError
+import app.multiauth.models.AuthResult
+import app.multiauth.models.AuthState
+import app.multiauth.models.AuthMethod
+import app.multiauth.models.TokenPair
+import app.multiauth.models.VerificationMethod
 import app.multiauth.providers.*
 import app.multiauth.util.Logger
 import app.multiauth.oauth.OAuthProvider
@@ -55,8 +61,9 @@ class AuthEngine private constructor(
         
         return try {
             _isLoading.value = true
-            eventBus.dispatch(AuthEvent.Authentication.SignInRequested, "AuthEngine")
-            
+            val metadata = EventMetadata(source = "AuthEngine")
+            eventBus.dispatch(Authentication.SignInRequested, metadata)
+
             // Check rate limiting first
             when (val rateLimitResult = rateLimiter.checkRateLimit(email)) {
                 is RateLimitResult.RateLimited -> {
@@ -64,7 +71,7 @@ class AuthEngine private constructor(
                         "Too many failed attempts. Please try again in ${rateLimitResult.retryAfter.inWholeMinutes} minutes.",
                         rateLimitResult.retryAfter
                     )
-                    eventBus.dispatch(AuthEvent.Authentication.SignInFailed(error), "AuthEngine")
+                    eventBus.dispatch(Authentication.SignInFailed(error), metadata)
                     _isLoading.value = false
                     return AuthResult.Failure(error)
                 }
@@ -77,7 +84,7 @@ class AuthEngine private constructor(
             val emailValidation = emailProvider.validateEmail(email)
             if (emailValidation.isFailure()) {
                 val error = AuthError.ValidationError("Invalid email format", "email")
-                eventBus.dispatch(AuthEvent.Authentication.SignInFailed(error), "AuthEngine")
+                eventBus.dispatch(Authentication.SignInFailed(error), metadata)
                 _isLoading.value = false
                 return AuthResult.Failure(error)
             }
@@ -89,7 +96,7 @@ class AuthEngine private constructor(
                 rateLimiter.recordFailedAttempt(email)
                 
                 val error = AuthError.ValidationError("User not found", "email")
-                eventBus.dispatch(AuthEvent.Authentication.SignInFailed(error), "AuthEngine")
+                eventBus.dispatch(Authentication.SignInFailed(error), metadata)
                 _isLoading.value = false
                 return AuthResult.Failure(error)
             }
@@ -97,7 +104,7 @@ class AuthEngine private constructor(
             // Verify password
             if (storedUser.passwordHash == null) {
                 val error = AuthError.ValidationError("Password authentication not available for this user", "password")
-                eventBus.dispatch(AuthEvent.Authentication.SignInFailed(error), "AuthEngine")
+                eventBus.dispatch(Authentication.SignInFailed(error), metadata)
                 _isLoading.value = false
                 return AuthResult.Failure(error)
             }
@@ -107,7 +114,7 @@ class AuthEngine private constructor(
                 rateLimiter.recordFailedAttempt(email)
                 
                 val error = AuthError.ValidationError("Invalid password", "password")
-                eventBus.dispatch(AuthEvent.Authentication.SignInFailed(error), "AuthEngine")
+                eventBus.dispatch(Authentication.SignInFailed(error), metadata)
                 _isLoading.value = false
                 return AuthResult.Failure(error)
             }
@@ -121,14 +128,15 @@ class AuthEngine private constructor(
             val tokens = TokenPair(accessToken, refreshToken, Clock.System.now() + 30.minutes)
             
             _authState.value = AuthState.Authenticated(storedUser.user, tokens)
-            eventBus.dispatch(AuthEvent.Authentication.SignInCompleted(storedUser.user, tokens), "AuthEngine")
-            
+            eventBus.dispatch(Authentication.SignInCompleted(storedUser.user, tokens), metadata)
+
             _isLoading.value = false
             AuthResult.Success(storedUser.user)
             
         } catch (e: Exception) {
+            val metadata = EventMetadata(source = "AuthEngine")
             val error = AuthError.UnknownError("Sign in failed: ${e.message}", e)
-            eventBus.dispatch(AuthEvent.Authentication.SignInFailed(error), "AuthEngine")
+            eventBus.dispatch(Authentication.SignInFailed(error), metadata)
             _authState.value = AuthState.Error(error, _authState.value)
             _isLoading.value = false
             AuthResult.Failure(error)
@@ -143,13 +151,14 @@ class AuthEngine private constructor(
         
         return try {
             _isLoading.value = true
-            eventBus.dispatch(AuthEvent.Authentication.SignUpRequested, "AuthEngine")
-            
+            val metadata = EventMetadata(source = "AuthEngine")
+            eventBus.dispatch(Authentication.SignUpRequested, metadata)
+
             // Validate email format
             val emailValidation = emailProvider.validateEmail(email)
             if (emailValidation.isFailure()) {
                 val error = AuthError.ValidationError("Invalid email format", "email")
-                eventBus.dispatch(AuthEvent.Authentication.SignUpFailed(error), "AuthEngine")
+                eventBus.dispatch(Authentication.SignUpFailed(error), metadata)
                 _isLoading.value = false
                 return AuthResult.Failure(error)
             }
@@ -157,7 +166,7 @@ class AuthEngine private constructor(
             // Check if user already exists
             if (userStorage.values.any { it.user.email == email }) {
                 val error = AuthError.ValidationError("User with this email already exists", "email")
-                eventBus.dispatch(AuthEvent.Authentication.SignUpFailed(error), "AuthEngine")
+                eventBus.dispatch(Authentication.SignUpFailed(error), metadata)
                 _isLoading.value = false
                 return AuthResult.Failure(error)
             }
@@ -180,7 +189,7 @@ class AuthEngine private constructor(
             if (verificationResult.isFailure()) {
                 Logger.warn("AuthEngine", "Failed to send verification email: ${verificationResult.getOrNull()}")
             } else {
-                eventBus.dispatch(AuthEvent.Verification.EmailVerificationCodeSent(email), "AuthEngine")
+                eventBus.dispatch(Verification.EmailVerificationCodeSent(email), metadata)
             }
             
             _authState.value = AuthState.VerificationRequired(
@@ -188,14 +197,15 @@ class AuthEngine private constructor(
                 user
             )
             
-            eventBus.dispatch(AuthEvent.Authentication.SignUpCompleted(user, tokens), "AuthEngine")
-            
+            eventBus.dispatch(Authentication.SignUpCompleted(user, tokens), metadata)
+
             _isLoading.value = false
             AuthResult.Success(user)
             
         } catch (e: Exception) {
+            val metadata = EventMetadata(source = "AuthEngine")
             val error = AuthError.UnknownError("Sign up failed: ${e.message}", e)
-            eventBus.dispatch(AuthEvent.Authentication.SignUpFailed(error), "AuthEngine")
+            eventBus.dispatch(Authentication.SignUpFailed(error), metadata)
             _authState.value = AuthState.Error(error, _authState.value)
             _isLoading.value = false
             AuthResult.Failure(error)
@@ -210,8 +220,9 @@ class AuthEngine private constructor(
         
         return try {
             _isLoading.value = true
-            eventBus.dispatch(AuthEvent.OAuth.OAuthFlowStarted(OAuthProvider.GOOGLE, "state"), "AuthEngine")
-            
+            val metadata = EventMetadata(source = "AuthEngine")
+            eventBus.dispatch(OAuth.OAuthFlowStarted(OAuthProvider.GOOGLE, "state"), metadata)
+
             // TODO: Implement actual OAuth flow
             // For now, simulate successful OAuth authentication
             val user = createMockUser(
@@ -223,14 +234,15 @@ class AuthEngine private constructor(
             val tokens = TokenPair(accessToken, refreshToken, Clock.System.now() + 30.minutes)
             
             _authState.value = AuthState.Authenticated(user, tokens)
-            eventBus.dispatch(AuthEvent.OAuth.OAuthFlowCompleted(provider, user, tokens), "AuthEngine")
-            
+            eventBus.dispatch(OAuth.OAuthFlowCompleted(provider, user, tokens), metadata)
+
             _isLoading.value = false
             AuthResult.Success(user)
             
         } catch (e: Exception) {
+            val metadata = EventMetadata(source = "AuthEngine")
             val error = AuthError.UnknownError("OAuth sign in failed: ${e.message}", e)
-            eventBus.dispatch(AuthEvent.OAuth.OAuthFlowFailed(provider, error), "AuthEngine")
+            eventBus.dispatch(OAuth.OAuthFlowFailed(provider, error), metadata)
             _authState.value = AuthState.Error(error, _authState.value)
             _isLoading.value = false
             AuthResult.Failure(error)
@@ -245,13 +257,14 @@ class AuthEngine private constructor(
         
         return try {
             _isLoading.value = true
-            eventBus.dispatch(AuthEvent.Verification.PhoneVerificationRequested(phoneNumber), "AuthEngine")
-            
+            val metadata = EventMetadata(source = "AuthEngine")
+            eventBus.dispatch(Verification.PhoneVerificationRequested(phoneNumber), metadata)
+
             // Validate phone number format
             val phoneValidation = smsProvider.validatePhoneNumber(phoneNumber)
             if (phoneValidation.isFailure()) {
                 val error = AuthError.ValidationError("Invalid phone number format", "phoneNumber")
-                eventBus.dispatch(AuthEvent.Verification.PhoneVerificationFailed(error), "AuthEngine")
+                eventBus.dispatch(Verification.PhoneVerificationFailed(error), metadata)
                 _isLoading.value = false
                 return AuthResult.Failure(error)
             }
@@ -266,17 +279,18 @@ class AuthEngine private constructor(
                 _authState.value = AuthState.VerificationRequired(
                     VerificationMethod.Phone(phoneNumber)
                 )
-                eventBus.dispatch(AuthEvent.Verification.PhoneVerificationCodeSent(phoneNumber), "AuthEngine")
+                eventBus.dispatch(Verification.PhoneVerificationCodeSent(phoneNumber), metadata)
                 AuthResult.Success(sessionId)
             } else {
                 val error = result as AuthResult.Failure
-                eventBus.dispatch(AuthEvent.Verification.PhoneVerificationFailed(error.error), "AuthEngine")
+                eventBus.dispatch(Verification.PhoneVerificationFailed(error.error), metadata)
                 AuthResult.Failure(error.error)
             }
             
         } catch (e: Exception) {
+            val metadata = EventMetadata(source = "AuthEngine")
             val error = AuthError.UnknownError("Phone verification failed: ${e.message}", e)
-            eventBus.dispatch(AuthEvent.Verification.PhoneVerificationFailed(error), "AuthEngine")
+            eventBus.dispatch(Verification.PhoneVerificationFailed(error), metadata)
             _isLoading.value = false
             AuthResult.Failure(error)
         }
@@ -290,7 +304,8 @@ class AuthEngine private constructor(
         
         return try {
             _isLoading.value = true
-            
+            val metadata = EventMetadata(source = "AuthEngine")
+
             val result = smsProvider.verifySmsCode(phoneNumber, code, sessionId)
             
             if (result.isSuccess()) {
@@ -304,20 +319,21 @@ class AuthEngine private constructor(
             val tokens = TokenPair(accessToken, refreshToken, Clock.System.now() + 30.minutes)
                 
                 _authState.value = AuthState.Authenticated(user, tokens)
-                eventBus.dispatch(AuthEvent.Verification.PhoneVerificationCompleted(phoneNumber), "AuthEngine")
-                
+                eventBus.dispatch(Verification.PhoneVerificationCompleted(phoneNumber), metadata)
+
                 _isLoading.value = false
                 AuthResult.Success(user)
             } else {
                 val error = result as AuthResult.Failure
-                eventBus.dispatch(AuthEvent.Verification.PhoneVerificationFailed(error.error), "AuthEngine")
+                eventBus.dispatch(Verification.PhoneVerificationFailed(error.error), metadata)
                 _isLoading.value = false
                 AuthResult.Failure(error.error)
             }
             
         } catch (e: Exception) {
+            val metadata = EventMetadata(source = "AuthEngine")
             val error = AuthError.UnknownError("Phone verification failed: ${e.message}", e)
-            eventBus.dispatch(AuthEvent.Verification.PhoneVerificationFailed(error), "AuthEngine")
+            eventBus.dispatch(Verification.PhoneVerificationFailed(error), metadata)
             _isLoading.value = false
             AuthResult.Failure(error)
         }
@@ -330,19 +346,21 @@ class AuthEngine private constructor(
         Logger.debug("AuthEngine", "Signing out user")
         
         return try {
-            eventBus.dispatch(AuthEvent.Authentication.SignOutRequested, "AuthEngine")
-            
+            val metadata = EventMetadata(source = "AuthEngine")
+            eventBus.dispatch(Authentication.SignOutRequested, metadata)
+
             // TODO: Invalidate tokens on server
             // TODO: Clear secure storage
             
             _authState.value = AuthState.Unauthenticated
-            eventBus.dispatch(AuthEvent.Authentication.SignOutCompleted, "AuthEngine")
-            
+            eventBus.dispatch(Authentication.SignOutCompleted, metadata)
+
             AuthResult.Success(Unit)
             
         } catch (e: Exception) {
+            val metadata = EventMetadata(source = "AuthEngine")
             val error = AuthError.UnknownError("Sign out failed: ${e.message}", e)
-            eventBus.dispatch(AuthEvent.Authentication.SignOutFailed(error), "AuthEngine")
+            eventBus.dispatch(Authentication.SignOutFailed(error), metadata)
             AuthResult.Failure(error)
         }
     }
@@ -368,6 +386,7 @@ class AuthEngine private constructor(
     private fun subscribeToAuthEvents() {
         scope.launch {
             eventBus.events.collect { eventWithMetadata ->
+                val event = eventWithMetadata.event
                 Logger.debug("AuthEngine", "Received event: ${eventWithMetadata.event::class.simpleName}")
                 // TODO: Handle specific events for logging, analytics, etc.
             }

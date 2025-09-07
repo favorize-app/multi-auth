@@ -3,8 +3,10 @@ package app.multiauth.auth
 import kotlinx.datetime.Instant
 import app.multiauth.core.AuthEngine
 import app.multiauth.events.AuthEvent
+import app.multiauth.events.Anonymous
 import app.multiauth.events.EventBus
 import app.multiauth.events.EventBusInstance
+import app.multiauth.events.EventMetadata
 import app.multiauth.models.User
 import app.multiauth.util.Logger
 import kotlinx.coroutines.CoroutineScope
@@ -102,8 +104,9 @@ class AnonymousAuthManager(
             _anonymousState.value = AnonymousAuthState.Idle
             
             // Dispatch success event
-            eventBus.dispatch(AuthEvent.Anonymous.AnonymousSessionCreated(user, anonymousUser))
-            
+            val eventMetadata = EventMetadata(source = "AnonymousAuthManager")
+            eventBus.dispatch(Anonymous.AnonymousSessionCreated(user, anonymousUser), eventMetadata)
+
             logger.info("auth", "Anonymous user session created: $anonymousId")
             Result.success(user)
             
@@ -168,8 +171,9 @@ class AnonymousAuthManager(
             _anonymousState.value = AnonymousAuthState.Idle
             
             // Dispatch success event
-            eventBus.dispatch(AuthEvent.Anonymous.AnonymousUserConverted(anonymousUser, permanentUser))
-            
+            val eventMetadata = EventMetadata(source = "AnonymousAuthManager")
+            eventBus.dispatch(Anonymous.AnonymousUserConverted(anonymousUser, permanentUser), eventMetadata)
+
             logger.info("auth", "Anonymous user converted to permanent account: ${anonymousUser.id} -> ${permanentUser.id}")
             Result.success(permanentUser)
             
@@ -212,8 +216,9 @@ class AnonymousAuthManager(
             updateConversionMetrics(AnonymousAction.SESSION_EXTENDED)
             
             // Dispatch success event
-            eventBus.dispatch(AuthEvent.Anonymous.AnonymousSessionExtended(anonymousUser, additionalHours))
-            
+            val eventMetadata = EventMetadata(source = "AnonymousAuthManager")
+            eventBus.dispatch(Anonymous.AnonymousSessionExtended(anonymousUser, additionalHours), eventMetadata)
+
             logger.info("auth", "Anonymous user session extended: ${anonymousUser.id}")
             Result.success(Unit)
             
@@ -250,8 +255,9 @@ class AnonymousAuthManager(
             updateConversionMetrics(AnonymousAction.SESSION_TERMINATED)
             
             // Dispatch success event
-            eventBus.dispatch(AuthEvent.Anonymous.AnonymousSessionTerminated(anonymousUser))
-            
+            val eventMetadata = EventMetadata(source = "AnonymousAuthManager")
+            eventBus.dispatch(Anonymous.AnonymousSessionTerminated(anonymousUser), eventMetadata)
+
             logger.info("auth", "Anonymous user session terminated: ${anonymousUser.id}")
             Result.success(Unit)
             

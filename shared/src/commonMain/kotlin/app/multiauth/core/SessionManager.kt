@@ -8,7 +8,6 @@ import app.multiauth.security.TokenValidationResult
 import app.multiauth.storage.SecureStorage
 import app.multiauth.util.Logger
 import app.multiauth.events.*
-import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -16,10 +15,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.decodeFromString
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Duration.Companion.days
 
 /**
  * Manages user sessions, token storage, and automatic token refresh.
@@ -92,23 +88,25 @@ class SessionManager(
             if (sessionStored && tokensStored && metadataStored) {
                 _currentSession.value = session
                 _isSessionValid.value = true
-                
-                eventBus.dispatch(AuthEvent.Session.SessionCreated(session), "SessionManager")
+
+                val eventMetadata = EventMetadata(source = "SessionManager")
+                eventBus.dispatch(AuthEvent.Session.Created(session), eventMetadata)
                 Logger.info("SessionManager", "Session created successfully for user: ${user.id}")
                 
                 AuthResult.Success(session)
             } else {
+                val eventMetadata = EventMetadata(source = "SessionManager")
+                val error = AuthError.StorageFailure("Failed to store session data securely")
+                eventBus.dispatch(AuthEvent.Session.Error(error), eventMetadata)
                 Logger.error("SessionManager", "Failed to store session data securely")
-                AuthResult.Failure(
-                    AuthError.SessionError("Failed to create secure session")
-                )
+                AuthResult.Failure(error)
             }
-            
         } catch (e: Exception) {
+            val eventMetadata = EventMetadata(source = "SessionManager")
+            val error = AuthError.UnknownError("Failed to create session: ${e.message}", e)
+            eventBus.dispatch(AuthEvent.Session.Error(error), eventMetadata)
             Logger.error("SessionManager", "Failed to create session", e)
-            AuthResult.Failure(
-                AuthError.UnknownError("Session creation failed: ${e.message}", e)
-            )
+            AuthResult.Failure(error)
         }
     }
     
@@ -119,6 +117,7 @@ class SessionManager(
         Logger.debug("SessionManager", "Refreshing session tokens")
         
         return try {
+            val eventMetadata = EventMetadata(source = "SessionManager")
             val currentTokens = getCurrentTokens()
             if (currentTokens == null) {
                 return AuthResult.Failure(
@@ -175,34 +174,31 @@ class SessionManager(
                     // Update metadata
                     updateSessionMetadata()
                     
-                    eventBus.dispatch(AuthEvent.Session.SessionRefreshed(updatedSession), "SessionManager")
+                    eventBus.dispatch(AuthEvent.Session.SessionRefreshed(updatedSession), eventMetadata)
                     Logger.info("SessionManager", "Session refreshed successfully")
                     
                     AuthResult.Success(newTokens)
                 }
                 
                 is TokenValidationResult.Expired -> {
-                    Logger.warn("SessionManager", "Refresh token has expired")
+                    val session = _currentSession.value
+                    if (session != null) {
+                        eventBus.dispatch(AuthEvent.Session.SessionExpired(session), eventMetadata)
+                    }
                     invalidateSession()
-                    AuthResult.Failure(
-                        AuthError.InvalidToken("Refresh token has expired")
-                    )
+                    AuthResult.Failure(AuthError.SessionError("Refresh token expired"))
                 }
                 
                 is TokenValidationResult.Invalid -> {
                     Logger.warn("SessionManager", "Invalid refresh token: ${validationResult.reason}")
                     invalidateSession()
-                    AuthResult.Failure(
-                        AuthError.InvalidToken("Invalid refresh token")
-                    )
+                    AuthResult.Failure(AuthError.SessionError("Invalid refresh token"))
                 }
             }
             
         } catch (e: Exception) {
             Logger.error("SessionManager", "Failed to refresh session", e)
-            AuthResult.Failure(
-                AuthError.UnknownError("Session refresh failed: ${e.message}", e)
-            )
+            AuthResult.Failure(AuthError.UnknownError(e.message ?: "Unknown error"))
         }
     }
     
@@ -247,7 +243,7 @@ class SessionManager(
                     Logger.info("SessionManager", "Access token expired, attempting refresh")
                     
                     // Try to refresh automatically
-                    when (val refreshResult = refreshSession()) {
+                    when (refreshSession()) {
                         is AuthResult.Success -> {
                             _isSessionValid.value = true
                             AuthResult.Success(true)
@@ -283,7 +279,8 @@ class SessionManager(
         
         return try {
             val currentSession = _currentSession.value
-            
+            val metadata = EventMetadata(source = "SessionManager")
+
             // Clear stored data
             secureStorage.remove(SESSION_KEY)
             secureStorage.remove(TOKEN_PAIR_KEY)
@@ -294,7 +291,7 @@ class SessionManager(
             _isSessionValid.value = false
             
             if (currentSession != null) {
-                eventBus.dispatch(AuthEvent.Session.SessionExpired(currentSession), "SessionManager")
+                eventBus.dispatch(AuthEvent.Session.SessionExpired(currentSession), metadata)
             }
             
             Logger.info("SessionManager", "Session invalidated successfully")
@@ -365,6 +362,7 @@ class SessionManager(
     }
     
     private suspend fun restoreSession() {
+        val eventMetadata = EventMetadata(source = "SessionManager")
         try {
             val sessionJson = secureStorage.retrieve(SESSION_KEY)
             if (sessionJson != null) {
@@ -372,13 +370,23 @@ class SessionManager(
                 _currentSession.value = session
                 
                 // Validate restored session
-                validateSession()
+                if (validateSession().isSuccess()) {
+                    _currentSession.value = session
+                    _isSessionValid.value = true
+                    eventBus.dispatch(AuthEvent.Session.Created(session), eventMetadata)
+                    Logger.info("SessionManager", "Session restored successfully")
+                } else {
+                    eventBus.dispatch(AuthEvent.Session.SessionExpired(session), eventMetadata)
+                    Logger.warn("SessionManager", "Stored session has expired")
+                    invalidateSession()
+                }
                 
                 Logger.info("SessionManager", "Session restored for user: ${session.user.id}")
             }
         } catch (e: Exception) {
+            val error = AuthError.UnknownError("Failed to restore session: ${e.message}", e)
+            eventBus.dispatch(AuthEvent.Session.SessionError(error), eventMetadata)
             Logger.error("SessionManager", "Failed to restore session", e)
-            // Clear corrupted session data
             invalidateSession()
         }
     }
@@ -472,3 +480,4 @@ data class SessionInfo(
     val deviceInfo: String,
     val lastRefreshAt: Instant
 )
+

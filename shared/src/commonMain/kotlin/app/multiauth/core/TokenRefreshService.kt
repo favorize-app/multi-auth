@@ -184,9 +184,10 @@ class TokenRefreshService(
                         _refreshStatus.value = RefreshStatus.Failed(result.error.message ?: "Unknown error")
                         
                         // Notify about refresh failure
+                        val eventMetadata = EventMetadata(source="TokenRefreshService")
                         eventBus.dispatch(
                             AuthEvent.Session.SessionRefreshFailed(result.error), 
-                            "TokenRefreshService"
+                            eventMetadata
                         )
                         
                         // Stop auto refresh on persistent failure
@@ -199,15 +200,16 @@ class TokenRefreshService(
     
     private suspend fun performTokenRefresh(): AuthResult<TokenPair> {
         _refreshStatus.value = RefreshStatus.Refreshing
-        
+        val metadata = EventMetadata(source = "TokenRefreshService")
+
         return try {
             val refreshResult = sessionManager.refreshSession()
             
             when (refreshResult) {
                 is AuthResult.Success -> {
                     eventBus.dispatch(
-                        AuthEvent.Session.TokensRefreshed(refreshResult.data), 
-                        "TokenRefreshService"
+                        AuthEvent.Session.TokensRefreshed(refreshResult.data),
+                        metadata
                     )
                     refreshResult
                 }

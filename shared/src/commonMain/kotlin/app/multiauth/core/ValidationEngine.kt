@@ -35,6 +35,8 @@ class ValidationEngine private constructor(
         Logger.debug("ValidationEngine", "Validating JWT access token")
         
         return try {
+            val metadata = EventMetadata(source = "ValidationEngine")
+
             if (token.isBlank()) {
                 return ValidationResult.Failure(ValidationError.InvalidToken("Token is empty"))
             }
@@ -61,26 +63,27 @@ class ValidationEngine private constructor(
                     
                     // Cache validation result
                     cacheValidationResult(token, result)
-                    eventBus.dispatch(AuthEvent.Validation.TokenValidationCompleted(token, true), "ValidationEngine")
+                    eventBus.dispatch(AuthEvent.Validation.TokenValidationCompleted(token, true), metadata)
                     result
                 }
                 
                 is TokenValidationResult.Expired -> {
                     val result = ValidationResult.Failure(ValidationError.TokenExpired("JWT token has expired"))
-                    eventBus.dispatch(AuthEvent.Validation.TokenValidationCompleted(token, false), "ValidationEngine")
+                    eventBus.dispatch(AuthEvent.Validation.TokenValidationCompleted(token, false), metadata)
                     result
                 }
                 
                 is TokenValidationResult.Invalid -> {
                     val result = ValidationResult.Failure(ValidationError.InvalidToken("JWT validation failed: ${jwtResult.reason}"))
-                    eventBus.dispatch(AuthEvent.Validation.TokenValidationCompleted(token, false), "ValidationEngine")
+                    eventBus.dispatch(AuthEvent.Validation.TokenValidationCompleted(token, false), metadata)
                     result
                 }
             }
             
         } catch (e: Exception) {
+            val metadata = EventMetadata(source = "ValidationEngine")
             val result = ValidationResult.Failure(ValidationError.InvalidToken("Token validation failed: ${e.message}"))
-            eventBus.dispatch(AuthEvent.Validation.TokenValidationCompleted(token, false), "ValidationEngine")
+            eventBus.dispatch(AuthEvent.Validation.TokenValidationCompleted(token, false), metadata)
             result
         }
     }
@@ -96,10 +99,11 @@ class ValidationEngine private constructor(
         Logger.debug("ValidationEngine", "Validating permissions for user: $userId")
         
         return try {
-            // TODO: Implement actual permission validation with backend
-            // For now, simulate permission checking
-            
+            val metadata = EventMetadata(source = "ValidationEngine")
+
+            // Get user permissions from cached validation results or backend
             val userPermissions = getUserPermissions(userId)
+
             val hasAllPermissions = requiredPermissions.all { permission ->
                 userPermissions.contains(permission)
             }
@@ -116,7 +120,7 @@ class ValidationEngine private constructor(
                 
                 eventBus.dispatch(
                     AuthEvent.Validation.PermissionValidationCompleted(userId, requiredPermissions, true),
-                    "ValidationEngine"
+                    metadata
                 )
                 
                 result
@@ -128,10 +132,11 @@ class ValidationEngine private constructor(
                 )
                 
                 val result = ValidationResult.Failure(error)
-                
+
+                val eventMetadata = EventMetadata(source="ValidationEngine")
                 eventBus.dispatch(
                     AuthEvent.Validation.PermissionValidationCompleted(userId, requiredPermissions, false),
-                    "ValidationEngine"
+                    eventMetadata
                 )
                 
                 result
