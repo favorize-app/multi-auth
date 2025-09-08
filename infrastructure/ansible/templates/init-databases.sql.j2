@@ -3,7 +3,15 @@
 -- Environment: {{ environment }}
 
 -- Create database if it doesn't exist
-CREATE DATABASE IF NOT EXISTS multiauth;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT FROM pg_database WHERE datname = 'multiauth'
+    ) THEN
+        EXECUTE 'CREATE DATABASE multiauth';
+    END IF;
+END
+$$;
 
 -- Connect to the multiauth database
 \c multiauth;
