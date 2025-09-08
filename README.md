@@ -38,6 +38,47 @@
 - **🔄 OAuth Client Refactoring**: Extract common patterns to reduce code duplication (~300-400 lines per client)
 - **🔄 Database Persistence**: Currently in-memory, can be upgraded to persistent storage
 
+## 🏗️ **Infrastructure Deployment**
+
+### **🚀 Quick Database Setup**
+Deploy production-ready databases with one command:
+
+```bash
+# Deploy development environment
+cd infrastructure
+./deploy.sh dev
+
+# Deploy production environment  
+./deploy.sh prod
+```
+
+This creates:
+- **PostgreSQL** (AWS RDS) with automated backups
+- **MongoDB** (AWS DocumentDB) with clustering
+- **Kafka** (AWS MSK) for event streaming
+- **Firestore** (Google Cloud) for real-time data
+- **VPC & Security Groups** for isolation
+
+### **Manual Terraform Deployment**
+```bash
+cd infrastructure/terraform
+
+# Initialize and plan
+terraform init
+terraform plan -var="db_password=YourSecurePassword123!"
+
+# Deploy infrastructure
+terraform apply
+```
+
+### **Get Connection Strings**
+```bash
+# After deployment, get database URLs
+terraform output postgres_connection_string
+terraform output mongodb_connection_string
+terraform output kafka_bootstrap_brokers_tls
+```
+
 ## 🚀 **Quick Start**
 
 ### **Basic Email/Password Authentication**

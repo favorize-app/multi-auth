@@ -1,0 +1,135 @@
+# Multi-Auth Infrastructure Configuration
+# Generated: {{ ansible_date_time.iso8601 }}
+# Environment: {{ environment }}
+
+multiauth:
+  environment: {{ environment }}
+  
+  # Database configurations for persistence adapters
+  persistence:
+    # PostgreSQL adapter configuration
+    postgresql:
+      enabled: true
+      connection_string: "{{ infrastructure_config.postgres_connection_string.value }}"
+      host: "{{ infrastructure_config.postgres_endpoint.value }}"
+      port: {{ infrastructure_config.postgres_port.value if infrastructure_config.postgres_port is defined else 5432 }}
+      database: "{{ infrastructure_config.postgres_database_name.value }}"
+      username: "{{ infrastructure_config.postgres_username.value }}"
+      ssl_mode: "require"
+      pool_size: 10
+      timeout: 30
+      
+    # MongoDB adapter configuration  
+    mongodb:
+      enabled: true
+      connection_string: "{{ infrastructure_config.mongodb_connection_string.value }}"
+      host: "{{ infrastructure_config.mongodb_endpoint.value }}"
+      port: {{ infrastructure_config.mongodb_port.value if infrastructure_config.mongodb_port is defined else 27017 }}
+      database: "multiauth"
+      username: "{{ infrastructure_config.mongodb_username.value }}"
+      ssl_enabled: true
+      replica_set: "rs0"
+      read_preference: "secondaryPreferred"
+      
+    # Kafka event store configuration
+    kafka:
+      enabled: true
+      bootstrap_servers: "{{ infrastructure_config.kafka_bootstrap_brokers_tls.value }}"
+      security_protocol: "SSL"
+      topic_prefix: "{{ project_name }}-{{ environment }}"
+      topics:
+        auth_events: "{{ project_name }}-{{ environment }}-auth-events"
+        user_events: "{{ project_name }}-{{ environment }}-user-events"
+        session_events: "{{ project_name }}-{{ environment }}-session-events"
+      producer:
+        acks: "all"
+        retries: 3
+        batch_size: 16384
+      consumer:
+        group_id: "{{ project_name }}-{{ environment }}-consumer"
+        auto_offset_reset: "earliest"
+        
+    # Firestore configuration
+    firestore:
+      enabled: true
+      project_id: "{{ infrastructure_config.firestore_project_id.value }}"
+      database_name: "{{ infrastructure_config.firestore_database_name.value }}"
+      location: "{{ gcp_region | default('us-central1') }}"
+      collections:
+        users: "users"
+        sessions: "sessions"
+        auth_events: "auth_events"
+        
+    # In-memory fallback (always available)
+    in_memory:
+      enabled: true
+      max_users: 10000
+      max_sessions: 50000
+      cleanup_interval: 3600  # 1 hour
+
+  # Service configurations
+  services:
+    # Email service (SendGrid)
+    email:
+      provider: "sendgrid"
+      api_key: "${SENDGRID_API_KEY}"
+      from_email: "noreply@{{ project_name }}.com"
+      from_name: "{{ project_name | title }} Authentication"
+      templates:
+        verification: "d-abc123"
+        password_reset: "d-def456"
+        welcome: "d-ghi789"
+        
+    # SMS service (Twilio)
+    sms:
+      provider: "twilio"
+      account_sid: "${TWILIO_ACCOUNT_SID}"
+      auth_token: "${TWILIO_AUTH_TOKEN}"
+      from_number: "${TWILIO_FROM_NUMBER}"
+      rate_limiting:
+        hourly_limit: 10
+        daily_limit: 50
+
+# Security configuration
+security:
+  jwt:
+    secret_key: "${JWT_SECRET_KEY}"
+    access_token_expiry: 1800  # 30 minutes
+    refresh_token_expiry: 604800  # 7 days
+    
+  rate_limiting:
+    enabled: true
+    max_attempts: 5
+    lockout_duration: 900  # 15 minutes
+    
+  encryption:
+    algorithm: "AES-256-GCM"
+    key_derivation: "PBKDF2-SHA256"
+    iterations: 100000
+
+# Monitoring and logging
+monitoring:
+  enabled: {{ enable_monitoring | default(true) | lower }}
+  log_level: "{{ 'DEBUG' if environment == 'dev' else 'INFO' }}"
+  audit_logging: true
+  performance_metrics: true
+  
+# Environment-specific overrides
+{% if environment == 'prod' %}
+production:
+  deletion_protection: true
+  backup_retention: 30
+  monitoring_level: "enhanced"
+  ssl_enforcement: true
+{% elif environment == 'staging' %}
+staging:
+  deletion_protection: false
+  backup_retention: 7
+  monitoring_level: "standard"
+{% else %}
+development:
+  deletion_protection: false
+  backup_retention: 3
+  monitoring_level: "basic"
+  debug_mode: true
+{% endif %}
