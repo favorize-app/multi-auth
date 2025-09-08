@@ -153,7 +153,8 @@ $$ LANGUAGE plpgsql;
 -- Create indexes for better query performance
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_users_email_verified ON users (email_verified);
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_users_created_at ON users (created_at);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_sessions_user_active ON sessions (user_id, is_active) WHERE is_active = TRUE;
+-- Note: PostgreSQL does not support 'IF NOT EXISTS' with 'CONCURRENTLY'. This statement will fail if the index already exists.
+CREATE INDEX CONCURRENTLY idx_sessions_user_active ON sessions (user_id, is_active) WHERE is_active = TRUE;
 
 -- Grant permissions (adjust as needed for your setup)
 -- GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO multiauth_user;
