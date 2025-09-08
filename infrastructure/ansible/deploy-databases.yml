@@ -1,0 +1,170 @@
+---
+- name: Deploy Multi-Auth Database Infrastructure
+  hosts: localhost
+  gather_facts: false
+  vars:
+    project_name: "multi-auth"
+    environment: "{{ env | default('dev') }}"
+    terraform_dir: "../terraform"
+    
+  tasks:
+    - name: Check if Terraform is installed
+      command: terraform version
+      register: terraform_check
+      failed_when: false
+      changed_when: false
+      
+    - name: Fail if Terraform is not installed
+      fail:
+        msg: "Terraform is not installed. Please install Terraform first."
+      when: terraform_check.rc != 0
+      
+    - name: Check if AWS CLI is configured
+      command: aws sts get-caller-identity
+      register: aws_check
+      failed_when: false
+      changed_when: false
+      
+    - name: Warn if AWS CLI is not configured
+      debug:
+        msg: "AWS CLI not configured. Some resources may not deploy."
+      when: aws_check.rc != 0
+      
+    - name: Create Terraform variables file
+      template:
+        src: terraform.tfvars.j2
+        dest: "{{ terraform_dir }}/terraform.tfvars"
+        mode: '0600'
+      vars:
+        db_password: "{{ db_password | default(lookup('env', 'DB_PASSWORD')) | default('ChangeMeInProduction123!') }}"
+        
+    - name: Initialize Terraform
+      command: terraform init
+      args:
+        chdir: "{{ terraform_dir }}"
+      register: terraform_init
+      
+    - name: Plan Terraform deployment
+      command: terraform plan -out=tfplan
+      args:
+        chdir: "{{ terraform_dir }}"
+      register: terraform_plan
+      
+    - name: Show Terraform plan
+      debug:
+        var: terraform_plan.stdout_lines
+        
+    - name: Apply Terraform deployment
+      command: terraform apply tfplan
+      args:
+        chdir: "{{ terraform_dir }}"
+      register: terraform_apply
+      when: auto_approve | default(false) | bool
+      
+    - name: Get Terraform outputs
+      command: terraform output -json
+      args:
+        chdir: "{{ terraform_dir }}"
+      register: terraform_outputs
+      changed_when: false
+      
+    - name: Parse Terraform outputs
+      set_fact:
+        infrastructure_config: "{{ terraform_outputs.stdout | from_json }}"
+      when: terraform_outputs.rc == 0
+      
+    - name: Create Multi-Auth configuration file
+      template:
+        src: multiauth-config.yml.j2
+        dest: "./multiauth-infrastructure-config.yml"
+        mode: '0600'
+      when: infrastructure_config is defined
+      
+    - name: Display connection information
+      debug:
+        msg: |
+          🎉 Database infrastructure deployed successfully!
+          
+          📊 **Connection Details:**
+          
+          **PostgreSQL:**
+          - Endpoint: {{ infrastructure_config.postgres_endpoint.value }}
+          - Database: {{ infrastructure_config.postgres_database_name.value }}
+          - Connection: Use postgres_connection_string output
+          
+          **MongoDB:**
+          - Endpoint: {{ infrastructure_config.mongodb_endpoint.value }}
+          - Database: multiauth
+          - Connection: Use mongodb_connection_string output
+          
+          **Kafka:**
+          - Brokers: {{ infrastructure_config.kafka_bootstrap_brokers_tls.value }}
+          
+          **Firestore:**
+          - Project: {{ infrastructure_config.firestore_project_id.value }}
+          - Database: {{ infrastructure_config.firestore_database_name.value }}
+          
+          🔐 **Security Notes:**
+          - All connections use TLS/SSL encryption
+          - Databases are in private subnets
+          - Security groups restrict access to VPC only
+          
+          📝 **Next Steps:**
+          1. Use the connection strings in your Multi-Auth configuration
+          2. Run database migrations if needed
+          3. Configure your application with the generated config file
+      when: infrastructure_config is defined
+      
+    - name: Create database initialization script
+      template:
+        src: init-databases.sql.j2
+        dest: "./init-multiauth-databases.sql"
+        mode: '0644'
+      vars:
+        postgres_endpoint: "{{ infrastructure_config.postgres_endpoint.value if infrastructure_config is defined else 'localhost' }}"
+        
+    - name: Display manual steps
+      debug:
+        msg: |
+          🚀 **Manual Steps to Complete Setup:**
+          
+          1. **Apply Terraform (if not auto-approved):**
+             ```bash
+             cd {{ terraform_dir }}
+             terraform apply
+             ```
+          
+          2. **Initialize PostgreSQL schema:**
+             ```bash
+             psql "{{ infrastructure_config.postgres_connection_string.value if infrastructure_config is defined else 'postgresql://user:pass@localhost:5432/multiauth' }}" -f init-multiauth-databases.sql
+             ```
+          
+          3. **Configure Multi-Auth application:**
+             - Copy `multiauth-infrastructure-config.yml` to your application
+             - Set environment variables or use the config file
+             
+          4. **Test connections:**
+             ```bash
+             # Test PostgreSQL
+             psql "{{ infrastructure_config.postgres_connection_string.value if infrastructure_config is defined else 'postgresql://user:pass@localhost:5432/multiauth' }}" -c "SELECT 1;"
+             
+             # Test MongoDB
+             mongosh "{{ infrastructure_config.mongodb_connection_string.value if infrastructure_config is defined else 'mongodb://localhost:27017/multiauth' }}"
+             ```
+      
+    - name: Save sensitive outputs to encrypted file
+      copy:
+        content: |
+          # Multi-Auth Infrastructure Secrets
+          # Generated: {{ ansible_date_time.iso8601 }}
+          # Environment: {{ environment }}
+          
+          export POSTGRES_CONNECTION_STRING="{{ infrastructure_config.postgres_connection_string.value if infrastructure_config is defined else '' }}"
+          export MONGODB_CONNECTION_STRING="{{ infrastructure_config.mongodb_connection_string.value if infrastructure_config is defined else '' }}"
+          export KAFKA_BOOTSTRAP_SERVERS="{{ infrastructure_config.kafka_bootstrap_brokers_tls.value if infrastructure_config is defined else '' }}"
+          export FIRESTORE_PROJECT_ID="{{ infrastructure_config.firestore_project_id.value if infrastructure_config is defined else '' }}"
+          export FIRESTORE_DATABASE="{{ infrastructure_config.firestore_database_name.value if infrastructure_config is defined else '' }}"
+        dest: "./multiauth-secrets.env"
+        mode: '0600'
+      when: infrastructure_config is defined
+      no_log: true
