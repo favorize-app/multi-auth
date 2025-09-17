@@ -136,7 +136,7 @@ class SmtpEmailProvider(
 
         return try {
             val token = CodeGenerationUtil.generateAlphanumericResetToken()
-            val expiresAt = System.now() + kotlin.time.Duration.parse("PT1H") // 1 hour
+            val expiresAt = Clock.System.now() + kotlin.time.Duration.parse("PT1H") // 1 hour
 
             // Store reset token
             resetTokens[email] = StoredResetToken(token, expiresAt)
