@@ -407,7 +407,7 @@ class EnhancedOAuthManager(
     }
 
     private fun isTokenRefreshNeeded(linkedAccount: LinkedAccount): Boolean {
-        val bufferTime = Clock.System.now() + OAUTH_TOKEN_EXPIRY_BUFFER
+        val bufferTime = Clock.System.now() + TimeoutConstants.OAUTH_TOKEN_REFRESH_BUFFER
         return linkedAccount.tokenExpiry < bufferTime
     }
 
