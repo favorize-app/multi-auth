@@ -1,6 +1,9 @@
+@file:OptIn(ExperimentalTime::class)
+
 package app.multiauth.models
 
 import app.multiauth.models.User
+import kotlin.time.ExperimentalTime
 
 import kotlin.test.Test
 import kotlin.test.assertEquals

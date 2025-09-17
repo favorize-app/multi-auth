@@ -4,6 +4,7 @@ package app.multiauth.models
 
 import kotlin.time.Instant
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Contextual
 import kotlin.time.ExperimentalTime
 
 /**
@@ -74,6 +75,7 @@ sealed class Validation {
     data class Success(
         val userId: String,
         val method: String,
+        @Contextual
         val timestamp: Instant
     ) : Validation()
 
@@ -82,6 +84,7 @@ sealed class Validation {
         val userId: String,
         val method: String,
         val reason: String,
+        @Contextual
         val timestamp: Instant
     ) : Validation()
 
@@ -89,6 +92,7 @@ sealed class Validation {
     data class Pending(
         val userId: String,
         val method: String,
+        @Contextual
         val expiresAt: Instant
     ) : Validation()
 }

@@ -37,7 +37,7 @@ class SmtpEmailProvider(
 
         return try {
             val code = CodeGenerationUtil.generateVerificationCode()
-            val expiresAt = System.now() + TimeoutConstants.EMAIL_VERIFICATION_CODE_TIMEOUT
+            val expiresAt = Clock.System.now() + TimeoutConstants.EMAIL_VERIFICATION_CODE_TIMEOUT
 
             // Store verification code
             verificationCodes[email] = StoredVerificationCode(code, expiresAt)

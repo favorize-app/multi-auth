@@ -4,6 +4,7 @@ package app.multiauth.models
 
 import kotlin.time.Instant
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Contextual
 import kotlin.time.ExperimentalTime
 
 /**
@@ -15,6 +16,7 @@ data class AuthHistoryEntry(
     /**
      * When this state change occurred
      */
+    @Contextual
     val timestamp: Instant,
 
     /**

@@ -27,6 +27,7 @@ import app.multiauth.util.TimeoutConstants
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * Main authentication engine that orchestrates all authentication operations.

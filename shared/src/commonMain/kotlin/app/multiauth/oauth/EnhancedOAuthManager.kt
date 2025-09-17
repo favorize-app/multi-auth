@@ -5,6 +5,7 @@ package app.multiauth.oauth
 
 
 import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
 import app.multiauth.util.TimeoutConstants
 import app.multiauth.core.AuthEngine
 import app.multiauth.events.AuthEvent

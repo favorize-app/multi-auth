@@ -4,7 +4,9 @@ package app.multiauth.models
 
 import kotlin.time.Instant
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Contextual
 import kotlin.time.ExperimentalTime
+import kotlin.time.Clock
 
 /**
  * Represents an OAuth account linked to a user.
@@ -75,16 +77,19 @@ data class OAuthAccount(
     /**
      * When this OAuth account was first linked
      */
+    @Contextual
     val createdAt: Instant,
 
     /**
      * When this OAuth account was last updated
      */
+    @Contextual
     val updatedAt: Instant,
 
     /**
      * When the tokens were last refreshed
      */
+    @Contextual
     val lastTokenRefresh: Instant?
 ) {
     /**
@@ -123,6 +128,7 @@ data class OAuthAuthorizationRequest(
     val codeVerifier: String?,
     val redirectUri: String,
     val scopes: List<String>,
+    @Contextual
     val createdAt: Instant
 )
 

@@ -6,6 +6,7 @@ package app.multiauth.security
 
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.json.Json
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
@@ -658,6 +659,7 @@ data class DataProcessingRecord(
     val complianceStandards: List<String>,
     val securityMeasures: List<String>,
     val accessControls: List<String>,
+    @Contextual
     val timestamp: Instant,
     val metadata: Map<String, String>?
 )
@@ -669,8 +671,10 @@ data class ConsentRecord(
     val purpose: String,
     val isExplicit: Boolean,
     val isWithdrawable: Boolean,
+    @Contextual
     val expirationDate: Instant?,
     val complianceStandards: List<String>,
+    @Contextual
     val timestamp: Instant,
     val metadata: Map<String, String>?
 )
@@ -680,7 +684,9 @@ data class DSARRequest(
     val id: String,
     val userId: String,
     val dataTypes: List<String>,
+    @Contextual
     val requestDate: Instant,
+    @Contextual
     val expectedResponseDate: Instant
 )
 
@@ -690,6 +696,7 @@ data class DSARResult(
     val status: DSARStatus,
     val reason: String,
     val dataProvided: DSARReport?,
+    @Contextual
     val timestamp: Instant
 )
 
@@ -702,6 +709,7 @@ data class DSARReport(
     val processingRecords: List<DataProcessingRecord>,
     val consentRecords: List<ConsentRecord>,
     val retentionCompliance: RetentionComplianceResult,
+    @Contextual
     val timestamp: Instant
 )
 
@@ -718,6 +726,7 @@ data class UserDataCollection(
     val personalData: List<DataField>,
     val processingRecords: List<DataProcessingRecord>,
     val consentRecords: List<ConsentRecord>,
+    @Contextual
     val timestamp: Instant
 )
 
@@ -727,6 +736,7 @@ data class ComplianceEvent(
     val type: ComplianceEventType,
     val standard: String,
     val description: String,
+    @Contextual
     val timestamp: Instant,
     val metadata: Map<String, String>?
 )
@@ -736,6 +746,7 @@ data class ComplianceResult(
     val isCompliant: Boolean,
     val issues: List<String>,
     val recommendations: List<String>,
+    @Contextual
     val timestamp: Instant
 )
 
@@ -752,6 +763,7 @@ data class RetentionComplianceResult(
     val isCompliant: Boolean,
     val issues: List<String>,
     val recommendations: List<String>,
+    @Contextual
     val timestamp: Instant
 )
 
@@ -771,6 +783,7 @@ data class ComplianceReport(
     val sections: List<ComplianceReportSection>,
     val overallCompliance: Double,
     val recommendations: List<String>,
+    @Contextual
     val timestamp: Instant
 )
 
@@ -800,7 +813,9 @@ data class ComplianceFinding(
 
 @Serializable
 data class TimeRange(
+    @Contextual
     val start: Instant,
+    @Contextual
     val end: Instant
 )
 

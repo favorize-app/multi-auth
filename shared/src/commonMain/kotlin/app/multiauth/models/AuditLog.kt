@@ -4,6 +4,7 @@ package app.multiauth.models
 
 import kotlin.time.Instant
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Contextual
 import kotlin.time.ExperimentalTime
 
 /**
@@ -50,6 +51,7 @@ data class AuditLog(
     /**
      * When this event occurred
      */
+    @Contextual
     val timestamp: Instant,
 
     /**
@@ -256,7 +258,9 @@ data class AuditLogQuery(
     val eventTypes: List<AuditEventType>? = null,
     val results: List<AuditResult>? = null,
     val severities: List<AuditSeverity>? = null,
+    @Contextual
     val startTime: Instant? = null,
+    @Contextual
     val endTime: Instant? = null,
     val ipAddress: String? = null,
     val resourceType: String? = null,
@@ -283,5 +287,16 @@ data class AuditLogStats(
     val alertTriggeredCount: Long,
     val uniqueUsersCount: Long,
     val uniqueIpAddressesCount: Long,
-    val timeRange: Pair<Instant, Instant>?
+    val timeRange: TimeRange?
+)
+
+/**
+ * Time range for audit log queries
+ */
+@Serializable
+data class TimeRange(
+    @Contextual
+    val start: Instant,
+    @Contextual
+    val end: Instant
 )

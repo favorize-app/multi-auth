@@ -1,9 +1,12 @@
+@file:OptIn(ExperimentalTime::class)
+
 package app.multiauth.models
 
 import app.multiauth.models.AuthState
 import app.multiauth.models.User
 import app.multiauth.models.TokenPair
 import app.multiauth.models.VerificationMethod
+import kotlin.time.ExperimentalTime
 
 import kotlin.test.Test
 import kotlin.test.assertTrue

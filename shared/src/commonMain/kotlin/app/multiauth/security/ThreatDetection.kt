@@ -6,6 +6,7 @@ package app.multiauth.security
 
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Contextual
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 import kotlin.time.Clock
@@ -143,6 +144,7 @@ data class SecurityEvent(
     val id: String,
     val userId: String,
     val eventType: String,
+    @Contextual
     val timestamp: Instant,
     val ipAddress: String? = null,
     val deviceInfo: String? = null,
@@ -155,5 +157,6 @@ data class ThreatAnalysisResult(
     val eventId: String,
     val threatLevel: String,
     val recommendations: List<String>,
+    @Contextual
     val timestamp: Instant
 )
