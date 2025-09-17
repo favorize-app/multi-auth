@@ -642,7 +642,7 @@ class ComplianceFramework {
     }
 
     private fun generateEventId(): String = "event_${Clock.System.now().epochSeconds}_${(0..9999).random()}"
-    private fun generateReportId(): String = "report_${kClock.System.now().epochSeconds}_${(0..9999).random()}"
+    private fun generateReportId(): String = "report_${Clock.System.now().epochSeconds}_${(0..9999).random()}"
 }
 
 // Data classes for compliance framework
