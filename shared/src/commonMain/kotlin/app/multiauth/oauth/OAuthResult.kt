@@ -1,8 +1,11 @@
+@file:OptIn(ExperimentalTime::class)
+
 package app.multiauth.oauth
 
-import kotlinx.datetime.Instant
-import kotlinx.datetime.Clock
+import kotlin.time.Instant
+import kotlin.time.Clock
 import kotlinx.serialization.Serializable
+import kotlin.time.ExperimentalTime
 
 /**
  * Result of OAuth authentication operations.
@@ -10,7 +13,7 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 sealed class OAuthResult {
-    
+
     /**
      * Successful OAuth authentication with tokens and user info.
      */
@@ -24,7 +27,7 @@ sealed class OAuthResult {
         val userInfo: OAuthUserInfo? = null,
         val timestamp: @kotlinx.serialization.Contextual Instant = Clock.System.now()
     ) : OAuthResult()
-    
+
     /**
      * OAuth authentication failed with a specific error.
      */
@@ -33,7 +36,7 @@ sealed class OAuthResult {
         val error: OAuthError,
         val timestamp: @kotlinx.serialization.Contextual Instant = Clock.System.now()
     ) : OAuthResult()
-    
+
     /**
      * OAuth flow was cancelled by the user.
      */
@@ -42,7 +45,7 @@ sealed class OAuthResult {
         val reason: String? = null,
         val timestamp: @kotlinx.serialization.Contextual Instant = Clock.System.now()
     ) : OAuthResult()
-    
+
     /**
      * OAuth flow is in progress.
      */
@@ -51,7 +54,7 @@ sealed class OAuthResult {
         val step: String,
         val timestamp: @kotlinx.serialization.Contextual Instant = Clock.System.now()
     ) : OAuthResult()
-    
+
     /**
      * OAuth flow requires additional action (e.g., 2FA, consent).
      */
@@ -75,7 +78,7 @@ data class OAuthError(
     val errorUri: String? = null,
     val state: String? = null
 ) {
-    
+
     companion object {
         /**
          * Creates an OAuth error from standard OAuth 2.0 error response.
@@ -99,7 +102,7 @@ data class OAuthError(
                 "unsupported_grant_type" -> OAuthErrorType.UNSUPPORTED_GRANT_TYPE
                 else -> OAuthErrorType.UNKNOWN_ERROR
             }
-            
+
             return OAuthError(
                 type = errorType,
                 message = error,
@@ -108,7 +111,7 @@ data class OAuthError(
                 state = state
             )
         }
-        
+
         /**
          * Creates a network-related OAuth error.
          */
@@ -119,7 +122,7 @@ data class OAuthError(
                 description = cause?.message
             )
         }
-        
+
         /**
          * Creates a configuration-related OAuth error.
          */
@@ -148,7 +151,7 @@ enum class OAuthErrorType {
     INVALID_CLIENT,
     INVALID_GRANT,
     UNSUPPORTED_GRANT_TYPE,
-    
+
     // Custom errors
     NETWORK_ERROR,
     CONFIGURATION_ERROR,

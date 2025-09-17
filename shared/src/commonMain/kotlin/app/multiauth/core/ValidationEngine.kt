@@ -1,7 +1,9 @@
+@file:OptIn(ExperimentalTime::class)
+
 package app.multiauth.core
 
-import kotlinx.datetime.Instant
-import kotlinx.datetime.Clock
+
+
 import app.multiauth.events.*
 import app.multiauth.events.Validation as AuthEventValidation
 import app.multiauth.util.Logger
@@ -11,6 +13,8 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 /**
  * Handles validation of tokens, permissions, and authentication state.
@@ -21,37 +25,37 @@ class ValidationEngine private constructor(
 ) {
     private val jwtTokenManager = JwtTokenManager()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    
+
     private val _validationResults = MutableStateFlow<Map<String, ValidationResult>>(emptyMap())
     val validationResults: StateFlow<Map<String, ValidationResult>> = _validationResults.asStateFlow()
-    
+
     init {
         Logger.info("ValidationEngine", "ValidationEngine initialized")
     }
-    
+
     /**
      * Validate an access token.
      */
     suspend fun validateAccessToken(token: String): ValidationResult {
         Logger.debug("ValidationEngine", "Validating JWT access token")
-        
+
         return try {
             val metadata = EventMetadata(source = "ValidationEngine")
 
             if (token.isBlank()) {
                 return ValidationResult.Failure(ValidationError.InvalidToken("Token is empty"))
             }
-            
+
             // Use JWT token manager for validation
             when (val jwtResult = jwtTokenManager.validateToken(token)) {
                 is TokenValidationResult.Valid -> {
                     val payload = jwtResult.payload
-                    
+
                     // Ensure this is an access token
                     if (payload.tokenType != "access") {
                         return ValidationResult.Failure(ValidationError.InvalidToken("Not an access token"))
                     }
-                    
+
                     val result = ValidationResult.Success(
                         TokenValidation(
                             isValid = true,
@@ -61,26 +65,26 @@ class ValidationEngine private constructor(
                             permissions = payload.roles
                         )
                     )
-                    
+
                     // Cache validation result
                     cacheValidationResult(token, result)
                     eventBus.dispatch(AuthEventValidation.TokenValidationCompleted(token, true), metadata)
                     result
                 }
-                
+
                 is TokenValidationResult.Expired -> {
                     val result = ValidationResult.Failure(ValidationError.TokenExpired("JWT token has expired"))
                     eventBus.dispatch(AuthEventValidation.TokenValidationCompleted(token, false), metadata)
                     result
                 }
-                
+
                 is TokenValidationResult.Invalid -> {
                     val result = ValidationResult.Failure(ValidationError.InvalidToken("JWT validation failed: ${jwtResult.reason}"))
                     eventBus.dispatch(AuthEventValidation.TokenValidationCompleted(token, false), metadata)
                     result
                 }
             }
-            
+
         } catch (e: Exception) {
             val metadata = EventMetadata(source = "ValidationEngine")
             val result = ValidationResult.Failure(ValidationError.InvalidToken("Token validation failed: ${e.message}"))
@@ -88,7 +92,7 @@ class ValidationEngine private constructor(
             result
         }
     }
-    
+
     /**
      * Validate user permissions for a specific action.
      */
@@ -98,7 +102,7 @@ class ValidationEngine private constructor(
         resource: String? = null
     ): ValidationResult {
         Logger.debug("ValidationEngine", "Validating permissions for user: $userId")
-        
+
         return try {
             val metadata = EventMetadata(source = "ValidationEngine")
 
@@ -108,7 +112,7 @@ class ValidationEngine private constructor(
             val hasAllPermissions = requiredPermissions.all { permission ->
                 userPermissions.contains(permission)
             }
-            
+
             if (hasAllPermissions) {
                 val result = ValidationResult.Success(
                     PermissionValidation(
@@ -118,12 +122,12 @@ class ValidationEngine private constructor(
                         resource = resource
                     )
                 )
-                
+
                 eventBus.dispatch(
                     AuthEventValidation.PermissionValidationCompleted(userId, requiredPermissions.joinToString(","), true),
                     metadata
                 )
-                
+
                 result
             } else {
                 val missingPermissions = requiredPermissions - userPermissions
@@ -131,7 +135,7 @@ class ValidationEngine private constructor(
                     "Missing permissions: ${missingPermissions.joinToString(", ")}",
                     missingPermissions
                 )
-                
+
                 val result = ValidationResult.Failure(error)
 
                 val eventMetadata = EventMetadata(source="ValidationEngine")
@@ -139,52 +143,52 @@ class ValidationEngine private constructor(
                     AuthEventValidation.PermissionValidationCompleted(userId, requiredPermissions.joinToString(","), false),
                     eventMetadata
                 )
-                
+
                 result
             }
-            
+
         } catch (e: Exception) {
             val error = ValidationError.ValidationFailed("Permission validation failed: ${e.message}")
             ValidationResult.Failure(error)
         }
     }
-    
+
     /**
      * Validate email format and domain.
      */
     fun validateEmail(email: String): ValidationResult {
         Logger.debug("ValidationEngine", "Validating email: $email")
-        
+
         return try {
             if (email.isBlank()) {
                 return ValidationResult.Failure(ValidationError.InvalidEmail("Email is empty"))
             }
-            
+
             if (!email.contains("@")) {
                 return ValidationResult.Failure(ValidationError.InvalidEmail("Email must contain @ symbol"))
             }
-            
+
             val parts = email.split("@")
             if (parts.size != 2) {
                 return ValidationResult.Failure(ValidationError.InvalidEmail("Invalid email format"))
             }
-            
+
             val localPart = parts[0]
             val domain = parts[1]
-            
+
             if (localPart.isBlank() || domain.isBlank()) {
                 return ValidationResult.Failure(ValidationError.InvalidEmail("Local part and domain cannot be empty"))
             }
-            
+
             if (localPart.length > 64 || domain.length > 255) {
                 return ValidationResult.Failure(ValidationError.InvalidEmail("Email parts exceed maximum length"))
             }
-            
+
             // Basic domain validation
             if (!domain.contains(".")) {
                 return ValidationResult.Failure(ValidationError.InvalidEmail("Domain must contain at least one dot"))
             }
-            
+
             ValidationResult.Success(
                 EmailValidation(
                     isValid = true,
@@ -193,34 +197,34 @@ class ValidationEngine private constructor(
                     domain = domain
                 )
             )
-            
+
         } catch (e: Exception) {
             ValidationResult.Failure(ValidationError.ValidationFailed("Email validation failed: ${e.message}"))
         }
     }
-    
+
     /**
      * Validate phone number format.
      */
     fun validatePhoneNumber(phoneNumber: String): ValidationResult {
         Logger.debug("ValidationEngine", "Validating phone number: $phoneNumber")
-        
+
         return try {
             if (phoneNumber.isBlank()) {
                 return ValidationResult.Failure(ValidationError.InvalidPhoneNumber("Phone number is empty"))
             }
-            
+
             // Remove common separators
             val cleanNumber = phoneNumber.replace(Regex("[\\s\\-\\(\\)\\.]"), "")
-            
+
             if (cleanNumber.length < 7 || cleanNumber.length > 15) {
                 return ValidationResult.Failure(ValidationError.InvalidPhoneNumber("Phone number length invalid"))
             }
-            
+
             if (!cleanNumber.all { it.isDigit() }) {
                 return ValidationResult.Failure(ValidationError.InvalidPhoneNumber("Phone number must contain only digits"))
             }
-            
+
             ValidationResult.Success(
                 PhoneNumberValidation(
                     isValid = true,
@@ -229,46 +233,46 @@ class ValidationEngine private constructor(
                     countryCode = extractCountryCode(cleanNumber)
                 )
             )
-            
+
         } catch (e: Exception) {
             ValidationResult.Failure(ValidationError.ValidationFailed("Phone number validation failed: ${e.message}"))
         }
     }
-    
+
     /**
      * Validate password strength.
      */
     fun validatePassword(password: String): ValidationResult {
         Logger.debug("ValidationEngine", "Validating password strength")
-        
+
         return try {
             if (password.isBlank()) {
                 return ValidationResult.Failure(ValidationError.WeakPassword("Password is empty"))
             }
-            
+
             if (password.length < 8) {
                 return ValidationResult.Failure(ValidationError.WeakPassword("Password must be at least 8 characters"))
             }
-            
+
             val hasUpperCase = password.any { it.isUpperCase() }
             val hasLowerCase = password.any { it.isLowerCase() }
             val hasDigit = password.any { it.isDigit() }
             val hasSpecialChar = password.any { !it.isLetterOrDigit() }
-            
+
             val score = listOf(hasUpperCase, hasLowerCase, hasDigit, hasSpecialChar)
                 .count { it }
-            
+
             val strength = when {
                 score >= 4 -> PasswordStrength.STRONG
                 score >= 3 -> PasswordStrength.MEDIUM
                 score >= 2 -> PasswordStrength.WEAK
                 else -> PasswordStrength.VERY_WEAK
             }
-            
+
             if (strength == PasswordStrength.VERY_WEAK) {
                 return ValidationResult.Failure(ValidationError.WeakPassword("Password is too weak"))
             }
-            
+
             ValidationResult.Success(
                 PasswordValidation(
                     isValid = true,
@@ -280,36 +284,36 @@ class ValidationEngine private constructor(
                     hasSpecialChar = hasSpecialChar
                 )
             )
-            
+
         } catch (e: Exception) {
             ValidationResult.Failure(ValidationError.ValidationFailed("Password validation failed: ${e.message}"))
         }
     }
-    
+
     /**
      * Clear validation cache for a specific token.
      */
     fun clearValidationCache(token: String) {
         _validationResults.value = _validationResults.value - token
     }
-    
+
     /**
      * Clear all validation cache.
      */
     fun clearAllValidationCache() {
         _validationResults.value = emptyMap()
     }
-    
+
     private fun cacheValidationResult(token: String, result: ValidationResult) {
         _validationResults.value = _validationResults.value + (token to result)
     }
-    
+
     private fun extractPermissions(token: String): List<String> {
         // TODO: Implement actual permission extraction from JWT
         // For now, return basic permissions
         return listOf("read:profile", "write:profile")
     }
-    
+
     private fun getUserPermissions(userId: String): List<String> {
         // TODO: Implement actual permission fetching from backend
         // For now, return mock permissions
@@ -319,20 +323,20 @@ class ValidationEngine private constructor(
             else -> listOf("read:profile", "write:profile")
         }
     }
-    
+
     private fun extractCountryCode(phoneNumber: String): String? {
         // TODO: Implement proper country code detection
         // For now, assume US numbers start with 1
         return if (phoneNumber.startsWith("1") && phoneNumber.length == 11) "1" else null
     }
-    
+
     companion object {
         private var INSTANCE: ValidationEngine? = null
-        
+
         fun getInstance(): ValidationEngine {
             return INSTANCE ?: ValidationEngine().also { INSTANCE = it }
         }
-        
+
         fun reset() {
             INSTANCE = null
         }
@@ -345,10 +349,10 @@ class ValidationEngine private constructor(
 sealed class ValidationResult {
     data class Success<T>(val data: T) : ValidationResult()
     data class Failure(val error: ValidationError) : ValidationResult()
-    
+
     fun isSuccess(): Boolean = this is Success<*> // ?
     fun isFailure(): Boolean = this is Failure
-    
+
             fun getOrNull(): Any? = when (this) {
             is Success<*> -> data
             is Failure -> null

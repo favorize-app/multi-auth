@@ -1,8 +1,11 @@
+@file:OptIn(ExperimentalTime::class)
+
 package app.multiauth.models
 
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import app.multiauth.oauth.OAuthProvider
 import kotlinx.serialization.Serializable
+import kotlin.time.ExperimentalTime
 
 @Serializable
 sealed class AuthMethod {

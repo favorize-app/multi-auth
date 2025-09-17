@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package app.multiauth.oauth.clients
 
 import app.multiauth.oauth.HttpClient
@@ -11,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlin.time.ExperimentalTime
 
 /**
  * Real Discord OAuth client implementation.
@@ -22,19 +25,19 @@ class DiscordOAuthClient(
     override val logger: Logger
 ) : OAuthClient {
     private val json = Json { ignoreUnknownKeys = true }
-    
+
     companion object {
         private const val AUTH_URL = "https://discord.com/api/oauth2/authorize"
         private const val TOKEN_URL = "https://discord.com/api/oauth2/token"
         private const val USER_INFO_URL = "https://discord.com/api/users/@me"
         private const val REVOKE_URL = "https://discord.com/api/oauth2/token/revoke"
-        
+
         private const val DEFAULT_SCOPE = "identify email"
         private const val RESPONSE_TYPE = "code"
         private const val GRANT_TYPE_AUTH_CODE = "authorization_code"
         private const val GRANT_TYPE_REFRESH = "refresh_token"
     }
-    
+
     override suspend fun getAuthorizationUrl(
         state: String,
         codeChallenge: String,
@@ -49,19 +52,19 @@ class DiscordOAuthClient(
             append("&code_challenge=$codeChallenge")
             append("&code_challenge_method=$codeChallengeMethod")
         }
-        
+
         val authUrl = "$AUTH_URL$params"
-        logger.debug("oath", "Generated Discord OAuth authorization URL: $authUrl")
+        logger.debug("oauth", "Generated Discord OAuth authorization URL: $authUrl")
         return authUrl
     }
-    
+
     override suspend fun exchangeCodeForTokens(
         authorizationCode: String,
         codeVerifier: String
     ): OAuthResult {
         return try {
-            logger.debug("oath", "Exchanging authorization code for Discord tokens")
-            
+            logger.debug("oauth", "Exchanging authorization code for Discord tokens")
+
             val tokenRequest = DiscordTokenRequest(
                 clientId = config.clientId,
                 clientSecret = config.clientSecret,
@@ -70,18 +73,18 @@ class DiscordOAuthClient(
                 grantType = GRANT_TYPE_AUTH_CODE,
                 codeVerifier = codeVerifier
             )
-            
+
             val response = withContext(Dispatchers.Default) {
                 httpClient.post(TOKEN_URL) {
                     setBody(tokenRequest.toFormData())
                     header("Content-Type", "application/x-www-form-urlencoded")
                 }
             }
-            
+
             if (response.status.isSuccess) {
                 val tokenResponse = json.decodeFromString<DiscordTokenResponse>(response.bodyAsText())
-                logger.debug("oath", "Successfully exchanged code for Discord tokens")
-                
+                logger.debug("oauth", "Successfully exchanged code for Discord tokens")
+
                 OAuthResult.Success(
                     accessToken = tokenResponse.accessToken,
                     refreshToken = tokenResponse.refreshToken,
@@ -91,8 +94,8 @@ class DiscordOAuthClient(
                 )
             } else {
                 val errorResponse = json.decodeFromString<DiscordErrorResponse>(response.bodyAsText())
-                logger.error("oath", "Failed to exchange code for Discord tokens: ${errorResponse.error}")
-                
+                logger.error("oauth", "Failed to exchange code for Discord tokens: ${errorResponse.error}")
+
                 OAuthResult.Failure(
                     OAuthError.fromOAuthResponse(
                         error = errorResponse.error,
@@ -110,29 +113,29 @@ class DiscordOAuthClient(
             )
         }
     }
-    
+
     override suspend fun refreshAccessToken(refreshToken: String): OAuthResult {
         return try {
-            logger.debug("oath", "Refreshing Discord access token")
-            
+            logger.debug("oauth", "Refreshing Discord access token")
+
             val refreshRequest = DiscordRefreshRequest(
                 clientId = config.clientId,
                 clientSecret = config.clientSecret,
                 refreshToken = refreshToken,
                 grantType = GRANT_TYPE_REFRESH
             )
-            
+
             val response = withContext(Dispatchers.Default) {
                 httpClient.post(TOKEN_URL) {
                     setBody(refreshRequest.toFormData())
                     header("Content-Type", "application/x-www-form-urlencoded")
                 }
             }
-            
+
             if (response.status.isSuccess) {
                 val tokenResponse = json.decodeFromString<DiscordTokenResponse>(response.bodyAsText())
-                logger.debug("oath", "Successfully refreshed Discord access token")
-                
+                logger.debug("oauth", "Successfully refreshed Discord access token")
+
                 OAuthResult.Success(
                     accessToken = tokenResponse.accessToken,
                     refreshToken = refreshToken, // Keep the original refresh token
@@ -142,8 +145,8 @@ class DiscordOAuthClient(
                 )
             } else {
                 val errorResponse = json.decodeFromString<DiscordErrorResponse>(response.bodyAsText())
-                logger.error("oath", "Failed to refresh Discord access token: ${errorResponse.error}")
-                
+                logger.error("oauth", "Failed to refresh Discord access token: ${errorResponse.error}")
+
                 OAuthResult.Failure(
                     OAuthError.fromOAuthResponse(
                         error = errorResponse.error,
@@ -161,21 +164,21 @@ class DiscordOAuthClient(
             )
         }
     }
-    
+
     override suspend fun getUserInfo(accessToken: String): OAuthResult {
         return try {
-            logger.debug("oath", "Fetching Discord user info")
-            
+            logger.debug("oauth", "Fetching Discord user info")
+
             val response = withContext(Dispatchers.Default) {
                 httpClient.get(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                 }
             }
-            
+
             if (response.status.isSuccess) {
                 val userInfo = json.decodeFromString<DiscordUserInfo>(response.bodyAsText())
-                logger.debug("oath", "Successfully fetched Discord user info: ${userInfo.username}")
-                
+                logger.debug("oauth", "Successfully fetched Discord user info: ${userInfo.username}")
+
                 OAuthResult.Success(
                     accessToken = accessToken,
                     refreshToken = null,
@@ -196,8 +199,8 @@ class DiscordOAuthClient(
                 )
             } else {
                 val errorResponse = json.decodeFromString<DiscordErrorResponse>(response.bodyAsText())
-                logger.error("oath", "Failed to fetch Discord user info: ${errorResponse.error}")
-                
+                logger.error("oauth", "Failed to fetch Discord user info: ${errorResponse.error}")
+
                 OAuthResult.Failure(
                     OAuthError.fromOAuthResponse(
                         error = errorResponse.error,
@@ -215,54 +218,54 @@ class DiscordOAuthClient(
             )
         }
     }
-    
+
     override suspend fun revokeToken(token: String): Boolean {
         return try {
-            logger.debug("oath", "Revoking Discord OAuth token")
-            
+            logger.debug("oauth", "Revoking Discord OAuth token")
+
             val response = withContext(Dispatchers.Default) {
                 httpClient.post(REVOKE_URL) {
                     setBody("token=$token")
                     header("Content-Type", "application/x-www-form-urlencoded")
                 }
             }
-            
+
             val success = response.status.isSuccess
             if (success) {
-                logger.debug("oath", "Successfully revoked Discord OAuth token")
+                logger.debug("oauth", "Successfully revoked Discord OAuth token")
             } else {
                 logger.warn("discord", "Failed to revoke Discord OAuth token: ${response.status}")
             }
-            
+
             success
         } catch (e: Exception) {
             logger.error("discord", "Exception during Discord token revocation", e)
             false
         }
     }
-    
+
     override suspend fun validateToken(accessToken: String): Boolean {
         return try {
-            logger.debug("oath", "Validating Discord OAuth token")
-            
+            logger.debug("oauth", "Validating Discord OAuth token")
+
             val response = withContext(Dispatchers.Default) {
                 httpClient.get(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                 }
             }
-            
+
             val isValid = response.status.isSuccess
-            logger.debug("oath", "Discord OAuth token validation result: $isValid")
-            
+            logger.debug("oauth", "Discord OAuth token validation result: $isValid")
+
             isValid
         } catch (e: Exception) {
             logger.error("discord", "Exception during Discord token validation", e)
             false
         }
     }
-    
+
     // Data classes for Discord OAuth API
-    
+
     @Serializable
     private data class DiscordTokenRequest(
         val clientId: String,
@@ -283,7 +286,7 @@ class DiscordOAuthClient(
             }
         }
     }
-    
+
     @Serializable
     private data class DiscordRefreshRequest(
         val clientId: String,
@@ -300,7 +303,7 @@ class DiscordOAuthClient(
             }
         }
     }
-    
+
     @Serializable
     private data class DiscordTokenResponse(
         val accessToken: String,
@@ -309,7 +312,7 @@ class DiscordOAuthClient(
         val tokenType: String,
         val scope: String
     )
-    
+
     @Serializable
     private data class DiscordUserInfo(
         val id: String,
@@ -319,7 +322,7 @@ class DiscordOAuthClient(
         val avatar: String? = null,
         val locale: String? = null
     )
-    
+
     @Serializable
     private data class DiscordErrorResponse(
         val error: String,

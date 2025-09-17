@@ -1,9 +1,13 @@
+@file:OptIn(ExperimentalTime::class)
+
 package app.multiauth.database
 
-import kotlinx.datetime.Clock
+
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlin.time.ExperimentalTime
+import kotlin.time.Clock
 
 /**
  * Manages database migrations and schema updates.
@@ -12,48 +16,48 @@ import kotlinx.serialization.json.Json
 class DatabaseMigrationManager(
     private val database: Database
 ) {
-    
+
     private val logger = Logger.getLogger(this::class)
-    
+
     companion object {
         private const val MIGRATIONS_TABLE = "schema_migrations"
         private const val CURRENT_VERSION = 1
     }
-    
+
     /**
      * Runs all pending migrations to bring the database to the current version.
-     * 
+     *
      * @return Migration result with details about what was executed
      */
     suspend fun migrate(): MigrationResult {
         logger.info("db", "Starting database migration to version $CURRENT_VERSION")
-        
+
         try {
             // Ensure migrations table exists
             createMigrationsTableIfNotExists()
-            
+
             // Get current version
             val currentVersion = getCurrentVersion()
             logger.info("database", "Current database version: $currentVersion")
-            
+
             if (currentVersion >= CURRENT_VERSION) {
                 logger.info("database", "Database is already at version $CURRENT_VERSION")
                 return MigrationResult.Success
             }
-            
+
             // Execute pending migrations
             val migrationsExecuted = mutableListOf<MigrationInfo>()
-            
+
             for (version in (currentVersion + 1)..CURRENT_VERSION) {
                 val migration = getMigration(version)
                 if (migration != null) {
                     logger.info("db", "Executing migration to version $version: ${migration.description}")
-                    
+
                     try {
                         executeMigration(migration)
                         recordMigrationExecution(version, migration)
                         migrationsExecuted.add(migration)
-                        
+
                         logger.info("db", "Successfully migrated to version $version")
                     } catch (e: Exception) {
                         logger.error("database", "Migration to version $version failed: ${e.message}")
@@ -63,45 +67,45 @@ class DatabaseMigrationManager(
                     logger.warn("db", "No migration found for version $version")
                 }
             }
-            
+
             logger.info("database", "Database migration completed successfully")
             return MigrationResult.Success
-            
+
         } catch (e: Exception) {
             logger.error("db", "Migration failed: ${e.message}")
             return MigrationResult.Failure("Migration failed: ${e.message}")
         }
     }
-    
+
     /**
      * Rolls back the database to a specific version.
-     * 
+     *
      * @param targetVersion The version to roll back to
      * @return Migration result with details about the rollback
      */
     suspend fun rollback(targetVersion: Int): MigrationResult {
         logger.info("db", "Rolling back database to version $targetVersion")
-        
+
         try {
             val currentVersion = getCurrentVersion()
-            
+
             if (targetVersion >= currentVersion) {
                 return MigrationResult.Failure("Cannot rollback to version $targetVersion (current: $currentVersion)")
             }
-            
+
             // Execute rollback migrations in reverse order
             val rollbacksExecuted = mutableListOf<MigrationInfo>()
-            
+
             for (version in currentVersion downTo (targetVersion + 1)) {
                 val rollback = getRollbackMigration(version)
                 if (rollback != null) {
                     logger.info("db", "Executing rollback from version $version: ${rollback.description}")
-                    
+
                     try {
                         executeMigration(rollback)
                         recordMigrationRollback(version, rollback)
                         rollbacksExecuted.add(rollback)
-                        
+
                         logger.info("db", "Successfully rolled back from version $version")
                     } catch (e: Exception) {
                         logger.error("database", "Rollback from version $version failed: ${e.message}")
@@ -111,19 +115,19 @@ class DatabaseMigrationManager(
                     logger.warn("db", "No rollback migration found for version $version")
                 }
             }
-            
+
             logger.info("database", "Database rollback completed successfully")
             return MigrationResult.Success
-            
+
         } catch (e: Exception) {
             logger.error("db", "Rollback failed: ${e.message}")
             return MigrationResult.Failure("Rollback failed: ${e.message}")
         }
     }
-    
+
     /**
      * Gets the current database version.
-     * 
+     *
      * @return Current database version
      */
     suspend fun getCurrentVersion(): Int {
@@ -131,7 +135,7 @@ class DatabaseMigrationManager(
             val result = database.executeQuery(
                 "SELECT version FROM $MIGRATIONS_TABLE ORDER BY executed_at DESC LIMIT 1"
             )
-            
+
             if (result.isNotEmpty() && result[0].isNotEmpty()) {
                 result[0]["version"]?.toIntOrNull() ?: 0
             } else {
@@ -142,10 +146,10 @@ class DatabaseMigrationManager(
             0
         }
     }
-    
+
     /**
      * Gets migration history.
-     * 
+     *
      * @return List of migration history entries
      */
     suspend fun getMigrationHistory(): List<MigrationHistoryEntry> {
@@ -153,7 +157,7 @@ class DatabaseMigrationManager(
             val result = database.executeQuery(
                 "SELECT version, description, executed_at, rollback_at FROM $MIGRATIONS_TABLE ORDER BY executed_at DESC"
             )
-            
+
             result.map { row ->
                 MigrationHistoryEntry(
                     version = row["version"]?.toIntOrNull() ?: 0,
@@ -167,35 +171,35 @@ class DatabaseMigrationManager(
             emptyList()
         }
     }
-    
+
     /**
      * Checks if the database needs migration.
-     * 
+     *
      * @return True if migration is needed
      */
     suspend fun needsMigration(): Boolean {
         return getCurrentVersion() < CURRENT_VERSION
     }
-    
+
     /**
      * Gets pending migrations.
-     * 
+     *
      * @return List of pending migrations
      */
     suspend fun getPendingMigrations(): List<MigrationInfo> {
         val currentVersion = getCurrentVersion()
         val pending = mutableListOf<MigrationInfo>()
-        
+
         for (version in (currentVersion + 1)..CURRENT_VERSION) {
             val migration = getMigration(version)
             if (migration != null) {
                 pending.add(migration)
             }
         }
-        
+
         return pending
     }
-    
+
     /**
      * Creates the migrations table if it doesn't exist.
      */
@@ -210,17 +214,17 @@ class DatabaseMigrationManager(
                 migration_data TEXT
             )
         """.trimIndent()
-        
+
         database.executeUpdate(createTableSql)
-        
+
         // Create index for performance
         val createIndexSql = "CREATE INDEX IF NOT EXISTS idx_migrations_version ON $MIGRATIONS_TABLE(version)"
         database.executeUpdate(createIndexSql)
     }
-    
+
     /**
      * Gets a migration for a specific version.
-     * 
+     *
      * @param version The version to get migration for
      * @return Migration info or null if not found
      */
@@ -236,10 +240,10 @@ class DatabaseMigrationManager(
             else -> null
         }
     }
-    
+
     /**
      * Gets a rollback migration for a specific version.
-     * 
+     *
      * @param version The version to get rollback for
      * @return Rollback migration info or null if not found
      */
@@ -255,23 +259,23 @@ class DatabaseMigrationManager(
             else -> null
         }
     }
-    
+
     /**
      * Executes a migration.
-     * 
+     *
      * @param migration The migration to execute
      */
     private suspend fun executeMigration(migration: MigrationInfo) {
         // Execute the migration SQL
         database.executeUpdate(migration.sql)
-        
+
         // Log the migration
         logger.info("db", "Executed migration ${migration.version}: ${migration.description}")
     }
-    
+
     /**
      * Records that a migration was executed.
-     * 
+     *
      * @param version The version that was migrated to
      * @param migration The migration that was executed
      */
@@ -280,37 +284,37 @@ class DatabaseMigrationManager(
             INSERT INTO $MIGRATIONS_TABLE (version, description, executed_at, migration_data)
             VALUES (?, ?, datetime('now'), ?)
         """.trimIndent()
-        
+
         val migrationData = Json.encodeToString(MigrationData.serializer(), MigrationData(
             version = version,
             description = migration.description,
             timestamp = Clock.System.now().epochSeconds
         ))
-        
+
         val query = insertSql.replace("?", version.toString()).replace("?", migration.description).replace("?", migrationData)
         database.executeUpdate(query)
     }
-    
+
     /**
      * Records that a migration was rolled back.
-     * 
+     *
      * @param version The version that was rolled back from
      * @param migration The rollback migration that was executed
      */
     private suspend fun recordMigrationRollback(version: Int, migration: MigrationInfo) {
         val updateSql = """
-            UPDATE $MIGRATIONS_TABLE 
+            UPDATE $MIGRATIONS_TABLE
             SET rollback_at = datetime('now')
             WHERE version = ?
         """.trimIndent()
-        
+
         val query = updateSql.replace("?", version.toString())
         database.executeUpdate(query)
     }
-    
+
     /**
      * Gets the SQL for creating the initial schema.
-     * 
+     *
      * @return SQL string for initial schema
      */
     private fun getInitialSchemaSql(): String {
@@ -331,7 +335,7 @@ class DatabaseMigrationManager(
                 avatar_url TEXT,
                 metadata TEXT
             );
-            
+
             -- Create oauth_accounts table
             CREATE TABLE IF NOT EXISTS oauth_accounts (
                 id TEXT PRIMARY KEY,
@@ -348,7 +352,7 @@ class DatabaseMigrationManager(
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                 UNIQUE(provider, provider_user_id)
             );
-            
+
             -- Create sessions table
             CREATE TABLE IF NOT EXISTS sessions (
                 id TEXT PRIMARY KEY,
@@ -362,7 +366,7 @@ class DatabaseMigrationManager(
                 last_used_at TEXT NOT NULL,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             );
-            
+
             -- Create audit_logs table
             CREATE TABLE IF NOT EXISTS audit_logs (
                 id TEXT PRIMARY KEY,
@@ -375,7 +379,7 @@ class DatabaseMigrationManager(
                 severity TEXT DEFAULT 'INFO',
                 metadata TEXT
             );
-            
+
             -- Create indexes for performance
             CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
             CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone_number);
@@ -390,10 +394,10 @@ class DatabaseMigrationManager(
             CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp);
         """.trimIndent()
     }
-    
+
     /**
      * Gets the SQL for rolling back the initial schema.
-     * 
+     *
      * @return SQL string for rolling back initial schema
      */
     private fun getInitialSchemaRollbackSql(): String {
@@ -410,7 +414,7 @@ class DatabaseMigrationManager(
             DROP INDEX IF EXISTS idx_users_anonymous;
             DROP INDEX IF EXISTS idx_users_phone;
             DROP INDEX IF EXISTS idx_users_email;
-            
+
             -- Drop tables
             DROP TABLE IF EXISTS audit_logs;
             DROP TABLE IF EXISTS sessions;

@@ -1,18 +1,22 @@
+@file:OptIn(ExperimentalTime::class)
+
 package app.multiauth.services
 
-import kotlinx.datetime.Clock
+
 import app.multiauth.util.Logger
 import kotlinx.coroutines.flow.Flow
+import kotlin.time.ExperimentalTime
+import kotlin.time.Clock
 
 /**
  * Service for sending emails in the Multi-Auth system.
  * Handles verification emails, password resets, and notifications.
  */
 interface EmailService {
-    
+
     /**
      * Initializes the email service with configuration.
-     * 
+     *
      * @param config Email service configuration
      * @return true if initialization successful, false otherwise
      */
@@ -43,7 +47,7 @@ interface EmailService {
         template: EmailTemplate?,
         variables: EmailTemplateVariables?
     ): EmailSendResult
-    
+
     /**
      * Sends a password reset email to a user, optionally using a template.
      * This function can be used to send a standard password reset link or a more complex,
@@ -66,7 +70,7 @@ interface EmailService {
         template: EmailTemplate?,
         variables: EmailTemplateVariables?
     ): EmailSendResult
-    
+
     /**
      * Sends a welcome email to a newly registered user.
      *
@@ -85,7 +89,7 @@ interface EmailService {
         template: EmailTemplate?,
         variables: EmailTemplateVariables?
     ): EmailSendResult
-    
+
     /**
      * Dispatches a security alert email to a user's registered address.
      * This is used to notify the user about important, security-sensitive events
@@ -105,7 +109,7 @@ interface EmailService {
         template: EmailTemplate?,
         variables: EmailTemplateVariables?
     ): EmailSendResult
-    
+
     /**
      * Sends a custom email with specified HTML content and subject.
      *
@@ -125,32 +129,32 @@ interface EmailService {
         body: String,
         metadata: Map<String, String>?
     ): EmailSendResult
-    
+
     /**
      * Gets the delivery status of an email.
-     * 
+     *
      * @param emailId The email ID to check
      * @return EmailDeliveryStatus for the email
      */
     suspend fun getDeliveryStatus(emailId: String): EmailDeliveryStatus
-    
+
     /**
      * Gets email statistics and metrics.
-     * 
+     *
      * @return EmailStats with delivery statistics
      */
     suspend fun getEmailStats(): EmailStats
-    
+
     /**
      * Checks if the email service is ready to send emails.
-     * 
+     *
      * @return true if ready, false otherwise
      */
     suspend fun isReady(): Boolean
-    
+
     /**
      * Gets information about the email service configuration.
-     * 
+     *
      * @return EmailServiceInfo with service details
      */
     suspend fun getServiceInfo(): EmailServiceInfo
@@ -319,14 +323,14 @@ sealed class EmailSendResult {
         val providerMessageId: String?,
         val sentAt: Long
     ) : EmailSendResult()
-    
+
     data class Failure(
         val error: String,
         val errorCode: String?,
         val retryable: Boolean,
         val attemptedAt: Long
     ) : EmailSendResult()
-    
+
     data class RateLimited(
         val retryAfterMs: Long,
         val attemptedAt: Long

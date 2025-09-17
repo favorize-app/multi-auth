@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package app.multiauth.oauth.clients.placeholders
 
 import app.multiauth.oauth.HttpClient
@@ -6,6 +8,7 @@ import app.multiauth.oauth.OAuthConfig
 import app.multiauth.oauth.OAuthResult
 import app.multiauth.oauth.OAuthError
 import app.multiauth.util.Logger
+import kotlin.time.ExperimentalTime
 
 /**
  * Apple OAuth client placeholder.
@@ -31,7 +34,7 @@ class AppleOAuthClient(
             append("&response_mode=form_post")
             append("&state=$state")
         }
-        
+
         val authUrl = "https://appleid.apple.com/auth/authorize$params"
         logger.debug("oauth", "Generated Apple OAuth authorization URL: $authUrl")
         return authUrl

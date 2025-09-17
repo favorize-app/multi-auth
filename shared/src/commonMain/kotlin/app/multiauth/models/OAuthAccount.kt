@@ -1,8 +1,10 @@
+@file:OptIn(ExperimentalTime::class)
+
 package app.multiauth.models
 
-import kotlinx.datetime.Instant
-import kotlinx.datetime.Clock
+import kotlin.time.Instant
 import kotlinx.serialization.Serializable
+import kotlin.time.ExperimentalTime
 
 /**
  * Represents an OAuth account linked to a user.

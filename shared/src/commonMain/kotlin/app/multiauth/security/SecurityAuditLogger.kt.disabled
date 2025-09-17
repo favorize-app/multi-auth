@@ -1,7 +1,7 @@
 package app.multiauth.security
 
-import kotlinx.datetime.Instant
-import kotlinx.datetime.Clock
+
+
 import app.multiauth.models.User
 import app.multiauth.util.Logger
 import kotlinx.coroutines.CoroutineScope
@@ -11,38 +11,40 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 /**
  * Security audit logger for tracking security-related events and activities.
  * Provides comprehensive logging and monitoring capabilities.
  */
 class SecurityAuditLogger {
-    
+
     private val logger = Logger.getLogger(this::class)
     private val scope = CoroutineScope(Dispatchers.Main)
-    
+
     companion object {
         private const val MAX_AUDIT_ENTRIES = 10000
         private const val RETENTION_DAYS = 90L
         private const val SUSPICIOUS_ACTIVITY_THRESHOLD = 5
         private val SUSPICIOUS_ACTIVITY_WINDOW_MINUTES = 15L.minutes
     }
-    
+
     private val _auditEntries = MutableStateFlow<List<SecurityAuditEntry>>(emptyList())
     val auditEntries: StateFlow<List<SecurityAuditEntry>> = _auditEntries.asStateFlow()
-    
+
     private val _securityMetrics = MutableStateFlow(SecurityMetrics())
     val securityMetrics: StateFlow<SecurityMetrics> = _securityMetrics.asStateFlow()
-    
+
     private val _suspiciousActivities = MutableStateFlow<List<SuspiciousActivity>>(emptyList())
     val suspiciousActivities: StateFlow<List<SuspiciousActivity>> = _suspiciousActivities.asStateFlow()
-    
+
     private val _userActivityCounts = mutableMapOf<String, MutableList<Instant>>()
     private val _ipActivityCounts = mutableMapOf<String, MutableList<Instant>>()
-    
+
     /**
      * Logs a security event.
-     * 
+     *
      * @param event The security event to log
      * @param user The user associated with the event (if applicable)
      * @param metadata Additional metadata about the event
@@ -65,22 +67,22 @@ class SecurityAuditLogger {
                     metadata = metadata,
                     severity = SecuritySeverity.HIGH
                 )
-                
+
                 addAuditEntry(entry)
                 updateSecurityMetrics(event, user)
                 checkForSuspiciousActivity(user?.id, metadata["ipAddress"] as? String)
-                
+
                 logger.info("security", "Security event logged: ${event.eventType} for user: ${user?.displayName ?: "unknown"}")
-                
+
             } catch (e: Exception) {
                 logger.error("security", "Failed to log security event", e)
             }
         }
     }
-    
+
     /**
      * Logs a failed authentication attempt.
-     * 
+     *
      * @param userEmail The email that was used in the failed attempt
      * @param reason The reason for the failure
      * @param metadata Additional metadata
@@ -102,17 +104,17 @@ class SecurityAuditLogger {
             metadata = metadata + ("reason" to reason),
             severity = SecuritySeverity.WARNING
         )
-        
+
         addAuditEntry(entry)
         updateSecurityMetrics(event, null)
         checkForSuspiciousActivity(null, metadata["ipAddress"] as? String)
-        
+
         logger.warn("security", "Failed authentication attempt for email: $userEmail, reason: $reason")
     }
-    
+
     /**
      * Logs a successful authentication.
-     * 
+     *
      * @param user The user who authenticated successfully
      * @param method The authentication method used
      * @param metadata Additional metadata
@@ -134,16 +136,16 @@ class SecurityAuditLogger {
             metadata = metadata + ("method" to method),
             severity = event.severity
         )
-        
+
         addAuditEntry(entry)
         updateSecurityMetrics(event, user)
-        
+
         logger.info("security", "Successful authentication for user: ${user.displayName}, method: $method")
     }
-    
+
     /**
      * Logs a suspicious activity detection.
-     * 
+     *
      * @param activity The suspicious activity detected
      * @param user The user associated with the activity (if applicable)
      */
@@ -167,16 +169,16 @@ class SecurityAuditLogger {
             ),
             severity = event.severity
         )
-        
+
         addAuditEntry(entry)
         addSuspiciousActivity(activity)
-        
+
         logger.warn("security", "Suspicious activity detected: ${activity.description} for user: ${user?.displayName ?: "unknown"}")
     }
-    
+
     /**
      * Gets audit entries for a specific user.
-     * 
+     *
      * @param userId The user ID to get entries for
      * @param limit Maximum number of entries to return
      * @return List of audit entries
@@ -187,10 +189,10 @@ class SecurityAuditLogger {
             .sortedByDescending { it.timestamp }
             .take(limit)
     }
-    
+
     /**
      * Gets audit entries for a specific time range.
-     * 
+     *
      * @param startTime Start time for the range
      * @param endTime End time for the range
      * @param limit Maximum number of entries to return
@@ -206,10 +208,10 @@ class SecurityAuditLogger {
             .sortedByDescending { it.timestamp }
             .take(limit)
     }
-    
+
     /**
      * Gets audit entries by severity level.
-     * 
+     *
      * @param severity The severity level to filter by
      * @param limit Maximum number of entries to return
      * @return List of audit entries
@@ -223,7 +225,7 @@ class SecurityAuditLogger {
             .sortedByDescending { it.timestamp }
             .take(limit)
     }
-    
+
     /**
      * Cleans up old audit entries based on retention policy.
      */
@@ -233,7 +235,7 @@ class SecurityAuditLogger {
                 val cutoffTime = Clock.System.now().minus(Duration.parse("P${RETENTION_DAYS}D"))
                 val currentEntries = _auditEntries.value
                 val filteredEntries = currentEntries.filter { it.timestamp > cutoffTime }
-                
+
                 if (filteredEntries.size != currentEntries.size) {
                     _auditEntries.value = filteredEntries
                     logger.info("security", "Cleaned up ${currentEntries.size - filteredEntries.size} old audit entries")
@@ -243,10 +245,10 @@ class SecurityAuditLogger {
             }
         }
     }
-    
+
     /**
      * Exports audit data for analysis.
-     * 
+     *
      * @param format The export format (CSV, JSON, etc.)
      * @param filters Optional filters to apply
      * @return Exported audit data
@@ -254,7 +256,7 @@ class SecurityAuditLogger {
     fun exportAuditData(format: ExportFormat, filters: AuditFilters? = null): String {
         return try {
             val entries = applyFilters(_auditEntries.value, filters)
-            
+
             when (format) {
                 ExportFormat.CSV -> exportToCsv(entries)
                 ExportFormat.JSON -> exportToJson(entries)
@@ -265,24 +267,24 @@ class SecurityAuditLogger {
             throw AuditExportException("Failed to export audit data", e)
         }
     }
-    
+
     // Private implementation methods
-    
+
     private fun addAuditEntry(entry: SecurityAuditEntry) {
         val currentEntries = _auditEntries.value.toMutableList()
         currentEntries.add(0, entry)
-        
+
         // Limit the number of entries
         if (currentEntries.size > MAX_AUDIT_ENTRIES) {
             currentEntries.removeAt(currentEntries.lastIndex)
         }
-        
+
         _auditEntries.value = currentEntries
     }
-    
+
     private fun updateSecurityMetrics(event: SecurityEvent, user: User?) {
         val currentMetrics = _securityMetrics.value
-        
+
         val updatedMetrics = when (event) {
             SecurityEvent.AUTHENTICATION_SUCCESS -> currentMetrics.copy(
                 successfulAuthentications = currentMetrics.successfulAuthentications + 1
@@ -298,29 +300,29 @@ class SecurityAuditLogger {
             )
             else -> currentMetrics
         }
-        
+
         _securityMetrics.value = updatedMetrics
     }
-    
+
     private fun checkForSuspiciousActivity(userId: String?, ipAddress: String?) {
         // Check user activity
         userId?.let { checkUserActivity(it) }
-        
+
         // Check IP activity
         ipAddress?.let { checkIpActivity(it) }
     }
-    
+
     private fun checkUserActivity(userId: String) {
         val userActivities = _userActivityCountsOrPut(userId) { mutableListOf() }
         val now = Clock.System.now()
         val cutoffTime = now.minus(Duration.parse("PT${SUSPICIOUS_ACTIVITY_WINDOW_MINUTES}M"))
-        
+
         // Remove old activities
         userActivities.removeAll { it < cutoffTime }
-        
+
         // Add current activity
         userActivities.add(now)
-        
+
         // Check if suspicious
         if (userActivities.size >= SUSPICIOUS_ACTIVITY_THRESHOLD) {
             val suspiciousActivity = SuspiciousActivity(
@@ -332,22 +334,22 @@ class SecurityAuditLogger {
                 timestamp = now,
                 activityCount = userActivities.size
             )
-            
+
             addSuspiciousActivity(suspiciousActivity)
         }
     }
-    
+
     private fun checkIpActivity(ipAddress: String) {
         val ipActivities = _ipActivityCountsOrPut(ipAddress) { mutableListOf() }
         val now = Clock.System.now()
         val cutoffTime = now.minus(SUSPICIOUS_ACTIVITY_WINDOW_MINUTES)
-        
+
         // Remove old activities
         ipActivities.removeAll { it < cutoffTime }
-        
+
         // Add current activity
         ipActivities.add(now)
-        
+
         // Check if suspicious
         if (ipActivities.size >= SUSPICIOUS_ACTIVITY_THRESHOLD) {
             val suspiciousActivity = SuspiciousActivity(
@@ -359,62 +361,62 @@ class SecurityAuditLogger {
                 timestamp = now,
                 activityCount = ipActivities.size
             )
-            
+
             addSuspiciousActivity(suspiciousActivity)
         }
     }
-    
+
     private fun addSuspiciousActivity(activity: SuspiciousActivity) {
         val currentActivities = _suspiciousActivities.value.toMutableList()
         currentActivities.add(0, activity)
-        
+
         // Keep only recent suspicious activities
         if (currentActivities.size > 100) {
             currentActivities.removeAt(currentActivities.lastIndex)
         }
-        
+
         _suspiciousActivities.value = currentActivities
     }
-    
+
     private fun applyFilters(entries: List<SecurityAuditEntry>, filters: AuditFilters?): List<SecurityAuditEntry> {
         if (filters == null) return entries
-        
+
         return entries.filter { entry ->
             var matches = true
-            
+
             filters.userId?.let { if (entry.userId != it) matches = false }
             filters.severity?.let { if (entry.severity != it) matches = false }
             filters.eventType?.let { if (entry.event != it) matches = false }
             filters.startTime?.let { if (entry.timestamp < it) matches = false }
             filters.endTime?.let { if (entry.timestamp > it) matches = false }
-            
+
             matches
         }
     }
-    
+
     private fun exportToCsv(entries: List<SecurityAuditEntry>): String {
         val csv = StringBuilder()
         csv.appendLine("Timestamp,Event,UserId,UserEmail,IPAddress,Severity,Metadata")
-        
+
         entries.forEach { entry ->
             csv.appendLine("${entry.timestamp},${entry.event.name},${entry.userId ?: ""},${entry.userEmail ?: ""},${entry.ipAddress ?: ""},${entry.severity.name},${entry.metadata}")
         }
-        
+
         return csv.toString()
     }
-    
+
     private fun exportToJson(entries: List<SecurityAuditEntry>): String {
         // In a real implementation, this would use a proper JSON library
         return entries.joinToString("\n") { entry ->
             """{"timestamp":"${entry.timestamp}","event":"${entry.event.name}","userId":"${entry.userId ?: ""}","severity":"${entry.severity.name}"}"""
         }
     }
-    
+
     private fun exportToXml(entries: List<SecurityAuditEntry>): String {
         val xml = StringBuilder()
         xml.appendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
         xml.appendLine("<auditLog>")
-        
+
         entries.forEach { entry ->
             xml.appendLine("  <entry>")
             xml.appendLine("    <timestamp>${entry.timestamp}</timestamp>")
@@ -423,7 +425,7 @@ class SecurityAuditLogger {
             xml.appendLine("    <severity>${entry.severity.name}</severity>")
             xml.appendLine("  </entry>")
         }
-        
+
         xml.appendLine("</auditLog>")
         return xml.toString()
     }

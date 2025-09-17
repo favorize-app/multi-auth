@@ -1,7 +1,10 @@
+@file:OptIn(ExperimentalTime::class)
+
 package app.multiauth.models
 
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.serialization.Serializable
+import kotlin.time.ExperimentalTime
 
 /**
  * Represents an audit log entry in the multi-auth system.

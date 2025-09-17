@@ -1,7 +1,10 @@
+@file:OptIn(ExperimentalTime::class)
+
 package app.multiauth.models
 
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.serialization.Serializable
+import kotlin.time.ExperimentalTime
 
 /**
  * Multi-factor authentication related models and events.
@@ -18,26 +21,26 @@ sealed class Mfa {
         val backupCodes: List<String>,
         val metadata: Map<String, String> = emptyMap()
     ) : Mfa()
-    
+
     @Serializable
     data class TotpDisabled(
         val userId: String,
         val metadata: Map<String, String> = emptyMap()
     ) : Mfa()
-    
+
     @Serializable
     data class SmsEnabled(
         val userId: String,
         val phoneNumber: String,
         val metadata: Map<String, String> = emptyMap()
     ) : Mfa()
-    
+
     @Serializable
     data class SmsDisabled(
         val userId: String,
         val metadata: Map<String, String> = emptyMap()
     ) : Mfa()
-    
+
     @Serializable
     data class BackupCodeUsed(
         val userId: String,
@@ -45,14 +48,14 @@ sealed class Mfa {
         val remainingCodes: Int,
         val metadata: Map<String, String> = emptyMap()
     ) : Mfa()
-    
+
     @Serializable
     data class VerificationSuccess(
         val userId: String,
         val method: String,
         val metadata: Map<String, String> = emptyMap()
     ) : Mfa()
-    
+
     @Serializable
     data class VerificationFailed(
         val userId: String,
@@ -73,7 +76,7 @@ sealed class Validation {
         val method: String,
         val timestamp: Instant
     ) : Validation()
-    
+
     @Serializable
     data class Failure(
         val userId: String,
@@ -81,7 +84,7 @@ sealed class Validation {
         val reason: String,
         val timestamp: Instant
     ) : Validation()
-    
+
     @Serializable
     data class Pending(
         val userId: String,
@@ -97,7 +100,7 @@ sealed class Validation {
 sealed class RateLimitResult {
     @Serializable
     data class Allowed(val attemptsRemaining: Int) : RateLimitResult()
-    
+
     @Serializable
     data class RateLimitExceeded(
         val retryAfterSeconds: Long,

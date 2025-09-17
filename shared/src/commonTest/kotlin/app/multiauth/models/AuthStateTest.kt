@@ -4,10 +4,11 @@ import app.multiauth.models.AuthState
 import app.multiauth.models.User
 import app.multiauth.models.TokenPair
 import app.multiauth.models.VerificationMethod
-import kotlinx.datetime.Clock
+
 import kotlin.test.Test
 import kotlin.test.assertTrue
 import kotlin.test.assertEquals
+import kotlin.time.Clock
 
 /**
  * Basic tests for AuthState sealed class.
@@ -40,7 +41,7 @@ class AuthStateTest {
             refreshToken = "refresh-token",
             expiresAt = Clock.System.now()
         )
-        
+
         val state = AuthState.Authenticated(user, tokens)
         assertTrue(state is AuthState.Authenticated)
         assertEquals(user, state.user)
@@ -51,7 +52,7 @@ class AuthStateTest {
     fun testVerificationRequiredState() {
         val method = VerificationMethod.Email("test@example.com")
         val state = AuthState.VerificationRequired(method)
-        
+
         assertTrue(state is AuthState.VerificationRequired)
         assertEquals(method, state.method)
     }
