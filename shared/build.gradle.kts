@@ -1,8 +1,9 @@
 plugins {
-    kotlin("multiplatform")
-    kotlin("plugin.serialization")
-    kotlin("plugin.compose")
-    id("com.android.library")
+    alias(libs.plugins.kotlinMultiplatform)
+    alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.composeMultiplatform)
+    alias(libs.plugins.androidLibrary)
 }
 
 
@@ -19,58 +20,63 @@ kotlin {
             isStatic = true
         }
     }
-    
+
     js(IR) {
         browser()
         nodejs()
     }
-    
+
+    jvm("desktop")
+
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
-                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
-                implementation("com.benasher44:uuid:0.8.1")
-                implementation("io.jsonwebtoken:jjwt-api:0.12.3")
-                implementation("io.ktor:ktor-client-core:2.3.7")
-                implementation("io.ktor:ktor-client-content-negotiation:2.3.7")
-                implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.7")
-                implementation("io.ktor:ktor-client-logging:2.3.7")
+                implementation(libs.kotlinx.coroutines.core)
+                implementation(libs.kotlinx.serialization.json)
+                implementation(libs.kotlinx.datetime)
+                implementation(libs.uuid)
+                implementation(libs.jsonwebtoken.jjwt.api)
+                implementation(libs.ktor.client.core)
+                implementation(libs.ktor.client.content.negotiation)
+//                implementation(libs.ktor.client.serialization.kotlinx.json)
+                implementation(libs.ktor.client.logging)
                 // KotlinCrypto MACs for HMAC operations
                 // Use individual dependencies for better platform compatibility
+                //noinspection UseTomlInstead
                 implementation("org.kotlincrypto.macs:hmac-sha1:0.7.1")
-                implementation("org.kotlincrypto.macs:hmac-sha2:0.7.1")
+                implementation(libs.hmac.sha2)
                 // Password hashing for secure authentication
-                implementation("org.kotlincrypto.hash:sha2:0.7.1")
+                implementation(libs.sha2)
                 implementation(compose.runtime)
                 implementation(compose.foundation)
             }
         }
-        
+
         val commonTest by getting {
             dependencies {
                 implementation(kotlin("test"))
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+                implementation(libs.kotlinx.coroutines.test)
             }
         }
-        
+
         val androidMain by getting {
             dependencies {
-                implementation("io.jsonwebtoken:jjwt-impl:0.12.3")
-                implementation("io.jsonwebtoken:jjwt-jackson:0.12.3")
-                implementation("androidx.compose.compiler:compiler:1.5.4")
-                implementation("androidx.compose.runtime:runtime:1.5.4")
-                implementation(project.dependencies.platform("androidx.compose:compose-bom:2023.10.01"))
+                implementation(libs.jjwt.impl)
+                implementation(libs.jjwt.jackson)
+                implementation(libs.androidx.compiler)
+                implementation(libs.androidx.runtime)
+                implementation(project.dependencies.platform("androidx.compose:compose-bom:2024.09.00"))
+                implementation(libs.ktor.client.android)
+                implementation(libs.kotlinx.datetime)
             }
         }
-        
+
         val androidUnitTest by getting {
             dependencies {
-                implementation("org.jetbrains.kotlin:kotlin-test-junit:2.1.0")
+                implementation(libs.kotlin.test.junit)
             }
         }
-        
+
         val iosX64Main by getting
         val iosArm64Main by getting
         val iosSimulatorArm64Main by getting
@@ -80,7 +86,7 @@ kotlin {
             iosArm64Main.dependsOn(this)
             iosSimulatorArm64Main.dependsOn(this)
         }
-        
+
         val iosX64Test by getting
         val iosArm64Test by getting
         val iosSimulatorArm64Test by getting
@@ -90,10 +96,10 @@ kotlin {
             iosArm64Test.dependsOn(this)
             iosSimulatorArm64Test.dependsOn(this)
         }
-        
+
         val jsMain by getting {
             dependencies {
-                implementation("org.jetbrains.kotlin-wrappers:kotlin-browser:1.0.0-pre.735")
+                implementation(libs.kotlin.browser)
                 implementation(compose.runtime)
                 implementation(compose.foundation)
                 implementation(compose.material)
@@ -101,7 +107,21 @@ kotlin {
         }
         val jsTest by getting {
             dependencies {
-                implementation("org.jetbrains.kotlin:kotlin-test-js:2.1.0")
+                implementation(libs.kotlin.test.js)
+            }
+        }
+
+        val desktopMain by getting {
+            dependencies {
+                implementation(libs.jjwt.impl)
+                implementation(libs.jjwt.jackson)
+                implementation(libs.ktor.client.cio)
+            }
+        }
+
+        val desktopTest by getting {
+            dependencies {
+                implementation(libs.kotlin.test.junit)
             }
         }
     }
@@ -114,10 +134,10 @@ android {
     defaultConfig {
         minSdk = 24
     }
-    
+
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     buildFeatures {
