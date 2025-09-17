@@ -355,7 +355,7 @@ class SimpleEmailService(
                 <h2>Security Alert: ${alertType.displayName}</h2>
                 <p><strong>Alert Type:</strong> ${alertType.displayName}</p>
                 <p><strong>Details:</strong> $alertDetails</p>
-                <p><strong>Time:</strong> ${kotlin.time.Clock.System.now()}</p>
+                <p><strong>Time:</strong> ${Clock.System.now()}</p>
                 <p>If this activity was not authorized by you, please contact support immediately.</p>
             </body>
             </html>

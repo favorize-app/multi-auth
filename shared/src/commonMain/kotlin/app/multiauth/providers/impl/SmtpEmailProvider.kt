@@ -37,7 +37,7 @@ class SmtpEmailProvider(
 
         return try {
             val code = CodeGenerationUtil.generateVerificationCode()
-            val expiresAt = kotlin.time.Clock.System.now() + TimeoutConstants.EMAIL_VERIFICATION_CODE_TIMEOUT
+            val expiresAt = System.now() + TimeoutConstants.EMAIL_VERIFICATION_CODE_TIMEOUT
 
             // Store verification code
             verificationCodes[email] = StoredVerificationCode(code, expiresAt)
@@ -136,7 +136,7 @@ class SmtpEmailProvider(
 
         return try {
             val token = CodeGenerationUtil.generateAlphanumericResetToken()
-            val expiresAt = kotlin.time.Clock.System.now() + kotlin.time.Duration.parse("PT1H") // 1 hour
+            val expiresAt = System.now() + kotlin.time.Duration.parse("PT1H") // 1 hour
 
             // Store reset token
             resetTokens[email] = StoredResetToken(token, expiresAt)

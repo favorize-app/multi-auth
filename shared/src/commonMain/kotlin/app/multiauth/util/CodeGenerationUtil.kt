@@ -47,7 +47,7 @@ object CodeGenerationUtil {
      * Useful for debugging and ensuring uniqueness.
      */
     fun generateTimestampSessionId(): String {
-        val timestamp = kotlin.time.Clock.System.now().toEpochMilliseconds()
+        val timestamp = Clock.System.now().toEpochMilliseconds()
         val randomSuffix = (1000..9999).random()
         return "session_${timestamp}_${randomSuffix}"
     }
