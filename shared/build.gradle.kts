@@ -67,7 +67,6 @@ kotlin {
                 implementation(libs.androidx.runtime)
                 implementation(project.dependencies.platform("androidx.compose:compose-bom:2024.09.00"))
                 implementation(libs.ktor.client.android)
-                implementation(libs.kotlinx.datetime)
             }
         }
 
