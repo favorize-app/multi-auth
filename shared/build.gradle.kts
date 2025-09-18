@@ -39,15 +39,11 @@ kotlin {
                 implementation(libs.jsonwebtoken.jjwt.api)
                 implementation(libs.ktor.client.core)
                 implementation(libs.ktor.client.content.negotiation)
-//                implementation(libs.ktor.client.serialization.kotlinx.json)
                 implementation(libs.ktor.client.logging)
-                // KotlinCrypto MACs for HMAC operations
-                // Use individual dependencies for better platform compatibility
-                //noinspection UseTomlInstead
-                implementation("org.kotlincrypto.macs:hmac-sha1:0.7.1")
-                implementation(libs.hmac.sha2)
-                // Password hashing for secure authentication
-                implementation(libs.sha2)
+                // KotlinCrypto dependencies
+                implementation(libs.kotlincrypto.sha2)
+                implementation(libs.kotlincrypto.hmac.sha1)
+                implementation(libs.kotlincrypto.hmac.sha2)
                 implementation(compose.runtime)
                 implementation(compose.foundation)
             }
@@ -62,8 +58,8 @@ kotlin {
 
         val androidMain by getting {
             dependencies {
-                implementation(libs.jjwt.impl)
-                implementation(libs.jjwt.jackson)
+                implementation(libs.jsonwebtoken.jjwt.impl)
+                implementation(libs.jsonwebtoken.jjwt.jackson)
                 implementation(libs.androidx.compiler)
                 implementation(libs.androidx.runtime)
                 implementation(project.dependencies.platform("androidx.compose:compose-bom:2024.09.00"))
@@ -99,7 +95,6 @@ kotlin {
 
         val jsMain by getting {
             dependencies {
-                implementation(libs.kotlin.browser)
                 implementation(compose.runtime)
                 implementation(compose.foundation)
                 implementation(compose.material)
@@ -107,14 +102,14 @@ kotlin {
         }
         val jsTest by getting {
             dependencies {
-                implementation(libs.kotlin.test.js)
+                implementation(kotlin("test"))
             }
         }
 
         val desktopMain by getting {
             dependencies {
-                implementation(libs.jjwt.impl)
-                implementation(libs.jjwt.jackson)
+                implementation(libs.jsonwebtoken.jjwt.impl)
+                implementation(libs.jsonwebtoken.jjwt.jackson)
                 implementation(libs.ktor.client.cio)
             }
         }
@@ -139,6 +134,7 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+    
 
     buildFeatures {
         compose = true
