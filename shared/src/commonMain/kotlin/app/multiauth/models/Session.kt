@@ -108,7 +108,7 @@ data class Session(
      */
     fun isActive(): Boolean {
         return status == SessionStatus.ACTIVE &&
-               Clock.System.now().epochSeconds < expiresAt.epochSeconds
+               Clock.System.now() < expiresAt
     }
 
     /**
