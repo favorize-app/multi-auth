@@ -1,11 +1,11 @@
 plugins {
-    kotlin("multiplatform") version "2.2.10" apply false
-    kotlin("plugin.serialization") version "2.2.10" apply false
-    kotlin("plugin.compose") version "2.2.10" apply false
-    id("org.jetbrains.compose") version "1.8.2" apply false
-    id("com.android.application") version "8.12.2" apply false
-    id("com.android.library") version "8.1.4" apply false
-    id("org.jetbrains.kotlin.android") version "2.2.10" apply false
+    alias(libs.plugins.kotlinMultiplatform) apply false
+    alias(libs.plugins.kotlinSerialization) apply false
+    alias(libs.plugins.composeCompiler) apply false
+    alias(libs.plugins.composeMultiplatform) apply false
+    alias(libs.plugins.androidApplication) apply false
+    alias(libs.plugins.androidLibrary) apply false
+    alias(libs.plugins.kotlinJvm) apply false
 }
 
 allprojects {
@@ -21,6 +21,6 @@ subprojects {
     apply(plugin = "org.jetbrains.kotlin.plugin.compose")
     apply(plugin = "org.jetbrains.compose")
 
-    group = "app.multiauth"
-    version = "0.1.0-SNAPSHOT"
+    group = "app.favorize.multiauth"
+    version = "1.0.0"
 }
