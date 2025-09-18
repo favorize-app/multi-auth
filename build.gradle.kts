@@ -6,6 +6,8 @@ plugins {
     id("com.android.application") version "8.12.2" apply false
     id("com.android.library") version "8.1.4" apply false
     id("org.jetbrains.kotlin.android") version "2.2.10" apply false
+    id("maven-publish") apply false
+    id("signing") apply false
 }
 
 allprojects {
@@ -13,6 +15,14 @@ allprojects {
         google()
         mavenCentral()
         maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/favorize-app/multi-auth")
+            credentials {
+                username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_ACTOR")
+                password = project.findProperty("gpr.key") as String? ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
     }
 }
 
@@ -21,6 +31,6 @@ subprojects {
     apply(plugin = "org.jetbrains.kotlin.plugin.compose")
     apply(plugin = "org.jetbrains.compose")
 
-    group = "app.multiauth"
-    version = "0.1.0-SNAPSHOT"
+    group = "app.favorize.multiauth"
+    version = "1.0.0"
 }

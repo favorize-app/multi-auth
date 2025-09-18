@@ -2,8 +2,6 @@
 
 package app.multiauth.security
 
-
-
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Contextual

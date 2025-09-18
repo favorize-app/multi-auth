@@ -5,6 +5,7 @@ android-minSdk = "24"
 android-targetSdk = "36"
 # Project versioning - base version, actual version determined dynamically in build.gradle.kts
 project = "1.0.0"
+multiauth = "1.0.0"
 app-version-code = "25"
 app-version-name = "1.0.0"
 # JVM target version - currently used for documentation/reference
