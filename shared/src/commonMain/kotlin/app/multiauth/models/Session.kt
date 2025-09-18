@@ -115,11 +115,11 @@ data class Session(
      * Checks if the session is expired
      */
     fun isExpired(): Boolean {
-        return Clock.System.now().epochSeconds >= expiresAt.epochSeconds
+        return Clock.System.now() >= expiresAt
     }
 
     /**
-     * Gets remaining session time in milliseconds
+     * Gets remaining session time in seconds
      */
     fun getRemainingTime(): Long {
         return maxOf(0, expiresAt.epochSeconds - Clock.System.now().epochSeconds)
