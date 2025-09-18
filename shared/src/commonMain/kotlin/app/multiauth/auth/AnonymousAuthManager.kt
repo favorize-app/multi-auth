@@ -1,6 +1,10 @@
+@file:OptIn(ExperimentalTime::class)
+
 package app.multiauth.auth
 
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 import app.multiauth.core.AuthEngine
 import app.multiauth.events.AuthEvent
 import app.multiauth.events.Anonymous
@@ -15,7 +19,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 import com.benasher44.uuid.uuid4
 import kotlin.time.Duration.Companion.hours
 
@@ -28,28 +31,28 @@ class AnonymousAuthManager(
     private val authEngine: AuthEngine,
     private val eventBus: EventBus = EventBusInstance()
 ) {
-    
+
     private val logger = Logger.getLogger(this::class)
     private val scope = CoroutineScope(Dispatchers.Main)
-    
+
     companion object {
         private val ANONYMOUS_SESSION_DURATION_HOURS = 24L.hours
         private const val MAX_ANONYMOUS_SESSIONS = 5
         private const val ANONYMOUS_USER_PREFIX = "anon_"
     }
-    
+
     private val _anonymousState = MutableStateFlow<AnonymousAuthState>(AnonymousAuthState.Idle)
     val anonymousState: StateFlow<AnonymousAuthState> = _anonymousState.asStateFlow()
-    
+
     private val _anonymousUsers = MutableStateFlow<Map<String, AnonymousUser>>(emptyMap())
     val anonymousUsers: StateFlow<Map<String, AnonymousUser>> = _anonymousUsers.asStateFlow()
-    
+
     private val _conversionMetrics = MutableStateFlow(AnonymousConversionMetrics())
     val conversionMetrics: StateFlow<AnonymousConversionMetrics> = _conversionMetrics.asStateFlow()
-    
+
     /**
      * Creates an anonymous user session.
-     * 
+     *
      * @param deviceId Optional device identifier for session tracking
      * @param metadata Additional metadata about the anonymous session
      * @return Result with the anonymous user
@@ -60,18 +63,18 @@ class AnonymousAuthManager(
     ): Result<User> {
         return try {
             logger.info("auth", "Creating anonymous user session")
-            
+
             _anonymousState.value = AnonymousAuthState.CreatingSession
-            
+
             // Check if we've reached the maximum number of anonymous sessions
             if (_anonymousUsers.value.size >= MAX_ANONYMOUS_SESSIONS) {
                 return Result.failure(AnonymousAuthException("Maximum anonymous sessions reached"))
             }
-            
+
             // Generate unique anonymous user ID
             val anonymousId = generateAnonymousId()
             val sessionId = uuid4().toString()
-            
+
             // Create anonymous user
             val anonymousUser = AnonymousUser(
                 id = anonymousId,
@@ -82,7 +85,7 @@ class AnonymousAuthManager(
                 metadata = metadata,
                 isActive = true
             )
-            
+
             // Create user object for the auth engine
             val user = User(
                 id = anonymousId,
@@ -94,22 +97,22 @@ class AnonymousAuthManager(
                 isAnonymous = true,
                 anonymousSessionId = sessionId
             )
-            
+
             // Store anonymous user
             _anonymousUsers.value = _anonymousUsers.value + (anonymousId to anonymousUser)
-            
+
             // Update conversion metrics
             updateConversionMetrics(AnonymousAction.SESSION_CREATED)
-            
+
             _anonymousState.value = AnonymousAuthState.Idle
-            
+
             // Dispatch success event
             val eventMetadata = EventMetadata(source = "AnonymousAuthManager")
             eventBus.dispatch(Anonymous.AnonymousSessionCreated(user, anonymousUser), eventMetadata)
 
             logger.info("auth", "Anonymous user session created: $anonymousId")
             Result.success(user)
-            
+
         } catch (e: Exception) {
             logger.error("auth", "Failed to create anonymous session", e)
             _anonymousState.value = AnonymousAuthState.Error(e)
@@ -117,10 +120,10 @@ class AnonymousAuthManager(
             Result.failure(e)
         }
     }
-    
+
     /**
      * Converts an anonymous user to a permanent account.
-     * 
+     *
      * @param anonymousUser The anonymous user to convert
      * @param email User's email address
      * @param password User's password
@@ -135,18 +138,18 @@ class AnonymousAuthManager(
     ): Result<User> {
         return try {
             logger.info("auth", "Converting anonymous user to permanent account: ${anonymousUser.id}")
-            
+
             _anonymousState.value = AnonymousAuthState.ConvertingAccount
-            
+
             // Validate input
             if (email.isBlank() || password.isBlank() || displayName.isBlank()) {
                 return Result.failure(AnonymousAuthException("Email, password, and display name are required"))
             }
-            
+
             if (password.length < 8) {
                 return Result.failure(AnonymousAuthException("Password must be at least 8 characters"))
             }
-            
+
             // Create permanent user account
             val permanentUser = User(
                 id = uuid4().toString(),
@@ -158,25 +161,25 @@ class AnonymousAuthManager(
                 isAnonymous = false,
                 anonymousSessionId = null
             )
-            
+
             // Store user credentials (in a real app, this would hash the password)
             // For demo purposes, we'll just simulate the process
-            
+
             // Remove anonymous user
             _anonymousUsers.value = _anonymousUsers.value - anonymousUser.id
-            
+
             // Update conversion metrics
             updateConversionMetrics(AnonymousAction.ACCOUNT_CONVERTED)
-            
+
             _anonymousState.value = AnonymousAuthState.Idle
-            
+
             // Dispatch success event
             val eventMetadata = EventMetadata(source = "AnonymousAuthManager")
             eventBus.dispatch(Anonymous.AnonymousUserConverted(anonymousUser, permanentUser), eventMetadata)
 
             logger.info("auth", "Anonymous user converted to permanent account: ${anonymousUser.id} -> ${permanentUser.id}")
             Result.success(permanentUser)
-            
+
         } catch (e: Exception) {
             logger.error("auth", "Failed to convert anonymous user", e)
             _anonymousState.value = AnonymousAuthState.Error(e)
@@ -184,10 +187,10 @@ class AnonymousAuthManager(
             Result.failure(e)
         }
     }
-    
+
     /**
      * Extends an anonymous user session.
-     * 
+     *
      * @param anonymousUser The anonymous user to extend
      * @param additionalHours Hours to extend the session by
      * @return Result indicating success or failure
@@ -198,78 +201,78 @@ class AnonymousAuthManager(
     ): Result<Unit> {
         return try {
             logger.info("auth", "Extending anonymous user session: ${anonymousUser.id}")
-            
+
             val anonymousUserData = _anonymousUsers.value[anonymousUser.id]
             if (anonymousUserData == null) {
                 return Result.failure(AnonymousAuthException("Anonymous user not found"))
             }
-            
+
             // Extend session
             val updatedAnonymousUser = anonymousUserData.copy(
                 expiresAt = anonymousUserData.expiresAt + additionalHours.hours,
                 updatedAt = Clock.System.now()
             )
-            
+
             _anonymousUsers.value = _anonymousUsers.value + (anonymousUser.id to updatedAnonymousUser)
-            
+
             // Update conversion metrics
             updateConversionMetrics(AnonymousAction.SESSION_EXTENDED)
-            
+
             // Dispatch success event
             val eventMetadata = EventMetadata(source = "AnonymousAuthManager")
             eventBus.dispatch(Anonymous.AnonymousSessionExtended(anonymousUser, additionalHours), eventMetadata)
 
             logger.info("auth", "Anonymous user session extended: ${anonymousUser.id}")
             Result.success(Unit)
-            
+
         } catch (e: Exception) {
             logger.error("auth", "Failed to extend anonymous session", e)
             Result.failure(e)
         }
     }
-    
+
     /**
      * Terminates an anonymous user session.
-     * 
+     *
      * @param anonymousUser The anonymous user to terminate
      * @return Result indicating success or failure
      */
     suspend fun terminateSession(anonymousUser: User): Result<Unit> {
         return try {
             logger.info("auth", "Terminating anonymous user session: ${anonymousUser.id}")
-            
+
             val anonymousUserData = _anonymousUsers.value[anonymousUser.id]
             if (anonymousUserData == null) {
                 return Result.failure(AnonymousAuthException("Anonymous user not found"))
             }
-            
+
             // Mark session as inactive
             val updatedAnonymousUser = anonymousUserData.copy(
                 isActive = false,
                 terminatedAt = Clock.System.now()
             )
-            
+
             _anonymousUsers.value = _anonymousUsers.value + (anonymousUser.id to updatedAnonymousUser)
-            
+
             // Update conversion metrics
             updateConversionMetrics(AnonymousAction.SESSION_TERMINATED)
-            
+
             // Dispatch success event
             val eventMetadata = EventMetadata(source = "AnonymousAuthManager")
             eventBus.dispatch(Anonymous.AnonymousSessionTerminated(anonymousUser), eventMetadata)
 
             logger.info("auth", "Anonymous user session terminated: ${anonymousUser.id}")
             Result.success(Unit)
-            
+
         } catch (e: Exception) {
             logger.error("auth", "Failed to terminate anonymous session", e)
             Result.failure(e)
         }
     }
-    
+
     /**
      * Gets anonymous user statistics.
-     * 
+     *
      * @return AnonymousUserStats with current statistics
      */
     fun getAnonymousUserStats(): AnonymousUserStats {
@@ -277,7 +280,7 @@ class AnonymousAuthManager(
         val activeUsers = currentUsers.values.count { it.isActive }
         val expiredUsers = currentUsers.values.count { it.expiresAt < Clock.System.now() }
         val convertedUsers = _conversionMetrics.value.accountsConverted
-        
+
         return AnonymousUserStats(
             totalUsers = currentUsers.size,
             activeUsers = activeUsers,
@@ -288,7 +291,7 @@ class AnonymousAuthManager(
             } else 0.0
         )
     }
-    
+
     /**
      * Cleans up expired anonymous sessions.
      */
@@ -300,7 +303,7 @@ class AnonymousAuthManager(
                 val expiredUsers = currentUsers.filter { (_, user) ->
                     user.expiresAt < now && user.isActive
                 }
-                
+
                 if (expiredUsers.isNotEmpty()) {
                     // Mark expired users as inactive
                     expiredUsers.forEach { (id, user) ->
@@ -310,7 +313,7 @@ class AnonymousAuthManager(
                         )
                         _anonymousUsers.value = _anonymousUsers.value + (id to updatedUser)
                     }
-                    
+
                     logger.info("auth", "Cleaned up ${expiredUsers.size} expired anonymous sessions")
                 }
             } catch (e: Exception) {
@@ -318,25 +321,25 @@ class AnonymousAuthManager(
             }
         }
     }
-    
+
     /**
      * Gets conversion analytics data.
-     * 
+     *
      * @return AnonymousConversionMetrics
      */
     fun getConversionAnalytics(): AnonymousConversionMetrics {
         return _conversionMetrics.value
     }
-    
+
     // Private implementation methods
-    
+
     private fun generateAnonymousId(): String {
         return ANONYMOUS_USER_PREFIX + uuid4().toString().replace("-", "").take(12)
     }
-    
+
     private fun updateConversionMetrics(action: AnonymousAction) {
         val currentMetrics = _conversionMetrics.value
-        
+
         val updatedMetrics = when (action) {
             AnonymousAction.SESSION_CREATED -> currentMetrics.copy(
                 sessionsCreated = currentMetrics.sessionsCreated + 1
@@ -351,7 +354,7 @@ class AnonymousAuthManager(
                 sessionsTerminated = currentMetrics.sessionsTerminated + 1
             )
         }
-        
+
         _conversionMetrics.value = updatedMetrics
     }
 }

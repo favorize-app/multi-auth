@@ -1,9 +1,14 @@
+@file:OptIn(ExperimentalTime::class)
+
 package app.multiauth.providers.impl
 
-import kotlinx.datetime.Clock
+
 import app.multiauth.models.AuthResult
 import app.multiauth.providers.*
 import app.multiauth.util.Logger
+import app.multiauth.util.Base64Util
+import app.multiauth.util.CodeGenerationUtil
+import app.multiauth.util.TimeoutConstants
 import kotlinx.coroutines.delay
 import io.ktor.client.*
 import io.ktor.client.request.*
@@ -12,7 +17,10 @@ import io.ktor.http.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
-import kotlin.time.Duration.Companion.minutes
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
+import kotlin.time.Clock
+import kotlin.time.Duration
 
 /**
  * Real SMS provider using Twilio API.
@@ -22,18 +30,18 @@ class TwilioSmsProvider(
     private val config: TwilioSmsConfig,
     private val httpClient: HttpClient
 ) : SmsProvider {
-    
+
     private val verificationSessions = mutableMapOf<String, SmsVerificationSession>()
-    
+
     override suspend fun sendVerificationCode(phoneNumber: String): AuthResult<String> {
         Logger.debug("TwilioSmsProvider", "Sending verification code to: $phoneNumber")
-        
+
         return try {
             val normalizedNumber = normalizePhoneNumber(phoneNumber)
-            val code = generateVerificationCode()
-            val sessionId = generateSessionId()
-            val expiresAt = Clock.System.now() + 10.minutes
-            
+            val code = CodeGenerationUtil.generateVerificationCode()
+            val sessionId = CodeGenerationUtil.generateAlphanumericSessionId()
+            val expiresAt = Clock.System.now() + TimeoutConstants.SMS_VERIFICATION_CODE_TIMEOUT
+
             // Store verification session
             verificationSessions[sessionId] = SmsVerificationSession(
                 phoneNumber = normalizedNumber,
@@ -41,16 +49,16 @@ class TwilioSmsProvider(
                 expiresAt = expiresAt,
                 attempts = 0
             )
-            
-            val message = "Your verification code is: $code\n\nThis code will expire in 10 minutes."
-            
+
+            val message = TimeoutConstants.getSmsVerificationMessage(code)
+
             val success = when (config.provider) {
                 SmsServiceProvider.TWILIO -> sendSmsViaTwilio(normalizedNumber, message)
                 SmsServiceProvider.AWS_SNS -> sendSmsViaAwsSns(normalizedNumber, message)
                 SmsServiceProvider.MESSAGEBIRD -> sendSmsViaMessageBird(normalizedNumber, message)
                 SmsServiceProvider.MOCK -> sendMockSms(normalizedNumber, message)
             }
-            
+
             if (success) {
                 Logger.info("TwilioSmsProvider", "Verification code sent successfully to: $phoneNumber")
                 AuthResult.Success(sessionId)
@@ -63,7 +71,7 @@ class TwilioSmsProvider(
                     )
                 )
             }
-            
+
         } catch (e: Exception) {
             Logger.error("TwilioSmsProvider", "Failed to send verification code", e)
             AuthResult.Failure(
@@ -75,10 +83,10 @@ class TwilioSmsProvider(
             )
         }
     }
-    
+
     override suspend fun verifySmsCode(phoneNumber: String, code: String, sessionId: String): AuthResult<Unit> {
         Logger.debug("TwilioSmsProvider", "Verifying SMS code for: $phoneNumber")
-        
+
         return try {
             val session = verificationSessions[sessionId]
             if (session == null) {
@@ -89,7 +97,7 @@ class TwilioSmsProvider(
                     )
                 )
             }
-            
+
             // Check if session expired
             val now = Clock.System.now()
             if (now > session.expiresAt) {
@@ -101,7 +109,7 @@ class TwilioSmsProvider(
                     )
                 )
             }
-            
+
             // Check if phone number matches
             val normalizedNumber = normalizePhoneNumber(phoneNumber)
             if (session.phoneNumber != normalizedNumber) {
@@ -112,7 +120,7 @@ class TwilioSmsProvider(
                     )
                 )
             }
-            
+
             // Check attempt limit
             if (session.attempts >= config.maxVerificationAttempts) {
                 verificationSessions.remove(sessionId) // Clean up exhausted session
@@ -123,10 +131,10 @@ class TwilioSmsProvider(
                     )
                 )
             }
-            
+
             // Increment attempt count
             verificationSessions[sessionId] = session.copy(attempts = session.attempts + 1)
-            
+
             // Verify code (constant-time comparison)
             if (!constantTimeEquals(session.code, code)) {
                 return AuthResult.Failure(
@@ -136,13 +144,13 @@ class TwilioSmsProvider(
                     )
                 )
             }
-            
+
             // Remove successful session
             verificationSessions.remove(sessionId)
-            
+
             Logger.info("TwilioSmsProvider", "SMS verification successful for: $phoneNumber")
             AuthResult.Success(Unit)
-            
+
         } catch (e: Exception) {
             Logger.error("TwilioSmsProvider", "Failed to verify SMS code", e)
             AuthResult.Failure(
@@ -154,26 +162,26 @@ class TwilioSmsProvider(
             )
         }
     }
-    
+
     override suspend fun sendSecurityAlert(
         phoneNumber: String,
         alertType: SmsSecurityAlertType,
         details: Map<String, String>
     ): AuthResult<Unit> {
         Logger.debug("TwilioSmsProvider", "Sending security alert to: $phoneNumber")
-        
+
         return try {
             val normalizedNumber = normalizePhoneNumber(phoneNumber)
             val detailsText = details.entries.joinToString(", ") { "${it.key}: ${it.value}" }
             val alertMessage = "🔒 SECURITY ALERT: ${alertType.name}${if (detailsText.isNotEmpty()) " - $detailsText" else ""}"
-            
+
             val success = when (config.provider) {
                 SmsServiceProvider.TWILIO -> sendSmsViaTwilio(normalizedNumber, alertMessage)
                 SmsServiceProvider.AWS_SNS -> sendSmsViaAwsSns(normalizedNumber, alertMessage)
                 SmsServiceProvider.MESSAGEBIRD -> sendSmsViaMessageBird(normalizedNumber, alertMessage)
                 SmsServiceProvider.MOCK -> sendMockSms(normalizedNumber, alertMessage)
             }
-            
+
             if (success) {
                 Logger.info("TwilioSmsProvider", "Security alert sent successfully to: $phoneNumber")
                 AuthResult.Success(Unit)
@@ -185,7 +193,7 @@ class TwilioSmsProvider(
                     )
                 )
             }
-            
+
         } catch (e: Exception) {
             Logger.error("TwilioSmsProvider", "Failed to send security alert", e)
             AuthResult.Failure(
@@ -197,16 +205,16 @@ class TwilioSmsProvider(
             )
         }
     }
-    
+
     override suspend fun validatePhoneNumber(phoneNumber: String): AuthResult<Boolean> {
         Logger.debug("TwilioSmsProvider", "Validating phone number: $phoneNumber")
-        
+
         return try {
             val isValid = isValidPhoneNumberFormat(phoneNumber)
-            
+
             Logger.info("TwilioSmsProvider", "Phone validation result for $phoneNumber: $isValid")
             AuthResult.Success(isValid)
-            
+
         } catch (e: Exception) {
             Logger.error("TwilioSmsProvider", "Failed to validate phone number", e)
             AuthResult.Failure(
@@ -218,21 +226,21 @@ class TwilioSmsProvider(
             )
         }
     }
-    
+
     override suspend fun getRateLimitInfo(phoneNumber: String): AuthResult<RateLimitInfo> {
         Logger.debug("TwilioSmsProvider", "Getting rate limit info for: $phoneNumber")
-        
+
         return try {
             // In a real implementation, this would check actual rate limits
             // For now, return mock data
             val rateLimitInfo = RateLimitInfo(
                 remaining = config.maxSmsPerHour - 1,
-                resetTime = (Clock.System.now() + kotlin.time.Duration.parse("PT1H")).toEpochMilliseconds(),
+                resetTime = (Clock.System.now() + Duration.parse("PT1H")).toEpochMilliseconds(),
                 limit = config.maxSmsPerHour
             )
-            
+
             AuthResult.Success(rateLimitInfo)
-            
+
         } catch (e: Exception) {
             Logger.error("TwilioSmsProvider", "Failed to get rate limit info", e)
             AuthResult.Failure(
@@ -244,10 +252,10 @@ class TwilioSmsProvider(
             )
         }
     }
-    
+
     override suspend fun resendVerificationCode(phoneNumber: String, sessionId: String): AuthResult<String> {
         Logger.debug("TwilioSmsProvider", "Resending verification code for: $phoneNumber")
-        
+
         return try {
             val session = verificationSessions[sessionId]
             if (session == null) {
@@ -258,7 +266,7 @@ class TwilioSmsProvider(
                     )
                 )
             }
-            
+
             val normalizedNumber = normalizePhoneNumber(phoneNumber)
             if (session.phoneNumber != normalizedNumber) {
                 return AuthResult.Failure(
@@ -268,26 +276,26 @@ class TwilioSmsProvider(
                     )
                 )
             }
-            
+
             // Generate new code but keep same session
-            val newCode = generateVerificationCode()
-            val newExpiresAt = Clock.System.now() + 10.minutes
-            
+            val newCode = CodeGenerationUtil.generateVerificationCode()
+            val newExpiresAt = Clock.System.now() + TimeoutConstants.SMS_VERIFICATION_CODE_TIMEOUT
+
             verificationSessions[sessionId] = session.copy(
                 code = newCode,
                 expiresAt = newExpiresAt,
                 attempts = 0 // Reset attempts for new code
             )
-            
-            val message = "Your new verification code is: $newCode\n\nThis code will expire in 10 minutes."
-            
+
+            val message = TimeoutConstants.getSmsVerificationMessage(newCode)
+
             val success = when (config.provider) {
                 SmsServiceProvider.TWILIO -> sendSmsViaTwilio(normalizedNumber, message)
                 SmsServiceProvider.AWS_SNS -> sendSmsViaAwsSns(normalizedNumber, message)
                 SmsServiceProvider.MESSAGEBIRD -> sendSmsViaMessageBird(normalizedNumber, message)
                 SmsServiceProvider.MOCK -> sendMockSms(normalizedNumber, message)
             }
-            
+
             if (success) {
                 Logger.info("TwilioSmsProvider", "Verification code resent successfully to: $phoneNumber")
                 AuthResult.Success(sessionId)
@@ -299,7 +307,7 @@ class TwilioSmsProvider(
                     )
                 )
             }
-            
+
         } catch (e: Exception) {
             Logger.error("TwilioSmsProvider", "Failed to resend verification code", e)
             AuthResult.Failure(
@@ -311,7 +319,7 @@ class TwilioSmsProvider(
             )
         }
     }
-    
+
     override fun getProviderInfo(): SmsProviderInfo {
         return SmsProviderInfo(
             name = "Twilio SMS Provider",
@@ -324,11 +332,11 @@ class TwilioSmsProvider(
             features = listOf("International", "Delivery Reports", config.provider.name)
         )
     }
-    
+
     // Helper methods for testing
     fun getStoredVerificationCode(sessionId: String): String? = verificationSessions[sessionId]?.code
     fun getActiveSessionCount(): Int = verificationSessions.size
-    
+
     private suspend fun sendSmsViaTwilio(phoneNumber: String, message: String): Boolean {
         return try {
             val payload = TwilioSmsPayload(
@@ -336,54 +344,46 @@ class TwilioSmsProvider(
                 To = phoneNumber,
                 Body = message
             )
-            
+
             val response = httpClient.post("https://api.twilio.com/2010-04-01/Accounts/${config.accountSid}/Messages.json") {
                 header("Authorization", "Basic ${encodeBasicAuth(config.accountSid, config.authToken)}")
                 header("Content-Type", "application/x-www-form-urlencoded")
                 setBody("From=${payload.From}&To=${payload.To}&Body=${payload.Body}")
             }
-            
+
             response.status.isSuccess()
-            
+
         } catch (e: Exception) {
             Logger.error("TwilioSmsProvider", "Twilio API error", e)
             false
         }
     }
-    
+
     private suspend fun sendSmsViaAwsSns(phoneNumber: String, message: String): Boolean {
         // AWS SNS implementation would go here
         Logger.warn("TwilioSmsProvider", "AWS SNS not implemented - using mock response")
         delay(500) // Simulate API call
         return true
     }
-    
+
     private suspend fun sendSmsViaMessageBird(phoneNumber: String, message: String): Boolean {
         // MessageBird implementation would go here
         Logger.warn("TwilioSmsProvider", "MessageBird not implemented - using mock response")
         delay(500) // Simulate API call
         return true
     }
-    
+
     private suspend fun sendMockSms(phoneNumber: String, message: String): Boolean {
         Logger.info("TwilioSmsProvider", "MOCK SMS to $phoneNumber: $message")
         delay(100) // Simulate API call
         return true
     }
-    
-    private fun generateVerificationCode(): String {
-        return (100000..999999).random().toString()
-    }
-    
-    private fun generateSessionId(): String {
-        val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-        return (1..16).map { chars.random() }.joinToString("")
-    }
-    
+
+
     private fun normalizePhoneNumber(phoneNumber: String): String {
         // Remove all non-digit characters
         val digitsOnly = phoneNumber.replace(Regex("[^0-9]"), "")
-        
+
         // Add country code if missing (assume US +1 for now)
         return when {
             digitsOnly.length == 10 -> "+1$digitsOnly"
@@ -392,28 +392,27 @@ class TwilioSmsProvider(
             else -> "+$digitsOnly"
         }
     }
-    
+
     private fun isValidPhoneNumberFormat(phoneNumber: String): Boolean {
         val normalized = normalizePhoneNumber(phoneNumber)
         // Basic validation: starts with + and has 10-15 digits total
         return normalized.matches(Regex("^\\+[1-9][0-9]{9,14}$"))
     }
-    
+
     private fun constantTimeEquals(a: String, b: String): Boolean {
         if (a.length != b.length) return false
-        
+
         var result = 0
         for (i in a.indices) {
             result = result or (a[i].code xor b[i].code)
         }
         return result == 0
     }
-    
+
     private fun encodeBasicAuth(username: String, password: String): String {
-        val credentials = "$username:$password"
-        return credentials.encodeToByteArray().encodeBase64()
+        return Base64Util.encodeBasicAuth(username, password)
     }
-    
+
     /**
      * Clean up expired sessions to prevent memory leaks.
      * Should be called periodically.
@@ -455,7 +454,7 @@ enum class SmsServiceProvider {
 private data class SmsVerificationSession(
     val phoneNumber: String,
     val code: String,
-    val expiresAt: kotlinx.datetime.Instant,
+    val expiresAt: Instant,
     val attempts: Int
 )
 
@@ -468,29 +467,3 @@ private data class TwilioSmsPayload(
     val To: String,
     val Body: String
 )
-
-/**
- * Simple Base64 encoding for basic auth.
- */
-private fun ByteArray.encodeBase64(): String {
-    val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-    val result = StringBuilder()
-    
-    var i = 0
-    while (i < size) {
-        val b1 = this[i].toInt() and 0xFF
-        val b2 = if (i + 1 < size) this[i + 1].toInt() and 0xFF else 0
-        val b3 = if (i + 2 < size) this[i + 2].toInt() and 0xFF else 0
-        
-        val bitmap = (b1 shl 16) or (b2 shl 8) or b3
-        
-        result.append(chars[(bitmap shr 18) and 0x3F])
-        result.append(chars[(bitmap shr 12) and 0x3F])
-        result.append(if (i + 1 < size) chars[(bitmap shr 6) and 0x3F] else '=')
-        result.append(if (i + 2 < size) chars[bitmap and 0x3F] else '=')
-        
-        i += 3
-    }
-    
-    return result.toString()
-}

@@ -1,24 +1,29 @@
+@file:OptIn(ExperimentalTime::class)
+
 package app.multiauth.services
 
-import kotlinx.datetime.Instant
-import kotlinx.datetime.Clock
+
+
+import kotlin.time.ExperimentalTime
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 /**
  * Service for sending SMS messages in the Multi-Auth system.
  * Handles verification codes, security alerts, and notifications.
  */
 interface SmsService {
-    
+
     /**
      * Initializes the SMS service.
-     * 
+     *
      * @return true if initialization successful, false otherwise
      */
     suspend fun initialize(): Boolean
-    
+
     /**
      * Sends a verification code via SMS.
-     * 
+     *
      * @param phoneNumber The recipient phone number
      * @param verificationCode The verification code
      * @param userId The user ID for tracking
@@ -33,10 +38,10 @@ interface SmsService {
         template: SmsTemplate?,
         variables: SmsTemplateVariables?
     ): SmsSendResult
-    
+
     /**
      * Sends a security alert via SMS.
-     * 
+     *
      * @param phoneNumber The recipient phone number
      * @param alertType The type of security alert
      * @param alertDetails Additional details about the alert
@@ -53,10 +58,10 @@ interface SmsService {
         template: SmsTemplate?,
         variables: SmsTemplateVariables?
     ): SmsSendResult
-    
+
     /**
      * Sends a custom SMS message.
-     * 
+     *
      * @param phoneNumber The recipient phone number
      * @param message The SMS message content
      * @param userId The user ID for tracking
@@ -71,10 +76,10 @@ interface SmsService {
         template: SmsTemplate?,
         variables: SmsTemplateVariables?
     ): SmsSendResult
-    
+
     /**
      * Sends a two-factor authentication code via SMS.
-     * 
+     *
      * @param phoneNumber The recipient phone number
      * @param mfaCode The MFA code
      * @param userId The user ID for tracking
@@ -89,10 +94,10 @@ interface SmsService {
         template: SmsTemplate?,
         variables: SmsTemplateVariables?
     ): SmsSendResult
-    
+
     /**
      * Sends a login notification via SMS.
-     * 
+     *
      * @param phoneNumber The recipient phone number
      * @param loginDetails The login details
      * @param userId The user ID for tracking
@@ -107,47 +112,47 @@ interface SmsService {
         template: SmsTemplate?,
         variables: SmsTemplateVariables?
     ): SmsSendResult
-    
+
     /**
      * Gets the delivery status of an SMS.
-     * 
+     *
      * @param smsId The SMS ID to check
      * @return SmsDeliveryStatusInfo for the SMS
      */
     suspend fun getDeliveryStatus(smsId: String): SmsDeliveryStatusInfo?
-    
+
     /**
      * Gets SMS service statistics.
-     * 
+     *
      * @return SmsStats with service metrics
      */
     suspend fun getSmsStats(): SmsStats
-    
+
     /**
      * Checks if the service is ready to send SMS.
-     * 
+     *
      * @return true if service is ready, false otherwise
      */
     suspend fun isReady(): Boolean
-    
+
     /**
      * Gets information about the SMS service.
-     * 
+     *
      * @return SmsServiceInfo with service details
      */
     suspend fun getServiceInfo(): SmsServiceInfo
-    
+
     /**
      * Validates a phone number.
-     * 
+     *
      * @param phoneNumber The phone number to validate
      * @return PhoneNumberValidationResult with validation details
      */
     suspend fun validatePhoneNumber(phoneNumber: String): PhoneNumberValidationResult
-    
+
     /**
      * Formats a phone number.
-     * 
+     *
      * @param phoneNumber The phone number to format
      * @param countryCode Optional country code
      * @return Formatted phone number string
@@ -309,19 +314,19 @@ sealed class SmsSendResult {
         val cost: Double?,
         val segments: Int
     ) : SmsSendResult()
-    
+
     data class Failure(
         val error: String,
         val errorCode: String?,
         val retryable: Boolean,
         val attemptedAt: Long
     ) : SmsSendResult()
-    
+
     data class RateLimited(
         val retryAfterMs: Long,
         val attemptedAt: Long
     ) : SmsSendResult()
-    
+
     data class InvalidPhoneNumber(
         val phoneNumber: String,
         val reason: String,

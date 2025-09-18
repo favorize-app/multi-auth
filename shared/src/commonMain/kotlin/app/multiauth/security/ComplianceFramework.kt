@@ -1,60 +1,66 @@
+@file:OptIn(ExperimentalTime::class)
+
 package app.multiauth.security
 
-import kotlinx.datetime.Instant
-import kotlinx.datetime.Clock
+
+
 import app.multiauth.util.Logger
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.json.Json
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
+import kotlin.time.Clock
 
 /**
  * Comprehensive compliance framework for GDPR, SOC2, and HIPAA.
  * Provides automated compliance monitoring, reporting, and audit trails.
  */
 class ComplianceFramework {
-    
+
     private val logger = Logger.getLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
-    
+
     companion object {
         // Compliance standards
         const val GDPR = "GDPR"
         const val SOC2 = "SOC2"
         const val HIPAA = "HIPAA"
-        
+
         // Data categories
         const val PERSONAL_DATA = "PERSONAL_DATA"
         const val SENSITIVE_DATA = "SENSITIVE_DATA"
         const val HEALTH_DATA = "HEALTH_DATA"
         const val FINANCIAL_DATA = "FINANCIAL_DATA"
-        
+
         // Retention periods (in days)
         const val GDPR_RETENTION_DAYS = 2555 // 7 years
         const val SOC2_RETENTION_DAYS = 2555 // 7 years
         const val HIPAA_RETENTION_DAYS = 7300 // 20 years
     }
-    
+
     private val complianceEvents = mutableListOf<ComplianceEvent>()
     private val dataProcessingRecords = mutableListOf<DataProcessingRecord>()
     private val consentRecords = mutableListOf<ConsentRecord>()
     private val dataRetentionPolicies = mutableMapOf<String, DataRetentionPolicy>()
-    
+
     init {
         initializeCompliancePolicies()
     }
-    
+
     /**
      * Records a data processing activity for compliance tracking.
-     * 
+     *
      * @param record The data processing record
      * @return Compliance result
      */
     suspend fun recordDataProcessing(record: DataProcessingRecord): ComplianceResult {
         return try {
             logger.debug("security", "Recording data processing activity: ${record.id}")
-            
+
             // Validate compliance requirements
             val validationResult = validateDataProcessing(record)
-            
+
             if (!validationResult.isCompliant) {
                 logger.warn("secure storage", "Data processing non-compliant: ${validationResult.issues}")
                 return ComplianceResult(
@@ -64,10 +70,10 @@ class ComplianceFramework {
                     timestamp = Clock.System.now()
                 )
             }
-            
+
             // Add to tracking
             dataProcessingRecords.add(record)
-            
+
             // Record compliance event
             val complianceEvent = ComplianceEvent(
                 id = generateEventId(),
@@ -82,16 +88,16 @@ class ComplianceFramework {
                 )
             )
             complianceEvents.add(complianceEvent)
-            
+
             logger.info("security", "Data processing recorded successfully for compliance")
-            
+
             ComplianceResult(
                 isCompliant = true,
                 issues = emptyList(),
                 recommendations = listOf("Continue monitoring data processing activities"),
                 timestamp = Clock.System.now()
             )
-            
+
         } catch (e: Exception) {
             logger.error("security", "Failed to record data processing: ${e.message}")
             ComplianceResult(
@@ -102,20 +108,20 @@ class ComplianceFramework {
             )
         }
     }
-    
+
     /**
      * Records user consent for data processing.
-     * 
+     *
      * @param consent The consent record
      * @return Compliance result
      */
     suspend fun recordConsent(consent: ConsentRecord): ComplianceResult {
         return try {
             logger.debug("security", "Recording user consent: ${consent.id}")
-            
+
             // Validate consent requirements
             val validationResult = validateConsent(consent)
-            
+
             if (!validationResult.isCompliant) {
                 logger.warn("secure storage", "Consent non-compliant: ${validationResult.issues}")
                 return ComplianceResult(
@@ -125,10 +131,10 @@ class ComplianceFramework {
                     timestamp = Clock.System.now()
                 )
             }
-            
+
             // Add to tracking
             consentRecords.add(consent)
-            
+
             // Record compliance event
             val complianceEvent = ComplianceEvent(
                 id = generateEventId(),
@@ -143,16 +149,16 @@ class ComplianceFramework {
                 )
             )
             complianceEvents.add(complianceEvent)
-            
+
             logger.info("security", "User consent recorded successfully for compliance")
-            
+
             ComplianceResult(
                 isCompliant = true,
                 issues = emptyList(),
                 recommendations = listOf("Monitor consent expiration dates"),
                 timestamp = Clock.System.now()
             )
-            
+
         } catch (e: Exception) {
             logger.error("security", "Failed to record consent: ${e.message}")
             ComplianceResult(
@@ -163,17 +169,17 @@ class ComplianceFramework {
             )
         }
     }
-    
+
     /**
      * Processes a data subject access request (DSAR) for GDPR compliance.
-     * 
+     *
      * @param request The DSAR request
      * @return DSAR processing result
      */
     suspend fun processDataSubjectAccessRequest(request: DSARRequest): DSARResult {
         return try {
             logger.info("security", "Processing DSAR request: ${request.id}")
-            
+
             // Validate request
             if (request.userId.isBlank()) {
                 return DSARResult(
@@ -184,16 +190,16 @@ class ComplianceFramework {
                     timestamp = Clock.System.now()
                 )
             }
-            
+
             // Collect user data
             val userData = collectUserData(request.userId, request.dataTypes)
-            
+
             // Check data retention policies
             val retentionCheck = checkDataRetentionCompliance(request.userId)
-            
+
             // Generate DSAR report
             val report = generateDSARReport(request, userData, retentionCheck)
-            
+
             // Record compliance event
             val complianceEvent = ComplianceEvent(
                 id = generateEventId(),
@@ -208,9 +214,9 @@ class ComplianceFramework {
                 )
             )
             complianceEvents.add(complianceEvent)
-            
+
             logger.info("security", "DSAR processed successfully")
-            
+
             DSARResult(
                 requestId = request.id,
                 status = DSARStatus.COMPLETED,
@@ -218,7 +224,7 @@ class ComplianceFramework {
                 dataProvided = report,
                 timestamp = Clock.System.now()
             )
-            
+
         } catch (e: Exception) {
             logger.error("security", "DSAR processing failed: ${e.message}")
             DSARResult(
@@ -230,10 +236,10 @@ class ComplianceFramework {
             )
         }
     }
-    
+
     /**
      * Generates compliance report for specified standards.
-     * 
+     *
      * @param standards List of compliance standards to report on
      * @param timeRange Time range for the report
      * @return Compliance report
@@ -244,14 +250,14 @@ class ComplianceFramework {
     ): ComplianceReport {
         return try {
             logger.info("compliance", "Generating compliance report for standards: ${standards.joinToString(", ")}")
-            
+
             val reportSections = mutableListOf<ComplianceReportSection>()
-            
+
             standards.forEach { standard ->
                 val section = generateComplianceSection(standard, timeRange)
                 reportSections.add(section)
             }
-            
+
             val report = ComplianceReport(
                 id = generateReportId(),
                 standards = standards,
@@ -261,19 +267,19 @@ class ComplianceFramework {
                 recommendations = generateComplianceRecommendations(reportSections),
                 timestamp = Clock.System.now()
             )
-            
+
             logger.info("security", "Compliance report generated successfully")
             report
-            
+
         } catch (e: Exception) {
             logger.error("secure storage", "Failed to generate compliance report: ${e.message}")
             throw ComplianceException("Report generation failed", e)
         }
     }
-    
+
     /**
      * Checks data retention compliance for a user.
-     * 
+     *
      * @param userId The user ID to check
      * @return Retention compliance result
      */
@@ -282,7 +288,7 @@ class ComplianceFramework {
             val userData = dataProcessingRecords.filter { it.userId == userId }
             val issues = mutableListOf<String>()
             val recommendations = mutableListOf<String>()
-            
+
             userData.forEach { record ->
                 val policy = dataRetentionPolicies[record.dataCategory]
                 if (policy != null) {
@@ -294,7 +300,7 @@ class ComplianceFramework {
                     }
                 }
             }
-            
+
             RetentionComplianceResult(
                 userId = userId,
                 isCompliant = issues.isEmpty(),
@@ -302,7 +308,7 @@ class ComplianceFramework {
                 recommendations = recommendations,
                 timestamp = Clock.System.now()
             )
-            
+
         } catch (e: Exception) {
             logger.error("security", "Retention compliance check failed: ${e.message}")
             RetentionComplianceResult(
@@ -314,102 +320,102 @@ class ComplianceFramework {
             )
         }
     }
-    
+
     /**
      * Validates data processing for compliance requirements.
      */
     private fun validateDataProcessing(record: DataProcessingRecord): ComplianceValidationResult {
         val issues = mutableListOf<String>()
         val recommendations = mutableListOf<String>()
-        
+
         // GDPR validation
         if (record.complianceStandards.contains(GDPR)) {
             if (record.legalBasis.isBlank()) {
                 issues.add("GDPR requires legal basis for data processing")
                 recommendations.add("Specify legal basis (consent, contract, legitimate interest, etc.)")
             }
-            
+
             if (record.purpose.isBlank()) {
                 issues.add("GDPR requires clear purpose for data processing")
                 recommendations.add("Specify clear and specific purpose")
             }
-            
+
             if (record.retentionPeriodDays <= 0) {
                 issues.add("GDPR requires defined retention period")
                 recommendations.add("Set appropriate data retention period")
             }
         }
-        
+
         // HIPAA validation
         if (record.complianceStandards.contains(HIPAA)) {
             if (record.dataCategory != HEALTH_DATA) {
                 issues.add("HIPAA compliance requires health data category")
                 recommendations.add("Ensure data is properly categorized as health data")
             }
-            
+
             if (record.securityMeasures.isEmpty()) {
                 issues.add("HIPAA requires security measures for health data")
                 recommendations.add("Implement appropriate security measures")
             }
         }
-        
+
         // SOC2 validation
         if (record.complianceStandards.contains(SOC2)) {
             if (record.securityMeasures.isEmpty()) {
                 issues.add("SOC2 requires security controls")
                 recommendations.add("Implement security controls and document them")
             }
-            
+
             if (record.accessControls.isEmpty()) {
                 issues.add("SOC2 requires access controls")
                 recommendations.add("Implement and document access controls")
             }
         }
-        
+
         return ComplianceValidationResult(
             isCompliant = issues.isEmpty(),
             issues = issues,
             recommendations = recommendations
         )
     }
-    
+
     /**
      * Validates consent for compliance requirements.
      */
     private fun validateConsent(consent: ConsentRecord): ComplianceValidationResult {
         val issues = mutableListOf<String>()
         val recommendations = mutableListOf<String>()
-        
+
         // GDPR consent validation
         if (consent.complianceStandards.contains(GDPR)) {
             if (!consent.isExplicit) {
                 issues.add("GDPR requires explicit consent")
                 recommendations.add("Ensure consent is explicit and unambiguous")
             }
-            
+
             if (consent.purpose.isBlank()) {
                 issues.add("GDPR requires clear purpose for consent")
                 recommendations.add("Specify clear purpose for data processing")
             }
-            
+
             if (consent.expirationDate == null) {
                 issues.add("GDPR requires consent expiration date")
                 recommendations.add("Set appropriate consent expiration date")
             }
-            
+
             if (!consent.isWithdrawable) {
                 issues.add("GDPR requires consent to be withdrawable")
                 recommendations.add("Ensure consent can be withdrawn")
             }
         }
-        
+
         return ComplianceValidationResult(
             isCompliant = issues.isEmpty(),
             issues = issues,
             recommendations = recommendations
         )
     }
-    
+
     /**
      * Collects user data for DSAR requests.
      */
@@ -417,20 +423,20 @@ class ComplianceFramework {
         val personalData = mutableListOf<DataField>()
         val processingRecords = mutableListOf<DataProcessingRecord>()
         val consentRecords = mutableListOf<ConsentRecord>()
-        
+
         // Collect personal data
         if (dataTypes.contains("personal")) {
             // In a real implementation, this would query the user database
             personalData.add(DataField("email", "user@example.com", "contact"))
             personalData.add(DataField("name", "John Doe", "identity"))
         }
-        
+
         // Collect processing records
         processingRecords.addAll(dataProcessingRecords.filter { it.userId == userId })
-        
+
         // Collect consent records
         consentRecords.addAll(consentRecords.filter { it.userId == userId })
-        
+
         return UserDataCollection(
             userId = userId,
             personalData = personalData,
@@ -439,7 +445,7 @@ class ComplianceFramework {
             timestamp = Clock.System.now()
         )
     }
-    
+
     /**
      * Generates DSAR report.
      */
@@ -459,7 +465,7 @@ class ComplianceFramework {
             timestamp = Clock.System.now()
         )
     }
-    
+
     /**
      * Generates compliance section for a specific standard.
      */
@@ -467,15 +473,15 @@ class ComplianceFramework {
         standard: String,
         timeRange: TimeRange
     ): ComplianceReportSection {
-        val events = complianceEvents.filter { 
-            it.standard == standard && 
-            it.timestamp > timeRange.start && 
+        val events = complianceEvents.filter {
+            it.standard == standard &&
+            it.timestamp > timeRange.start &&
             it.timestamp < timeRange.end
         }
-        
+
         val metrics = calculateComplianceMetrics(events, standard)
         val findings = analyzeComplianceFindings(events, standard)
-        
+
         return ComplianceReportSection(
             standard = standard,
             metrics = metrics,
@@ -483,7 +489,7 @@ class ComplianceFramework {
             compliance = calculateStandardCompliance(metrics, findings)
         )
     }
-    
+
     /**
      * Calculates compliance metrics for a standard.
      */
@@ -494,7 +500,7 @@ class ComplianceFramework {
             ComplianceEventType.CONSENT_RECORDED,
             ComplianceEventType.DSAR_PROCESSED
         ) }
-        
+
         return ComplianceMetrics(
             totalEvents = totalEvents.toLong(),
             compliantEvents = compliantEvents.toLong(),
@@ -502,13 +508,13 @@ class ComplianceFramework {
             complianceRate = if (totalEvents > 0) (compliantEvents.toDouble() / totalEvents) * 100 else 100.0
         )
     }
-    
+
     /**
      * Analyzes compliance findings for a standard.
      */
     private fun analyzeComplianceFindings(events: List<ComplianceEvent>, standard: String): List<ComplianceFinding> {
         val findings = mutableListOf<ComplianceFinding>()
-        
+
         // Analyze event patterns
         val eventTypes = events.groupBy { it.type }
         eventTypes.forEach { (type, typeEvents) ->
@@ -523,7 +529,7 @@ class ComplianceFramework {
                 )
             }
         }
-        
+
         // Check for compliance gaps
         val requiredEventTypes = when (standard) {
             GDPR -> listOf(ComplianceEventType.CONSENT_RECORDED, ComplianceEventType.DSAR_PROCESSED)
@@ -531,7 +537,7 @@ class ComplianceFramework {
             HIPAA -> listOf(ComplianceEventType.DATA_PROCESSING, ComplianceEventType.SECURITY_CONTROL)
             else -> emptyList()
         }
-        
+
         requiredEventTypes.forEach { requiredType ->
             if (events.none { it.type == requiredType }) {
                 findings.add(
@@ -544,52 +550,52 @@ class ComplianceFramework {
                 )
             }
         }
-        
+
         return findings
     }
-    
+
     /**
      * Calculates overall compliance score.
      */
     private fun calculateOverallCompliance(sections: List<ComplianceReportSection>): Double {
         if (sections.isEmpty()) return 100.0
-        
+
         val totalCompliance = sections.sumOf { it.compliance }
         return totalCompliance / sections.size
     }
-    
+
     /**
      * Generates compliance recommendations.
      */
     private fun generateComplianceRecommendations(sections: List<ComplianceReportSection>): List<String> {
         val recommendations = mutableListOf<String>()
-        
+
         sections.forEach { section ->
             if (section.compliance < 90.0) {
                 recommendations.add("Improve ${section.standard} compliance - current: ${section.compliance}%")
             }
-            
+
             section.findings.forEach { finding ->
                 if (finding.severity == FindingSeverity.HIGH) {
                     recommendations.add("Address high-severity finding: ${finding.description}")
                 }
             }
         }
-        
+
         if (recommendations.isEmpty()) {
             recommendations.add("Maintain current compliance levels")
             recommendations.add("Continue monitoring and regular audits")
         }
-        
+
         return recommendations
     }
-    
+
     /**
      * Calculates standard compliance score.
      */
     private fun calculateStandardCompliance(metrics: ComplianceMetrics, findings: List<ComplianceFinding>): Double {
         var score = metrics.complianceRate
-        
+
         // Deduct points for findings
         findings.forEach { finding ->
             score -= when (finding.severity) {
@@ -599,10 +605,10 @@ class ComplianceFramework {
                 FindingSeverity.CRITICAL -> 20.0
             }
         }
-        
+
         return score.coerceIn(0.0, 100.0)
     }
-    
+
     /**
      * Initializes compliance policies.
      */
@@ -613,21 +619,21 @@ class ComplianceFramework {
             complianceStandards = listOf(GDPR),
             description = "Personal data retention policy"
         )
-        
+
         dataRetentionPolicies[SENSITIVE_DATA] = DataRetentionPolicy(
             category = SENSITIVE_DATA,
             retentionPeriodDays = SOC2_RETENTION_DAYS,
             complianceStandards = listOf(SOC2),
             description = "Sensitive data retention policy"
         )
-        
+
         dataRetentionPolicies[HEALTH_DATA] = DataRetentionPolicy(
             category = HEALTH_DATA,
             retentionPeriodDays = HIPAA_RETENTION_DAYS,
             complianceStandards = listOf(HIPAA),
             description = "Health data retention policy"
         )
-        
+
         dataRetentionPolicies[FINANCIAL_DATA] = DataRetentionPolicy(
             category = FINANCIAL_DATA,
             retentionPeriodDays = SOC2_RETENTION_DAYS,
@@ -635,7 +641,7 @@ class ComplianceFramework {
             description = "Financial data retention policy"
         )
     }
-    
+
     private fun generateEventId(): String = "event_${Clock.System.now().epochSeconds}_${(0..9999).random()}"
     private fun generateReportId(): String = "report_${Clock.System.now().epochSeconds}_${(0..9999).random()}"
 }
@@ -653,6 +659,7 @@ data class DataProcessingRecord(
     val complianceStandards: List<String>,
     val securityMeasures: List<String>,
     val accessControls: List<String>,
+    @Contextual
     val timestamp: Instant,
     val metadata: Map<String, String>?
 )
@@ -664,8 +671,10 @@ data class ConsentRecord(
     val purpose: String,
     val isExplicit: Boolean,
     val isWithdrawable: Boolean,
+    @Contextual
     val expirationDate: Instant?,
     val complianceStandards: List<String>,
+    @Contextual
     val timestamp: Instant,
     val metadata: Map<String, String>?
 )
@@ -675,7 +684,9 @@ data class DSARRequest(
     val id: String,
     val userId: String,
     val dataTypes: List<String>,
+    @Contextual
     val requestDate: Instant,
+    @Contextual
     val expectedResponseDate: Instant
 )
 
@@ -685,6 +696,7 @@ data class DSARResult(
     val status: DSARStatus,
     val reason: String,
     val dataProvided: DSARReport?,
+    @Contextual
     val timestamp: Instant
 )
 
@@ -697,6 +709,7 @@ data class DSARReport(
     val processingRecords: List<DataProcessingRecord>,
     val consentRecords: List<ConsentRecord>,
     val retentionCompliance: RetentionComplianceResult,
+    @Contextual
     val timestamp: Instant
 )
 
@@ -713,6 +726,7 @@ data class UserDataCollection(
     val personalData: List<DataField>,
     val processingRecords: List<DataProcessingRecord>,
     val consentRecords: List<ConsentRecord>,
+    @Contextual
     val timestamp: Instant
 )
 
@@ -722,6 +736,7 @@ data class ComplianceEvent(
     val type: ComplianceEventType,
     val standard: String,
     val description: String,
+    @Contextual
     val timestamp: Instant,
     val metadata: Map<String, String>?
 )
@@ -731,6 +746,7 @@ data class ComplianceResult(
     val isCompliant: Boolean,
     val issues: List<String>,
     val recommendations: List<String>,
+    @Contextual
     val timestamp: Instant
 )
 
@@ -747,6 +763,7 @@ data class RetentionComplianceResult(
     val isCompliant: Boolean,
     val issues: List<String>,
     val recommendations: List<String>,
+    @Contextual
     val timestamp: Instant
 )
 
@@ -766,6 +783,7 @@ data class ComplianceReport(
     val sections: List<ComplianceReportSection>,
     val overallCompliance: Double,
     val recommendations: List<String>,
+    @Contextual
     val timestamp: Instant
 )
 
@@ -795,7 +813,9 @@ data class ComplianceFinding(
 
 @Serializable
 data class TimeRange(
+    @Contextual
     val start: Instant,
+    @Contextual
     val end: Instant
 )
 

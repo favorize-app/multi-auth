@@ -15,12 +15,12 @@ import app.multiauth.util.Logger
  * Provides a centralized way to instantiate the appropriate OAuth client.
  */
 object OAuthClientFactory {
-    
+
     private val logger = Logger.getLogger(this::class)
-    
+
     /**
      * Creates an OAuth client for the specified provider.
-     * 
+     *
      * @param provider The OAuth provider type
      * @param config The OAuth configuration
      * @param httpClient The HTTP client to use for requests
@@ -32,8 +32,8 @@ object OAuthClientFactory {
         config: OAuthConfig,
         httpClient: HttpClient
     ): OAuthClient {
-        logger.info("oath", "Creating OAuth client for provider: $provider")
-        
+        logger.info("oauth", "Creating OAuth client for provider: $provider")
+
         return when (provider) {
             OAuthProvider.GOOGLE -> GoogleOAuthClient(config, httpClient, logger)
             OAuthProvider.DISCORD -> DiscordOAuthClient(config, httpClient, logger)
@@ -50,10 +50,10 @@ object OAuthClientFactory {
             OAuthProvider.APPLE -> AppleOAuthClient(config, httpClient, logger)
         }
     }
-    
+
     /**
      * Creates an OAuth client for the specified provider by string identifier.
-     * 
+     *
      * @param providerId The OAuth provider identifier string
      * @param config The OAuth configuration
      * @param httpClient The HTTP client to use for requests
@@ -67,32 +67,32 @@ object OAuthClientFactory {
     ): OAuthClient {
         val provider = OAuthProvider.fromString(providerId)
             ?: throw IllegalArgumentException("Unsupported OAuth provider: $providerId")
-        
+
         return createClient(provider, config, httpClient)
     }
-    
+
     /**
      * Gets a list of all supported OAuth providers.
-     * 
+     *
      * @return List of supported OAuth providers
      */
     fun getSupportedProviders(): List<OAuthProvider> {
         return OAuthProvider.values().toList()
     }
-    
+
     /**
      * Checks if a provider is supported.
-     * 
+     *
      * @param provider The OAuth provider to check
      * @return true if supported, false otherwise
      */
     fun isProviderSupported(provider: OAuthProvider): Boolean {
         return provider in OAuthProvider.values()
     }
-    
+
     /**
      * Gets the default scopes for a specific provider.
-     * 
+     *
      * @param provider The OAuth provider
      * @return List of default scopes for the provider
      */
@@ -113,10 +113,10 @@ object OAuthClientFactory {
             OAuthProvider.APPLE -> listOf("name", "email")
         }
     }
-    
+
     /**
      * Gets the authorization URL template for a specific provider.
-     * 
+     *
      * @param provider The OAuth provider
      * @return The authorization URL template
      */
@@ -137,10 +137,10 @@ object OAuthClientFactory {
             OAuthProvider.APPLE -> "https://appleid.apple.com/auth/authorize"
         }
     }
-    
+
     /**
      * Gets the token URL for a specific provider.
-     * 
+     *
      * @param provider The OAuth provider
      * @return The token URL
      */
@@ -161,10 +161,10 @@ object OAuthClientFactory {
             OAuthProvider.APPLE -> "https://appleid.apple.com/auth/token"
         }
     }
-    
+
     /**
      * Gets the user info URL for a specific provider.
-     * 
+     *
      * @param provider The OAuth provider
      * @return The user info URL
      */
@@ -185,10 +185,10 @@ object OAuthClientFactory {
             OAuthProvider.APPLE -> "https://appleid.apple.com/auth/userinfo"
         }
     }
-    
+
     /**
      * Gets provider-specific information and capabilities.
-     * 
+     *
      * @param provider The OAuth provider
      * @return ProviderInfo with details about the provider
      */

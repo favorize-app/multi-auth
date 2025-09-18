@@ -1,11 +1,15 @@
+@file:OptIn(ExperimentalTime::class)
+
 package app.multiauth.models
 
 import app.multiauth.models.User
-import kotlinx.datetime.Clock
+import kotlin.time.ExperimentalTime
+
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 
 /**
  * Basic tests for User model.
@@ -23,7 +27,7 @@ class UserTest {
             createdAt = now,
             updatedAt = now
         )
-        
+
         assertEquals("user123", user.id)
         assertEquals("user@example.com", user.email)
         assertEquals("Test User", user.displayName)
@@ -43,7 +47,7 @@ class UserTest {
             createdAt = now,
             updatedAt = now
         )
-        
+
         assertTrue(user.isAnonymous)
         assertEquals("session123", user.anonymousSessionId)
         assertEquals(null, user.email)

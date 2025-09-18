@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package app.multiauth.oauth.clients
 
 import app.multiauth.oauth.HttpClient
@@ -11,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlin.time.ExperimentalTime
 
 /**
  * Real Microsoft OAuth client implementation.
@@ -21,18 +24,18 @@ class MicrosoftOAuthClient(
     private val httpClient: HttpClient, override val logger: Logger
 ) : OAuthClient {
     private val json = Json { ignoreUnknownKeys = true }
-    
+
     companion object {
         private const val AUTH_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
         private const val TOKEN_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
         private const val USER_INFO_URL = "https://graph.microsoft.com/v1.0/me"
-        
+
         private const val DEFAULT_SCOPE = "openid email profile"
         private const val RESPONSE_TYPE = "code"
         private const val GRANT_TYPE_AUTH_CODE = "authorization_code"
         private const val GRANT_TYPE_REFRESH = "refresh_token"
     }
-    
+
     override suspend fun getAuthorizationUrl(
         state: String,
         codeChallenge: String,
@@ -48,19 +51,19 @@ class MicrosoftOAuthClient(
             append("&code_challenge_method=$codeChallengeMethod")
             append("&response_mode=query")
         }
-        
+
         val authUrl = "$AUTH_URL$params"
-        logger.debug("oath", "Generated Microsoft OAuth authorization URL: $authUrl")
+        logger.debug("oauth", "Generated Microsoft OAuth authorization URL: $authUrl")
         return authUrl
     }
-    
+
     override suspend fun exchangeCodeForTokens(
         authorizationCode: String,
         codeVerifier: String
     ): OAuthResult {
         return try {
-            logger.debug("oath", "Exchanging authorization code for Microsoft tokens")
-            
+            logger.debug("oauth", "Exchanging authorization code for Microsoft tokens")
+
             val tokenRequest = MicrosoftTokenRequest(
                 clientId = config.clientId,
                 clientSecret = config.clientSecret,
@@ -69,18 +72,18 @@ class MicrosoftOAuthClient(
                 grantType = GRANT_TYPE_AUTH_CODE,
                 codeVerifier = codeVerifier
             )
-            
+
             val response = withContext(Dispatchers.Default) {
                 httpClient.post(TOKEN_URL) {
                     setBody(tokenRequest.toFormData())
                     header("Content-Type", "application/x-www-form-urlencoded")
                 }
             }
-            
+
             if (response.status.isSuccess) {
                 val tokenResponse = json.decodeFromString<MicrosoftTokenResponse>(response.bodyAsText())
-                logger.debug("oath", "Successfully exchanged code for Microsoft tokens")
-                
+                logger.debug("oauth", "Successfully exchanged code for Microsoft tokens")
+
                 OAuthResult.Success(
                     accessToken = tokenResponse.accessToken,
                     refreshToken = tokenResponse.refreshToken,
@@ -90,8 +93,8 @@ class MicrosoftOAuthClient(
                 )
             } else {
                 val errorResponse = json.decodeFromString<MicrosoftErrorResponse>(response.bodyAsText())
-                logger.error("oath", "Failed to exchange code for Microsoft tokens: ${errorResponse.error}")
-                
+                logger.error("oauth", "Failed to exchange code for Microsoft tokens: ${errorResponse.error}")
+
                 OAuthResult.Failure(
                     OAuthError.fromOAuthResponse(
                         error = errorResponse.error,
@@ -109,29 +112,29 @@ class MicrosoftOAuthClient(
             )
         }
     }
-    
+
     override suspend fun refreshAccessToken(refreshToken: String): OAuthResult {
         return try {
-            logger.debug("oath", "Refreshing Microsoft access token")
-            
+            logger.debug("oauth", "Refreshing Microsoft access token")
+
             val refreshRequest = MicrosoftRefreshRequest(
                 clientId = config.clientId,
                 clientSecret = config.clientSecret,
                 refreshToken = refreshToken,
                 grantType = GRANT_TYPE_REFRESH
             )
-            
+
             val response = withContext(Dispatchers.Default) {
                 httpClient.post(TOKEN_URL) {
                     setBody(refreshRequest.toFormData())
                     header("Content-Type", "application/x-www-form-urlencoded")
                 }
             }
-            
+
             if (response.status.isSuccess) {
                 val tokenResponse = json.decodeFromString<MicrosoftTokenResponse>(response.bodyAsText())
-                logger.debug("oath", "Successfully refreshed Microsoft access token")
-                
+                logger.debug("oauth", "Successfully refreshed Microsoft access token")
+
                 OAuthResult.Success(
                     accessToken = tokenResponse.accessToken,
                     refreshToken = refreshToken, // Keep the original refresh token
@@ -141,8 +144,8 @@ class MicrosoftOAuthClient(
                 )
             } else {
                 val errorResponse = json.decodeFromString<MicrosoftErrorResponse>(response.bodyAsText())
-                logger.error("oath", "Failed to refresh Microsoft access token: ${errorResponse.error}")
-                
+                logger.error("oauth", "Failed to refresh Microsoft access token: ${errorResponse.error}")
+
                 OAuthResult.Failure(
                     OAuthError.networkError(
                         message = "Token refresh failed: ${errorResponse.error} - ${errorResponse.errorDescription}",
@@ -160,22 +163,22 @@ class MicrosoftOAuthClient(
             )
         }
     }
-    
+
     override suspend fun getUserInfo(accessToken: String): OAuthResult {
         return try {
-            logger.debug("oath", "Fetching Microsoft user info")
-            
+            logger.debug("oauth", "Fetching Microsoft user info")
+
             val response = withContext(Dispatchers.Default) {
                 httpClient.get(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                     header("Accept", "application/json")
                 }
             }
-            
+
             if (response.status.isSuccess) {
                 val userInfo = json.decodeFromString<MicrosoftUserInfo>(response.bodyAsText())
-                logger.debug("oath", "Successfully fetched Microsoft user info: ${userInfo.displayName}")
-                
+                logger.debug("oauth", "Successfully fetched Microsoft user info: ${userInfo.displayName}")
+
                 OAuthResult.Success(
                     accessToken = accessToken,
                     refreshToken = null,
@@ -196,8 +199,8 @@ class MicrosoftOAuthClient(
                 )
             } else {
                 val errorResponse = json.decodeFromString<MicrosoftErrorResponse>(response.bodyAsText())
-                logger.error("oath", "Failed to fetch Microsoft user info: ${errorResponse.error}")
-                
+                logger.error("oauth", "Failed to fetch Microsoft user info: ${errorResponse.error}")
+
                 OAuthResult.Failure(
                     OAuthError.fromOAuthResponse(
                         error = errorResponse.error,
@@ -215,15 +218,15 @@ class MicrosoftOAuthClient(
             )
         }
     }
-    
+
     override suspend fun revokeToken(token: String): Boolean {
         return try {
-            logger.debug("oath", "Revoking Microsoft OAuth token")
-            
+            logger.debug("oauth", "Revoking Microsoft OAuth token")
+
             // Microsoft doesn't have a standard token revocation endpoint
             // The token will expire naturally based on the expires_in value
             logger.warn("microsoft", "Microsoft OAuth does not support token revocation. Token will expire naturally.")
-            
+
             // Return true to indicate "success" since we can't actually revoke
             true
         } catch (e: Exception) {
@@ -231,30 +234,30 @@ class MicrosoftOAuthClient(
             false
         }
     }
-    
+
     override suspend fun validateToken(accessToken: String): Boolean {
         return try {
-            logger.debug("oath", "Validating Microsoft OAuth token")
-            
+            logger.debug("oauth", "Validating Microsoft OAuth token")
+
             val response = withContext(Dispatchers.Default) {
                 httpClient.get(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                     header("Accept", "application/json")
                 }
             }
-            
+
             val isValid = response.status.isSuccess
-            logger.debug("oath", "Microsoft OAuth token validation result: $isValid")
-            
+            logger.debug("oauth", "Microsoft OAuth token validation result: $isValid")
+
             isValid
         } catch (e: Exception) {
             logger.error("microsoft", "Exception during Microsoft token validation", e)
             false
         }
     }
-    
+
     // Data classes for Microsoft OAuth API
-    
+
     @Serializable
     private data class MicrosoftTokenRequest(
         val clientId: String,
@@ -275,7 +278,7 @@ class MicrosoftOAuthClient(
             }
         }
     }
-    
+
     @Serializable
     private data class MicrosoftRefreshRequest(
         val clientId: String,
@@ -292,7 +295,7 @@ class MicrosoftOAuthClient(
             }
         }
     }
-    
+
     @Serializable
     private data class MicrosoftTokenResponse(
         val accessToken: String,
@@ -302,7 +305,7 @@ class MicrosoftOAuthClient(
         val scope: String,
         val idToken: String? = null
     )
-    
+
     @Serializable
     private data class MicrosoftUserInfo(
         val id: String,
@@ -319,7 +322,7 @@ class MicrosoftOAuthClient(
         val department: String? = null,
         val companyName: String? = null
     )
-    
+
     @Serializable
     private data class MicrosoftErrorResponse(
         val error: String,

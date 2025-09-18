@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package app.multiauth.oauth.clients.implemented
 
 import app.multiauth.oauth.HttpClient
@@ -12,6 +14,7 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlin.time.ExperimentalTime
 
 /**
  * Twitch OAuth client implementation.
@@ -22,7 +25,7 @@ class TwitchOAuthClient(
     private val httpClient: HttpClient,
     override val logger: Logger
 ) : OAuthClient {
-    
+
     override suspend fun getAuthorizationUrl(
         state: String,
         codeChallenge: String,
@@ -37,18 +40,18 @@ class TwitchOAuthClient(
             append("&code_challenge=$codeChallenge")
             append("&code_challenge_method=$codeChallengeMethod")
         }
-        
+
         val authUrl = "https://id.twitch.tv/oauth2/authorize$params"
         logger.debug("oauth", "Generated Twitch OAuth authorization URL: $authUrl")
         return authUrl
     }
-    
+
     override suspend fun exchangeCodeForTokens(
         authorizationCode: String,
         codeVerifier: String
     ): OAuthResult {
         logger.debug("oauth", "Exchanging Twitch authorization code for tokens")
-        
+
         return try {
             val tokenRequest = mapOf(
                 "client_id" to config.clientId,
@@ -58,18 +61,18 @@ class TwitchOAuthClient(
                 "redirect_uri" to config.redirectUri,
                 "code_verifier" to codeVerifier
             )
-            
+
             val response = httpClient.post("https://id.twitch.tv/oauth2/token") {
                 header("Content-Type", "application/x-www-form-urlencoded")
                 setBody(tokenRequest.entries.joinToString("&") { "${it.key}=${it.value}" })
             }
-            
+
             if (response.status.isSuccess) {
                 val tokenData = Json.decodeFromString<TwitchTokenResponse>(response.bodyAsText())
-                
+
                 // Get user info
                 val userInfo = getTwitchUserInfo(tokenData.access_token)
-                
+
                 OAuthResult.Success(
                     accessToken = tokenData.access_token,
                     refreshToken = tokenData.refresh_token,
@@ -81,7 +84,7 @@ class TwitchOAuthClient(
             } else {
                 val errorBody = response.bodyAsText()
                 logger.error("oauth", "Twitch token exchange failed: $errorBody")
-                
+
                 OAuthResult.Failure(
                     OAuthError.fromOAuthResponse(
                         error = "token_exchange_failed",
@@ -89,7 +92,7 @@ class TwitchOAuthClient(
                     )
                 )
             }
-            
+
         } catch (e: Exception) {
             logger.error("oauth", "Twitch OAuth error", e)
             OAuthResult.Failure(
@@ -97,10 +100,10 @@ class TwitchOAuthClient(
             )
         }
     }
-    
+
     override suspend fun refreshAccessToken(refreshToken: String): OAuthResult {
         logger.debug("oauth", "Refreshing Twitch access token")
-        
+
         return try {
             val refreshRequest = mapOf(
                 "client_id" to config.clientId,
@@ -108,15 +111,15 @@ class TwitchOAuthClient(
                 "grant_type" to "refresh_token",
                 "refresh_token" to refreshToken
             )
-            
+
             val response = httpClient.post("https://id.twitch.tv/oauth2/token") {
                 header("Content-Type", "application/x-www-form-urlencoded")
                 setBody(refreshRequest.entries.joinToString("&") { "${it.key}=${it.value}" })
             }
-            
+
             if (response.status.isSuccess) {
                 val tokenData = Json.decodeFromString<TwitchTokenResponse>(response.bodyAsText())
-                
+
                 OAuthResult.Success(
                     accessToken = tokenData.access_token,
                     refreshToken = tokenData.refresh_token ?: refreshToken,
@@ -127,7 +130,7 @@ class TwitchOAuthClient(
             } else {
                 val errorBody = response.bodyAsText()
                 logger.error("oauth", "Twitch token refresh failed: $errorBody")
-                
+
                 OAuthResult.Failure(
                     OAuthError.fromOAuthResponse(
                         error = "token_refresh_failed",
@@ -135,7 +138,7 @@ class TwitchOAuthClient(
                     )
                 )
             }
-            
+
         } catch (e: Exception) {
             logger.error("oauth", "Twitch token refresh error", e)
             OAuthResult.Failure(
@@ -143,20 +146,20 @@ class TwitchOAuthClient(
             )
         }
     }
-    
+
     override suspend fun getUserInfo(accessToken: String): OAuthResult {
         logger.debug("oauth", "Getting Twitch user info")
-        
+
         return try {
             val response = httpClient.get("https://api.twitch.tv/helix/users") {
                 header("Authorization", "Bearer $accessToken")
                 header("Client-Id", config.clientId)
             }
-            
+
             if (response.status.isSuccess) {
                 val userData = Json.decodeFromString<TwitchUserResponse>(response.bodyAsText())
                 val user = userData.data.firstOrNull()
-                
+
                 if (user != null) {
                     val userInfo = OAuthUserInfo(
                         id = user.id,
@@ -167,7 +170,7 @@ class TwitchOAuthClient(
                         provider = "twitch",
                         providerId = user.id
                     )
-                    
+
                     OAuthResult.Success(
                         accessToken = accessToken,
                         refreshToken = null,
@@ -185,7 +188,7 @@ class TwitchOAuthClient(
             } else {
                 val errorBody = response.bodyAsText()
                 logger.error("oauth", "Twitch user info failed: $errorBody")
-                
+
                 OAuthResult.Failure(
                     OAuthError.fromOAuthResponse(
                         error = "user_info_failed",
@@ -193,7 +196,7 @@ class TwitchOAuthClient(
                     )
                 )
             }
-            
+
         } catch (e: Exception) {
             logger.error("oauth", "Twitch user info error", e)
             OAuthResult.Failure(
@@ -201,40 +204,40 @@ class TwitchOAuthClient(
             )
         }
     }
-    
+
     override suspend fun revokeToken(token: String): Boolean {
         logger.debug("oauth", "Revoking Twitch token")
-        
+
         return try {
             val response = httpClient.post("https://id.twitch.tv/oauth2/revoke") {
                 header("Content-Type", "application/x-www-form-urlencoded")
                 setBody("client_id=${config.clientId}&token=$token")
             }
-            
+
             response.status.isSuccess
-            
+
         } catch (e: Exception) {
             logger.error("oauth", "Twitch token revocation error", e)
             false
         }
     }
-    
+
     override suspend fun validateToken(accessToken: String): Boolean {
         logger.debug("oauth", "Validating Twitch token")
-        
+
         return try {
             val response = httpClient.get("https://id.twitch.tv/oauth2/validate") {
                 header("Authorization", "OAuth $accessToken")
             }
-            
+
             response.status.isSuccess
-            
+
         } catch (e: Exception) {
             logger.error("oauth", "Twitch token validation error", e)
             false
         }
     }
-    
+
     // Helper method to get user info during token exchange
     private suspend fun getTwitchUserInfo(accessToken: String): OAuthUserInfo? {
         return try {
@@ -242,11 +245,11 @@ class TwitchOAuthClient(
                 header("Authorization", "Bearer $accessToken")
                 header("Client-Id", config.clientId)
             }
-            
+
             if (response.status.isSuccess) {
                 val userData = Json.decodeFromString<TwitchUserResponse>(response.bodyAsText())
                 val user = userData.data.firstOrNull()
-                
+
                 user?.let {
                     OAuthUserInfo(
                         id = it.id,

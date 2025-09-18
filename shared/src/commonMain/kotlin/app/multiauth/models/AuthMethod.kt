@@ -1,8 +1,12 @@
+@file:OptIn(ExperimentalTime::class)
+
 package app.multiauth.models
 
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import app.multiauth.oauth.OAuthProvider
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Contextual
+import kotlin.time.ExperimentalTime
 
 @Serializable
 sealed class AuthMethod {
@@ -10,6 +14,7 @@ sealed class AuthMethod {
     data class Email(
         val email: String,
         val verified: Boolean,
+        @Contextual
         val verifiedAt: Instant? = null
     ) : AuthMethod()
 
@@ -17,6 +22,7 @@ sealed class AuthMethod {
     data class Phone(
         val phoneNumber: String,
         val verified: Boolean,
+        @Contextual
         val verifiedAt: Instant? = null
     ) : AuthMethod()
 
@@ -25,6 +31,7 @@ sealed class AuthMethod {
         val provider: OAuthProvider,
         val providerId: String,
         val verified: Boolean,
+        @Contextual
         val verifiedAt: Instant
     ) : AuthMethod()
 }

@@ -1,8 +1,13 @@
+@file:OptIn(ExperimentalTime::class)
+
 package app.multiauth.oauth
 
-import kotlinx.datetime.Instant
-import kotlinx.datetime.Clock
+
+
 import kotlinx.serialization.Serializable
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
+import kotlin.time.Clock
 
 /**
  * User information returned from OAuth providers.
@@ -25,7 +30,7 @@ data class OAuthUserInfo(
     val rawData: Map<String, String> = emptyMap(),
     val timestamp: @kotlinx.serialization.Contextual Instant = Clock.System.now()
 ) {
-    
+
     /**
      * Gets the best available display name.
      */
@@ -33,7 +38,7 @@ data class OAuthUserInfo(
         get() = displayName ?: name ?: givenName?.let { given ->
             familyName?.let { family -> "$given $family" } ?: given
         } ?: email ?: id
-    
+
     /**
      * Gets the best available full name.
      */
@@ -41,23 +46,23 @@ data class OAuthUserInfo(
         get() = name ?: givenName?.let { given ->
             familyName?.let { family -> "$given $family" } ?: given
         } ?: displayName ?: id
-    
+
     /**
      * Checks if the user has a verified email.
      */
     val hasVerifiedEmail: Boolean
         get() = emailVerified == true
-    
+
     /**
      * Gets a specific field from raw data.
      */
     fun getRawField(key: String): String? = rawData[key]
-    
+
     /**
      * Gets all raw data fields.
      */
     fun getAllRawFields(): Map<String, String> = rawData.toMap()
-    
+
     companion object {
         /**
          * Creates OAuthUserInfo from a map of user data.
@@ -84,7 +89,7 @@ data class OAuthUserInfo(
                 rawData = data.mapValues { it.value?.toString() ?: "" }
             )
         }
-        
+
         /**
          * Creates OAuthUserInfo for a specific provider with common field mappings.
          */
@@ -101,7 +106,7 @@ data class OAuthUserInfo(
                 "twitter" -> data["id"]?.toString() ?: data["username"]?.toString() ?: ""
                 else -> data["id"]?.toString() ?: ""
             }
-            
+
             return fromMap(data, provider, providerId)
         }
     }

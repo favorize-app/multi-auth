@@ -1,10 +1,16 @@
+@file:OptIn(ExperimentalTime::class)
+
 package app.multiauth.services
 
-import kotlinx.datetime.Instant
-import kotlinx.datetime.Clock
+
+
 import app.multiauth.util.Logger
+import app.multiauth.util.TimeoutConstants
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
+import kotlin.time.Clock
 
 /**
  * Simple SMS service implementation for development and testing.
@@ -16,15 +22,15 @@ class SimpleSmsService(
         apiKey = "simple-dev-key"
     )
 ) : SmsService {
-    
+
     private val logger = Logger.getLogger(this::class)
     private val json = Json { ignoreUnknownKeys = true }
-    
+
     private var isInitialized = false
     private val smsQueue = mutableListOf<QueuedSms>()
     private val deliveryStatuses = mutableMapOf<String, SmsDeliveryStatusInfo>()
     private val rateLimits = mutableMapOf<String, SmsRateLimit>()
-    
+
     override suspend fun initialize(): Boolean {
         return try {
             logger.info("SimpleSmsService", "Initializing Simple SMS Service")
@@ -36,7 +42,7 @@ class SimpleSmsService(
             false
         }
     }
-    
+
     override suspend fun sendVerificationCode(
         phoneNumber: String,
         verificationCode: String,
@@ -55,7 +61,7 @@ class SimpleSmsService(
             )
         )
     }
-    
+
     override suspend fun sendSecurityAlert(
         phoneNumber: String,
         alertType: String,
@@ -76,7 +82,7 @@ class SimpleSmsService(
             )
         )
     }
-    
+
     override suspend fun sendMfaCode(
         phoneNumber: String,
         mfaCode: String,
@@ -95,7 +101,7 @@ class SimpleSmsService(
             )
         )
     }
-    
+
     override suspend fun sendLoginNotification(
         phoneNumber: String,
         loginDetails: String,
@@ -114,7 +120,7 @@ class SimpleSmsService(
             )
         )
     }
-    
+
     override suspend fun sendCustomSms(
         phoneNumber: String,
         message: String,
@@ -132,17 +138,17 @@ class SimpleSmsService(
             )
         )
     }
-    
+
     override suspend fun getDeliveryStatus(smsId: String): SmsDeliveryStatusInfo? {
         return deliveryStatuses[smsId]
     }
-    
+
     override suspend fun getSmsStats(): SmsStats {
         val totalSent = deliveryStatuses.values.size.toLong()
         val totalDelivered = deliveryStatuses.values.count { it.status == SmsDeliveryStatus.DELIVERED }.toLong()
         val totalFailed = deliveryStatuses.values.count { it.status == SmsDeliveryStatus.FAILED }.toLong()
         val totalRejected = deliveryStatuses.values.count { it.status == SmsDeliveryStatus.REJECTED }.toLong()
-        
+
         return SmsStats(
             totalSent = totalSent,
             totalDelivered = totalDelivered,
@@ -158,9 +164,9 @@ class SimpleSmsService(
             messagesByProvider = emptyMap()
         )
     }
-    
+
     override suspend fun isReady(): Boolean = isInitialized
-    
+
     override suspend fun getServiceInfo(): SmsServiceInfo {
         return SmsServiceInfo(
             provider = SmsProvider.SIMPLE,
@@ -176,13 +182,13 @@ class SimpleSmsService(
             lastTestAt = null
         )
     }
-    
+
     override suspend fun validatePhoneNumber(phoneNumber: String): PhoneNumberValidationResult {
         return try {
             // Simple validation - just check if it's not empty and has some digits
             val hasDigits = phoneNumber.any { it.isDigit() }
             val isValid = phoneNumber.isNotBlank() && hasDigits
-            
+
             PhoneNumberValidationResult(
                 isValid = isValid,
                 formattedNumber = if (isValid) phoneNumber else null,
@@ -204,7 +210,7 @@ class SimpleSmsService(
             )
         }
     }
-    
+
     override suspend fun formatPhoneNumber(phoneNumber: String, countryCode: String?): String {
         return try {
             // Simple formatting - just clean up the number
@@ -213,7 +219,7 @@ class SimpleSmsService(
             phoneNumber
         }
     }
-    
+
     private suspend fun sendSms(
         phoneNumber: String,
         message: String,
@@ -228,7 +234,7 @@ class SimpleSmsService(
                 attemptedAt = Clock.System.now().epochSeconds
             )
         }
-        
+
         // Check rate limiting
         if (isRateLimited(phoneNumber, type)) {
             return SmsSendResult.RateLimited(
@@ -236,10 +242,10 @@ class SimpleSmsService(
                 attemptedAt = Clock.System.now().epochSeconds
             )
         }
-        
+
         val smsId = generateSmsId()
         val timestamp = Clock.System.now().epochSeconds
-        
+
         val sms = QueuedSms(
             id = smsId,
             phoneNumber = phoneNumber,
@@ -248,19 +254,19 @@ class SimpleSmsService(
             metadata = metadata,
             queuedAt = timestamp
         )
-        
+
         try {
             // Add to queue
             smsQueue.add(sms)
-            
+
             // Log SMS to console
             logSmsToConsole(sms)
-            
+
             // Save SMS to file if configured
             if (config.enableAnalytics) {
                 saveSmsToFile(sms)
             }
-            
+
             // Mark as delivered (since this is a simple service)
             val deliveryStatus = SmsDeliveryStatusInfo(
                 smsId = smsId,
@@ -276,12 +282,12 @@ class SimpleSmsService(
                 segments = 1
             )
             deliveryStatuses[smsId] = deliveryStatus
-            
+
             // Update rate limiting
             updateRateLimit(phoneNumber, type)
-            
+
             logger.info("SimpleSmsService", "SMS sent successfully: $smsId to $phoneNumber")
-            
+
             return SmsSendResult.Success(
                 smsId = smsId,
                 providerMessageId = null,
@@ -289,10 +295,10 @@ class SimpleSmsService(
                 cost = null,
                 segments = 1
             )
-            
+
         } catch (e: Exception) {
             logger.error("SimpleSmsService", "Failed to send SMS: ${e.message}")
-            
+
             val deliveryStatus = SmsDeliveryStatusInfo(
                 smsId = smsId,
                 status = SmsDeliveryStatus.FAILED,
@@ -307,7 +313,7 @@ class SimpleSmsService(
                 segments = 1
             )
             deliveryStatuses[smsId] = deliveryStatus
-            
+
             return SmsSendResult.Failure(
                 error = e.message ?: "Unknown error",
                 errorCode = "SEND_FAILED",
@@ -316,17 +322,17 @@ class SimpleSmsService(
             )
         }
     }
-    
+
     private fun buildVerificationCodeMessage(
         verificationCode: String,
         template: SmsTemplate?,
         variables: SmsTemplateVariables?
     ): String {
-        val defaultMessage = "Your verification code is: $verificationCode. Valid for 10 minutes."
-        
+        val defaultMessage = TimeoutConstants.getSmsVerificationMessage(verificationCode).replace("\n\n", ". ")
+
         return template?.let { applyTemplate(it, variables) } ?: defaultMessage
     }
-    
+
     private fun buildSecurityAlertMessage(
         alertType: String,
         alertDetails: String,
@@ -334,33 +340,33 @@ class SimpleSmsService(
         variables: SmsTemplateVariables?
     ): String {
         val defaultMessage = "SECURITY ALERT: $alertType - $alertDetails. Contact support if unauthorized."
-        
+
         return template?.let { applyTemplate(it, variables) } ?: defaultMessage
     }
-    
+
     private fun buildMfaCodeMessage(
         mfaCode: String,
         template: SmsTemplate?,
         variables: SmsTemplateVariables?
     ): String {
-        val defaultMessage = "Your MFA code is: $mfaCode. Valid for 5 minutes."
-        
+        val defaultMessage = TimeoutConstants.getMfaCodeMessage(mfaCode)
+
         return template?.let { applyTemplate(it, variables) } ?: defaultMessage
     }
-    
+
     private fun buildLoginNotificationMessage(
         loginDetails: String,
         template: SmsTemplate?,
         variables: SmsTemplateVariables?
     ): String {
         val defaultMessage = "New login detected: $loginDetails. Contact support if unauthorized."
-        
+
         return template?.let { applyTemplate(it, variables) } ?: defaultMessage
     }
-    
+
     private fun applyTemplate(template: SmsTemplate, variables: SmsTemplateVariables?): String {
         var message = template.content
-        
+
         variables?.let { vars ->
             // Apply common variables
             message = message.replace("{{userId}}", vars.userId)
@@ -376,10 +382,10 @@ class SimpleSmsService(
             vars.supportPhone?.let { message = message.replace("{{supportPhone}}", it) }
             message = message.replace("{{appName}}", vars.appName)
         }
-        
+
         return message
     }
-    
+
     private fun logSmsToConsole(sms: QueuedSms) {
                     logger.info("SimpleSmsService", """
             ===== SMS SENT =====
@@ -391,7 +397,7 @@ class SimpleSmsService(
             ===================
         """.trimIndent())
     }
-    
+
     private fun saveSmsToFile(sms: QueuedSms) {
         try {
             // File operations are platform-specific in KMP
@@ -409,58 +415,58 @@ class SimpleSmsService(
                 metadata = sms.metadata,
                 timestamp = sms.queuedAt
             )
-            
+
             // File writing removed for multiplatform compatibility
             logger.debug("SimpleSmsService", "SMS data logged: ${sms.id}")
         } catch (e: Exception) {
             logger.error("SimpleSmsService", "Failed to save SMS to file: ${e.message}")
         }
     }
-    
+
     private fun generateSmsId(): String {
         return "sms_${Clock.System.now().epochSeconds}_${(0..9999).random()}"
     }
-    
+
     private fun calculateAverageDeliveryTime(): Double {
         val deliveredSms = deliveryStatuses.values.filter { it.status == SmsDeliveryStatus.DELIVERED }
         if (deliveredSms.isEmpty()) return 0.0
-        
+
         val totalTime = deliveredSms.sumOf { (it.deliveredAt ?: 0L) - it.sentAt }
         return totalTime.toDouble() / deliveredSms.size
     }
-    
+
     private fun calculateSmsByType(): Map<String, Long> {
         return smsQueue.groupBy { it.type.name }
             .mapValues { it.value.size.toLong() }
     }
-    
+
     private fun isRateLimited(phoneNumber: String, type: SmsType): Boolean {
         val key = "${phoneNumber}_${type.name}"
         val rateLimit = rateLimits[key]
-        
+
         if (rateLimit == null) return false
-        
+
         val now = Clock.System.now().epochSeconds
         val timeWindow = when (type) {
             SmsType.VERIFICATION -> 60000L // 1 minute
             SmsType.MFA_CODE -> 30000L // 30 seconds
-            SmsType.SECURITY_ALERT -> 300000L // 5 minutes
-            SmsType.LOGIN_NOTIFICATION -> 600000L // 10 minutes
+            SmsType.SECURITY_ALERT -> TimeoutConstants.SECURITY_ALERT_TIMEOUT.inWholeMilliseconds
+            SmsType.LOGIN_NOTIFICATION -> TimeoutConstants.LOGIN_NOTIFICATION_TIMEOUT.inWholeMilliseconds
             SmsType.CUSTOM -> 60000L // 1 minute
             else -> 60000L // 1 minute default
         }
-        
+
         return (now - rateLimit.nextResetTime) < timeWindow
     }
-    
+
     private fun updateRateLimit(phoneNumber: String, type: SmsType) {
         val key = "${phoneNumber}_${type.name}"
         val now = Clock.System.now().epochSeconds
-        
+
         val currentLimit = rateLimits[key]
         val messagesThisHour = (currentLimit?.messagesSentThisHour ?: 0) + 1
         val messagesThisDay = (currentLimit?.messagesSentThisDay ?: 0) + 1
-        
+
         rateLimits[key] = SmsRateLimit(
             phoneNumber = phoneNumber,
             maxMessagesPerHour = 10,
@@ -471,7 +477,7 @@ class SimpleSmsService(
             isRateLimited = messagesThisHour > 10 || messagesThisDay > 100
         )
     }
-    
+
     private fun extractCountryCode(phoneNumber: String): String? {
         return when {
             phoneNumber.startsWith("+1") -> "US"

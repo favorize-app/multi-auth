@@ -1,8 +1,12 @@
+@file:OptIn(ExperimentalTime::class)
+
 package app.multiauth.models
 
-import kotlinx.datetime.Instant
-import kotlinx.datetime.Clock
+import kotlin.time.Instant
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Contextual
+import kotlin.time.ExperimentalTime
+import kotlin.time.Clock
 
 /**
  * Represents a user session in the multi-auth system.
@@ -33,16 +37,19 @@ data class Session(
     /**
      * When this session was created
      */
+    @Contextual
     val createdAt: Instant,
 
     /**
      * When this session was last accessed/used
      */
+    @Contextual
     val lastAccessedAt: Instant,
 
     /**
      * When this session expires
      */
+    @Contextual
     val expiresAt: Instant,
 
     /**
@@ -78,6 +85,7 @@ data class Session(
     /**
      * When session was terminated (if applicable)
      */
+    @Contextual
     val terminatedAt: Instant? = null,
 
     /**
@@ -100,21 +108,21 @@ data class Session(
      */
     fun isActive(): Boolean {
         return status == SessionStatus.ACTIVE &&
-               Clock.System.now().epochSeconds < expiresAt.toEpochMilliseconds()
+               Clock.System.now() < expiresAt
     }
 
     /**
      * Checks if the session is expired
      */
     fun isExpired(): Boolean {
-        return Clock.System.now().epochSeconds >= expiresAt.toEpochMilliseconds()
+        return Clock.System.now() >= expiresAt
     }
 
     /**
-     * Gets remaining session time in milliseconds
+     * Gets remaining session time in seconds
      */
     fun getRemainingTime(): Long {
-        return maxOf(0, expiresAt.toEpochMilliseconds() - Clock.System.now().epochSeconds)
+        return maxOf(0, expiresAt.epochSeconds - Clock.System.now().epochSeconds)
     }
 
     /**

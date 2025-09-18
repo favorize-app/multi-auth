@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package app.multiauth.oauth.clients.implemented
 
 import app.multiauth.oauth.HttpClient
@@ -12,6 +14,7 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlin.time.ExperimentalTime
 
 /**
  * Facebook OAuth client implementation.
@@ -35,36 +38,36 @@ class FacebookOAuthClient(
             append("&scope=${config.scopes.ifEmpty { "email" }}")
             append("&state=$state")
         }
-        
+
         val authUrl = "https://www.facebook.com/v18.0/dialog/oauth$params"
         logger.debug("oauth", "Generated Facebook OAuth authorization URL: $authUrl")
         return authUrl
     }
-    
+
     override suspend fun exchangeCodeForTokens(
         authorizationCode: String,
         codeVerifier: String
     ): OAuthResult {
         logger.debug("oauth", "Exchanging Facebook authorization code for tokens")
-        
+
         return try {
             val tokenRequest = "grant_type=authorization_code" +
                 "&client_id=${config.clientId}" +
                 "&client_secret=${config.clientSecret}" +
                 "&redirect_uri=${config.redirectUri}" +
                 "&code=$authorizationCode"
-            
+
             val response = httpClient.post("https://graph.facebook.com/v18.0/oauth/access_token") {
                 header("Content-Type", "application/x-www-form-urlencoded")
                 setBody(tokenRequest)
             }
-            
+
             if (response.status.isSuccess) {
                 val tokenData = Json.decodeFromString<FacebookTokenResponse>(response.bodyAsText())
-                
+
                 // Get user info
                 val userInfo = getFacebookUserInfo(tokenData.access_token)
-                
+
                 OAuthResult.Success(
                     accessToken = tokenData.access_token,
                     refreshToken = null, // Facebook doesn't use refresh tokens
@@ -76,7 +79,7 @@ class FacebookOAuthClient(
             } else {
                 val errorBody = response.bodyAsText()
                 logger.error("oauth", "Facebook token exchange failed: $errorBody")
-                
+
                 OAuthResult.Failure(
                     OAuthError.fromOAuthResponse(
                         error = "token_exchange_failed",
@@ -84,7 +87,7 @@ class FacebookOAuthClient(
                     )
                 )
             }
-            
+
         } catch (e: Exception) {
             logger.error("oauth", "Facebook OAuth error", e)
             OAuthResult.Failure(
@@ -92,10 +95,10 @@ class FacebookOAuthClient(
             )
         }
     }
-    
+
     override suspend fun refreshAccessToken(refreshToken: String): OAuthResult {
         logger.debug("oauth", "Facebook does not support refresh tokens")
-        
+
         return OAuthResult.Failure(
             OAuthError.fromOAuthResponse(
                 error = "refresh_not_supported",
@@ -103,18 +106,18 @@ class FacebookOAuthClient(
             )
         )
     }
-    
+
     override suspend fun getUserInfo(accessToken: String): OAuthResult {
         logger.debug("oauth", "Getting Facebook user info")
-        
+
         return try {
             val response = httpClient.get("https://graph.facebook.com/me?fields=id,email,name,picture") {
                 header("Authorization", "Bearer $accessToken")
             }
-            
+
             if (response.status.isSuccess) {
                 val userData = Json.decodeFromString<FacebookUser>(response.bodyAsText())
-                
+
                 val userInfo = OAuthUserInfo(
                     id = userData.id,
                     email = userData.email,
@@ -124,7 +127,7 @@ class FacebookOAuthClient(
                     provider = "facebook",
                     providerId = userData.id
                 )
-                
+
                 OAuthResult.Success(
                     accessToken = accessToken,
                     refreshToken = null,
@@ -139,58 +142,58 @@ class FacebookOAuthClient(
                     )
                 )
             }
-            
+
         } catch (e: Exception) {
             OAuthResult.Failure(
                 OAuthError.networkError("User info request failed: ${e.message}", e)
             )
         }
     }
-    
+
     override suspend fun revokeToken(token: String): Boolean {
         logger.debug("oauth", "Revoking Facebook token")
-        
+
         return try {
             val response = httpClient.post("https://graph.facebook.com/me/permissions") {
                 header("Authorization", "Bearer $token")
                 header("Content-Type", "application/x-www-form-urlencoded")
                 setBody("method=delete")
             }
-            
+
             response.status.isSuccess
-            
+
         } catch (e: Exception) {
             logger.error("oauth", "Facebook token revocation error", e)
             false
         }
     }
-    
+
     override suspend fun validateToken(accessToken: String): Boolean {
         logger.debug("oauth", "Validating Facebook token")
-        
+
         return try {
             val response = httpClient.get("https://graph.facebook.com/me") {
                 header("Authorization", "Bearer $accessToken")
             }
-            
+
             response.status.isSuccess
-            
+
         } catch (e: Exception) {
             logger.error("oauth", "Facebook token validation error", e)
             false
         }
     }
-    
+
     // Helper method to get user info during token exchange
     private suspend fun getFacebookUserInfo(accessToken: String): OAuthUserInfo? {
         return try {
             val response = httpClient.get("https://graph.facebook.com/me?fields=id,email,name,picture") {
                 header("Authorization", "Bearer $accessToken")
             }
-            
+
             if (response.status.isSuccess) {
                 val userData = Json.decodeFromString<FacebookUser>(response.bodyAsText())
-                
+
                 OAuthUserInfo(
                     id = userData.id,
                     email = userData.email,

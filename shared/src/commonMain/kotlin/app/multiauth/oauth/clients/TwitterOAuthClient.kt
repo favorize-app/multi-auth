@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package app.multiauth.oauth.clients
 
 import app.multiauth.oauth.HttpClient
@@ -11,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlin.time.ExperimentalTime
 
 /**
  * Real Twitter OAuth client implementation.
@@ -23,18 +26,18 @@ class TwitterOAuthClient(
 ) : OAuthClient {
 
     private val json = Json { ignoreUnknownKeys = true }
-    
+
     companion object {
         private const val AUTH_URL = "https://twitter.com/i/oauth2/authorize"
         private const val TOKEN_URL = "https://api.twitter.com/2/oauth2/token"
         private const val USER_INFO_URL = "https://api.twitter.com/2/users/me"
-        
+
         private const val DEFAULT_SCOPE = "tweet.read users.read offline.access"
         private const val RESPONSE_TYPE = "code"
         private const val GRANT_TYPE_AUTH_CODE = "authorization_code"
         private const val GRANT_TYPE_REFRESH = "refresh_token"
     }
-    
+
     override suspend fun getAuthorizationUrl(
         state: String,
         codeChallenge: String,
@@ -49,19 +52,19 @@ class TwitterOAuthClient(
             append("&code_challenge=$codeChallenge")
             append("&code_challenge_method=$codeChallengeMethod")
         }
-        
+
         val authUrl = "$AUTH_URL$params"
-        logger.debug("oath", "Generated Twitter OAuth authorization URL: $authUrl")
+        logger.debug("oauth", "Generated Twitter OAuth authorization URL: $authUrl")
         return authUrl
     }
-    
+
     override suspend fun exchangeCodeForTokens(
         authorizationCode: String,
         codeVerifier: String
     ): OAuthResult {
         return try {
-            logger.debug("oath", "Exchanging authorization code for Twitter tokens")
-            
+            logger.debug("oauth", "Exchanging authorization code for Twitter tokens")
+
             val tokenRequest = TwitterTokenRequest(
                 clientId = config.clientId,
                 clientSecret = config.clientSecret,
@@ -70,18 +73,18 @@ class TwitterOAuthClient(
                 grantType = GRANT_TYPE_AUTH_CODE,
                 codeVerifier = codeVerifier
             )
-            
+
             val response = withContext(Dispatchers.Default) {
                 httpClient.post(TOKEN_URL) {
                     setBody(tokenRequest.toFormData())
                     header("Content-Type", "application/x-www-form-urlencoded")
                 }
             }
-            
+
             if (response.status.isSuccess) {
                 val tokenResponse = json.decodeFromString<TwitterTokenResponse>(response.bodyAsText())
-                logger.debug("oath", "Successfully exchanged code for Twitter tokens")
-                
+                logger.debug("oauth", "Successfully exchanged code for Twitter tokens")
+
                 OAuthResult.Success(
                     accessToken = tokenResponse.accessToken,
                     refreshToken = tokenResponse.refreshToken,
@@ -91,8 +94,8 @@ class TwitterOAuthClient(
                 )
             } else {
                 val errorResponse = json.decodeFromString<TwitterErrorResponse>(response.bodyAsText())
-                logger.error("oath", "Failed to exchange code for Twitter tokens: ${errorResponse.error}")
-                
+                logger.error("oauth", "Failed to exchange code for Twitter tokens: ${errorResponse.error}")
+
                 OAuthResult.Failure(
                     OAuthError.fromOAuthResponse(
                         error = errorResponse.error,
@@ -110,29 +113,29 @@ class TwitterOAuthClient(
             )
         }
     }
-    
+
     override suspend fun refreshAccessToken(refreshToken: String): OAuthResult {
         return try {
-            logger.debug("oath", "Refreshing Twitter access token")
-            
+            logger.debug("oauth", "Refreshing Twitter access token")
+
             val refreshRequest = TwitterRefreshRequest(
                 clientId = config.clientId,
                 clientSecret = config.clientSecret,
                 refreshToken = refreshToken,
                 grantType = GRANT_TYPE_REFRESH
             )
-            
+
             val response = withContext(Dispatchers.Default) {
                 httpClient.post(TOKEN_URL) {
                     setBody(refreshRequest.toFormData())
                     header("Content-Type", "application/x-www-form-urlencoded")
                 }
             }
-            
+
             if (response.status.isSuccess) {
                 val tokenResponse = json.decodeFromString<TwitterTokenResponse>(response.bodyAsText())
-                logger.debug("oath", "Successfully refreshed Twitter access token")
-                
+                logger.debug("oauth", "Successfully refreshed Twitter access token")
+
                 OAuthResult.Success(
                     accessToken = tokenResponse.accessToken,
                     refreshToken = refreshToken, // Keep the original refresh token
@@ -142,8 +145,8 @@ class TwitterOAuthClient(
                 )
             } else {
                 val errorResponse = json.decodeFromString<TwitterErrorResponse>(response.bodyAsText())
-                logger.error("oath", "Failed to refresh Twitter access token: ${errorResponse.error}")
-                
+                logger.error("oauth", "Failed to refresh Twitter access token: ${errorResponse.error}")
+
                 OAuthResult.Failure(
                     OAuthError.networkError(
                         message = "Token refresh failed: ${errorResponse.error} - ${errorResponse.errorDescription}",
@@ -161,22 +164,22 @@ class TwitterOAuthClient(
             )
         }
     }
-    
+
     override suspend fun getUserInfo(accessToken: String): OAuthResult {
         return try {
-            logger.debug("oath", "Fetching Twitter user info")
-            
+            logger.debug("oauth", "Fetching Twitter user info")
+
             val response = withContext(Dispatchers.Default) {
                 httpClient.get(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                     header("Accept", "application/json")
                 }
             }
-            
+
             if (response.status.isSuccess) {
                 val userInfo = json.decodeFromString<TwitterUserInfo>(response.bodyAsText())
-                logger.debug("oath", "Successfully fetched Twitter user info: ${userInfo.data.username}")
-                
+                logger.debug("oauth", "Successfully fetched Twitter user info: ${userInfo.data.username}")
+
                 OAuthResult.Success(
                     accessToken = accessToken,
                     refreshToken = null,
@@ -197,8 +200,8 @@ class TwitterOAuthClient(
                 )
             } else {
                 val errorResponse = json.decodeFromString<TwitterErrorResponse>(response.bodyAsText())
-                logger.error("oath", "Failed to fetch Twitter user info: ${errorResponse.error}")
-                
+                logger.error("oauth", "Failed to fetch Twitter user info: ${errorResponse.error}")
+
                 OAuthResult.Failure(
                     OAuthError.fromOAuthResponse(
                         error = errorResponse.error,
@@ -216,15 +219,15 @@ class TwitterOAuthClient(
             )
         }
     }
-    
+
     override suspend fun revokeToken(token: String): Boolean {
         return try {
-            logger.debug("oath", "Revoking Twitter OAuth token")
-            
+            logger.debug("oauth", "Revoking Twitter OAuth token")
+
             // Twitter doesn't have a standard token revocation endpoint
             // The token will expire naturally based on the expires_in value
             logger.warn("twitter", "Twitter OAuth does not support token revocation. Token will expire naturally.")
-            
+
             // Return true to indicate "success" since we can't actually revoke
             true
         } catch (e: Exception) {
@@ -232,30 +235,30 @@ class TwitterOAuthClient(
             false
         }
     }
-    
+
     override suspend fun validateToken(accessToken: String): Boolean {
         return try {
-            logger.debug("oath", "Validating Twitter OAuth token")
-            
+            logger.debug("oauth", "Validating Twitter OAuth token")
+
             val response = withContext(Dispatchers.Default) {
                 httpClient.get(USER_INFO_URL) {
                     header("Authorization", "Bearer $accessToken")
                     header("Accept", "application/json")
                 }
             }
-            
+
             val isValid = response.status.isSuccess
-            logger.debug("oath", "Twitter OAuth token validation result: $isValid")
-            
+            logger.debug("oauth", "Twitter OAuth token validation result: $isValid")
+
             isValid
         } catch (e: Exception) {
             logger.error("twitter", "Exception during Twitter token validation", e)
             false
         }
     }
-    
+
     // Data classes for Twitter OAuth API
-    
+
     @Serializable
     private data class TwitterTokenRequest(
         val clientId: String,
@@ -276,7 +279,7 @@ class TwitterOAuthClient(
             }
         }
     }
-    
+
     @Serializable
     private data class TwitterRefreshRequest(
         val clientId: String,
@@ -293,7 +296,7 @@ class TwitterOAuthClient(
             }
         }
     }
-    
+
     @Serializable
     private data class TwitterTokenResponse(
         val accessToken: String,
@@ -302,12 +305,12 @@ class TwitterOAuthClient(
         val tokenType: String = "bearer",
         val scope: String = ""
     )
-    
+
     @Serializable
     private data class TwitterUserInfo(
         val data: TwitterUserData
     )
-    
+
     @Serializable
     private data class TwitterUserData(
         val id: String,
@@ -323,7 +326,7 @@ class TwitterOAuthClient(
         val followingCount: Int = 0,
         val tweetCount: Int = 0
     )
-    
+
     @Serializable
     private data class TwitterErrorResponse(
         val error: String,

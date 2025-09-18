@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package app.multiauth.oauth.clients.placeholders
 
 import app.multiauth.oauth.HttpClient
@@ -6,6 +8,7 @@ import app.multiauth.oauth.OAuthConfig
 import app.multiauth.oauth.OAuthResult
 import app.multiauth.oauth.OAuthError
 import app.multiauth.util.Logger
+import kotlin.time.ExperimentalTime
 
 /**
  * Steam OAuth client placeholder.
@@ -31,7 +34,7 @@ class SteamOAuthClient(
             append("&openid.identity=http://specs.openid.net/auth/2.0/identifier_select")
             append("&openid.claimed_id=http://specs.openid.net/auth/2.0/identifier_select")
         }
-        
+
         val authUrl = "https://steamcommunity.com/openid/login$params"
         logger.debug("oauth", "Generated Steam OpenID authorization URL: $authUrl")
         logger.warn("general", "Steam uses OpenID, not OAuth 2.0 - placeholder implementation")
