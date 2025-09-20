@@ -6,6 +6,34 @@ plugins {
     alias(libs.plugins.androidLibrary)
     id("maven-publish")
     id("signing")
+    id("multiauth")
+}
+
+// Multi-Auth configuration
+multiauth {
+    oauth {
+        // Default configurations for the library - these can be overridden by consuming projects
+        google {
+            clientId = project.findProperty("oauth.google.clientId") as? String ?: ""
+            clientSecret = project.findProperty("oauth.google.clientSecret") as? String
+            redirectUri = project.findProperty("oauth.google.redirectUri") as? String ?: ""
+            scopes = listOf("openid", "email", "profile")
+        }
+        
+        github {
+            clientId = project.findProperty("oauth.github.clientId") as? String ?: ""
+            clientSecret = project.findProperty("oauth.github.clientSecret") as? String
+            redirectUri = project.findProperty("oauth.github.redirectUri") as? String ?: ""
+            scopes = listOf("user:email")
+        }
+        
+        discord {
+            clientId = project.findProperty("oauth.discord.clientId") as? String ?: ""
+            clientSecret = project.findProperty("oauth.discord.clientSecret") as? String
+            redirectUri = project.findProperty("oauth.discord.redirectUri") as? String ?: ""
+            scopes = listOf("identify", "email")
+        }
+    }
 }
 
 

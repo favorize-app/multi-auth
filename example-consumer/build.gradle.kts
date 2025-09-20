@@ -6,6 +6,30 @@ plugins {
     kotlin("plugin.compose")
     id("org.jetbrains.compose")
     id("com.android.application")
+    id("multiauth")
+}
+
+// Configure OAuth providers for your application
+multiauth {
+    oauth {
+        google {
+            clientId = "your-google-client-id"
+            clientSecret = "your-google-client-secret"
+            redirectUri = "com.example.yourapp://oauth/callback"
+            scopes = listOf("openid", "email", "profile")
+        }
+        
+        github {
+            clientId = "your-github-client-id"
+            clientSecret = "your-github-client-secret"
+            redirectUri = "com.example.yourapp://oauth/callback"
+            scopes = listOf("user:email")
+        }
+        
+        // You can also use environment variables or gradle.properties
+        // clientId = project.findProperty("oauth.google.clientId") as? String ?: ""
+        // clientSecret = project.findProperty("oauth.google.clientSecret") as? String
+    }
 }
 
 kotlin {
