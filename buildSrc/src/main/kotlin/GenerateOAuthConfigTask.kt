@@ -173,8 +173,8 @@ open class GenerateKotlinOAuthConfigTask : DefaultTask() {
 open class GenerateAndroidOAuthResourcesTask : DefaultTask() {
     
     @get:Input
-    val oauthProviders = project.objects.property<Map<String, Any>>()
-    
+    val oauthProviders = project.objects.mapProperty(String::class.java, Any::class.java)
+
     @get:OutputFile
     val outputFile = project.objects.fileProperty()
     
