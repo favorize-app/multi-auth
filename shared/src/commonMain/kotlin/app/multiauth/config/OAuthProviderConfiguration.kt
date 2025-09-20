@@ -100,7 +100,7 @@ data class OAuthProviderConfiguration(
             "twitter" -> null
             "twitch" -> null
             "reddit" -> null
-            "spotify" -> "https://accounts.spotify.com/api/token"
+            "spotify" -> "https://accounts.spotify.com/api/token/revoke"
             "apple" -> null
             else -> null
         }
