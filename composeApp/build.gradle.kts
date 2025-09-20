@@ -6,43 +6,6 @@ plugins {
     id("multiauth")
 }
 
-// Multi-Auth OAuth configuration for the example app
-multiauth {
-    oauth {
-        google {
-            clientId = "your-google-client-id-here"
-            clientSecret = "your-google-client-secret-here"
-            redirectUri = "com.example.multiauth://oauth/callback"
-            scopes = listOf("openid", "email", "profile")
-        }
-        
-        github {
-            clientId = "your-github-client-id-here"
-            clientSecret = "your-github-client-secret-here"
-            redirectUri = "com.example.multiauth://oauth/callback"
-            scopes = listOf("user:email")
-        }
-        
-        discord {
-            clientId = "your-discord-client-id-here"
-            clientSecret = "your-discord-client-secret-here"
-            redirectUri = "com.example.multiauth://oauth/callback"
-            scopes = listOf("identify", "email")
-        }
-        
-        // Example of custom provider configuration
-        custom("custom-provider") {
-            clientId = "your-custom-client-id"
-            clientSecret = "your-custom-client-secret"
-            redirectUri = "com.example.multiauth://oauth/callback"
-            customAuthUrl = "https://your-custom-provider.com/oauth/authorize"
-            customTokenUrl = "https://your-custom-provider.com/oauth/token"
-            customUserInfoUrl = "https://your-custom-provider.com/api/user"
-            scopes = listOf("read", "write")
-        }
-    }
-}
-
 kotlin {
     androidTarget {
         compilations.all {
