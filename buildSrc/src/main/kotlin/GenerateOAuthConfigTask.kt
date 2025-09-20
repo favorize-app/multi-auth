@@ -4,8 +4,6 @@ import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import org.gradle.kotlin.dsl.property
 import java.io.File
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.encodeToString
 
 /**
  * Gradle task to generate OAuth configuration JSON file.
@@ -48,16 +46,33 @@ open class GenerateOAuthConfigTask : DefaultTask() {
         outputFile.get().asFile.parentFile.mkdirs()
         
         // Write JSON configuration
-        val json = Json {
-            prettyPrint = true
-            ignoreUnknownKeys = true
-        }
-        
-        val jsonString = json.encodeToString(config)
+        val jsonString = generateJson(config)
         outputFile.get().asFile.writeText(jsonString)
         
         logger.info("Generated OAuth configuration: ${outputFile.get().asFile.absolutePath}")
         logger.info("Configured providers: ${providers.keys.joinToString(", ")}")
+    }
+    
+    private fun generateJson(value: Any, indent: String = ""): String {
+        return when (value) {
+            is Map<*, *> -> {
+                val entries = value.entries.joinToString(",\n") { (k, v) ->
+                    "$indent  \"$k\": ${generateJson(v, "$indent  ")}"
+                }
+                "{\n$entries\n$indent}"
+            }
+            is List<*> -> {
+                val items = value.joinToString(",\n") { item ->
+                    "$indent  ${generateJson(item, "$indent  ")}"
+                }
+                "[\n$items\n$indent]"
+            }
+            is String -> "\"${value.replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r")}\""
+            is Boolean -> value.toString()
+            is Number -> value.toString()
+            null -> "null"
+            else -> "\"$value\""
+        }
     }
 }
 
@@ -109,11 +124,7 @@ open class GenerateKotlinOAuthConfigTask : DefaultTask() {
                 }
             )
             
-            val json = Json {
-                prettyPrint = true
-                ignoreUnknownKeys = true
-            }
-            val jsonString = json.encodeToString(config)
+            val jsonString = generateJson(config)
             
             appendLine(jsonString)
             appendLine("\"\"\".trimIndent()")
@@ -131,6 +142,28 @@ open class GenerateKotlinOAuthConfigTask : DefaultTask() {
         outputFile.get().asFile.writeText(kotlinCode)
         
         logger.info("Generated Kotlin OAuth configuration: ${outputFile.get().asFile.absolutePath}")
+    }
+    
+    private fun generateJson(value: Any, indent: String = ""): String {
+        return when (value) {
+            is Map<*, *> -> {
+                val entries = value.entries.joinToString(",\n") { (k, v) ->
+                    "$indent  \"$k\": ${generateJson(v, "$indent  ")}"
+                }
+                "{\n$entries\n$indent}"
+            }
+            is List<*> -> {
+                val items = value.joinToString(",\n") { item ->
+                    "$indent  ${generateJson(item, "$indent  ")}"
+                }
+                "[\n$items\n$indent]"
+            }
+            is String -> "\"${value.replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r")}\""
+            is Boolean -> value.toString()
+            is Number -> value.toString()
+            null -> "null"
+            else -> "\"$value\""
+        }
     }
 }
 
