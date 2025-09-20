@@ -7,7 +7,7 @@ package app.multiauth.config
  */
 object GeneratedOAuthConfig {
     // This will be replaced by the Gradle plugin with actual configuration
-    const val CONFIG_JSON = """
+    val CONFIG_JSON = """
 {
   "providers": {}
 }

@@ -30,7 +30,7 @@ object MultiAuth {
      * Initializes the Multi-Auth library.
      * This should be called once during app startup.
      */
-    fun initialize(config: MultiAuthConfig = MultiAuthConfig()) {
+    fun initialize(config: MultiAuthConfig) {
         if (isInitialized) {
             logger.warn("MultiAuth", "MultiAuth is already initialized")
             return
@@ -49,9 +49,11 @@ object MultiAuth {
         
         // Initialize core components
         authStateManager = AuthStateManager.getInstance()
-        authEngine = AuthEngine(
-            config = config.authConfig,
-            eventBus = config.eventBus
+        authEngine = AuthEngine.create(
+            config.emailProvider,
+            config.smsProvider,
+            config.oauthProvider,
+            config.eventBus
         )
         
         // Initialize OAuth managers
@@ -66,15 +68,14 @@ object MultiAuth {
                 mfaManager = MfaManager(
                     authEngine = engine,
                     secureStorage = storage,
-                    smsProvider = config.smsProvider ?: throw IllegalArgumentException("SMS provider required for MFA")
+                    smsProvider = config.smsProvider
                 )
             }
         }
         
         // Initialize biometric manager
         biometricManager = BiometricManager(
-            authEngine = authEngine ?: throw IllegalStateException("AuthEngine not initialized"),
-            secureStorage = config.secureStorage ?: throw IllegalArgumentException("Secure storage required for biometrics")
+            authEngine = authEngine ?: throw IllegalStateException("AuthEngine not initialized")
         )
         
         isInitialized = true
@@ -177,10 +178,12 @@ object MultiAuth {
  * Configuration for Multi-Auth library initialization.
  */
 data class MultiAuthConfig(
+    val emailProvider: app.multiauth.providers.EmailProvider,
+    val smsProvider: app.multiauth.providers.SmsProvider,
+    val oauthProvider: app.multiauth.oauth.OAuthProvider,
     val authConfig: AuthConfig = AuthConfig(),
     val eventBus: app.multiauth.events.EventBus = app.multiauth.events.EventBusInstance(),
-    val secureStorage: app.multiauth.storage.SecureStorage? = null,
-    val smsProvider: app.multiauth.providers.SmsProvider? = null
+    val secureStorage: app.multiauth.storage.SecureStorage? = null
 )
 
 /**

@@ -442,6 +442,15 @@ class AuthEngine private constructor(
             return INSTANCE ?: AuthEngine(emailProvider, smsProvider, oauthProvider).also { INSTANCE = it }
         }
 
+        fun create(
+            emailProvider: EmailProvider,
+            smsProvider: SmsProvider,
+            oauthProvider: OAuthProvider,
+            eventBus: EventBus = EventBusInstance()
+        ): AuthEngine {
+            return AuthEngine(emailProvider, smsProvider, oauthProvider, eventBus)
+        }
+
         fun reset() {
             INSTANCE = null
         }
