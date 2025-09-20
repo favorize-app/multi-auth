@@ -53,7 +53,7 @@ open class GenerateOAuthConfigTask : DefaultTask() {
         logger.info("Configured providers: ${providers.keys.joinToString(", ")}")
     }
     
-    private fun generateJson(value: Any, indent: String = ""): String {
+    private fun generateJson(value: Any?, indent: String = ""): String {
         return when (value) {
             is Map<*, *> -> {
                 val entries = value.entries.joinToString(",\n") { (k, v) ->
@@ -144,7 +144,7 @@ open class GenerateKotlinOAuthConfigTask : DefaultTask() {
         logger.info("Generated Kotlin OAuth configuration: ${outputFile.get().asFile.absolutePath}")
     }
     
-    private fun generateJson(value: Any, indent: String = ""): String {
+    private fun generateJson(value: Any?, indent: String = ""): String {
         return when (value) {
             is Map<*, *> -> {
                 val entries = value.entries.joinToString(",\n") { (k, v) ->
