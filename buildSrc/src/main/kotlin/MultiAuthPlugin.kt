@@ -88,26 +88,47 @@ class MultiAuthPlugin : Plugin<Project> {
         }
         
         // Make the generate task run before compilation
-        project.tasks.named("compileKotlin") {
-            dependsOn("generateOAuthConfig", "generateKotlinOAuthConfig")
+        // Handle both regular Kotlin projects and Kotlin Multiplatform projects
+        project.tasks.findByName("compileKotlin")?.let { compileKotlinTask ->
+            compileKotlinTask.dependsOn("generateOAuthConfig", "generateKotlinOAuthConfig")
+        }
+        
+        // For Kotlin Multiplatform projects, also run before common compilation
+        project.tasks.findByName("compileCommonMainKotlinMetadata")?.let { compileCommonTask ->
+            compileCommonTask.dependsOn("generateOAuthConfig", "generateKotlinOAuthConfig")
         }
         
         // For Android projects, also run before Android compilation
         project.plugins.withId("com.android.application") {
-            project.tasks.named("compileDebugKotlin") {
-                dependsOn("generateOAuthConfig", "generateKotlinOAuthConfig", "generateAndroidOAuthResources")
+            // Try to find Android compilation tasks (they may not exist in all configurations)
+            project.tasks.findByName("compileDebugKotlin")?.let { task ->
+                task.dependsOn("generateOAuthConfig", "generateKotlinOAuthConfig", "generateAndroidOAuthResources")
             }
-            project.tasks.named("compileReleaseKotlin") {
-                dependsOn("generateOAuthConfig", "generateKotlinOAuthConfig", "generateAndroidOAuthResources")
+            project.tasks.findByName("compileReleaseKotlin")?.let { task ->
+                task.dependsOn("generateOAuthConfig", "generateKotlinOAuthConfig", "generateAndroidOAuthResources")
+            }
+            // For Kotlin Multiplatform Android targets
+            project.tasks.findByName("compileDebugKotlinAndroid")?.let { task ->
+                task.dependsOn("generateOAuthConfig", "generateKotlinOAuthConfig", "generateAndroidOAuthResources")
+            }
+            project.tasks.findByName("compileReleaseKotlinAndroid")?.let { task ->
+                task.dependsOn("generateOAuthConfig", "generateKotlinOAuthConfig", "generateAndroidOAuthResources")
             }
         }
         
         project.plugins.withId("com.android.library") {
-            project.tasks.named("compileDebugKotlin") {
-                dependsOn("generateOAuthConfig", "generateKotlinOAuthConfig", "generateAndroidOAuthResources")
+            project.tasks.findByName("compileDebugKotlin")?.let { task ->
+                task.dependsOn("generateOAuthConfig", "generateKotlinOAuthConfig", "generateAndroidOAuthResources")
             }
-            project.tasks.named("compileReleaseKotlin") {
-                dependsOn("generateOAuthConfig", "generateKotlinOAuthConfig", "generateAndroidOAuthResources")
+            project.tasks.findByName("compileReleaseKotlin")?.let { task ->
+                task.dependsOn("generateOAuthConfig", "generateKotlinOAuthConfig", "generateAndroidOAuthResources")
+            }
+            // For Kotlin Multiplatform Android targets
+            project.tasks.findByName("compileDebugKotlinAndroid")?.let { task ->
+                task.dependsOn("generateOAuthConfig", "generateKotlinOAuthConfig", "generateAndroidOAuthResources")
+            }
+            project.tasks.findByName("compileReleaseKotlinAndroid")?.let { task ->
+                task.dependsOn("generateOAuthConfig", "generateKotlinOAuthConfig", "generateAndroidOAuthResources")
             }
         }
     }
@@ -233,4 +254,24 @@ open class OAuthProviderConfiguration {
     
     // Internal property for provider ID (set by extension methods)
     var providerId: String = ""
+    
+    /**
+     * Creates a copy of this configuration with the specified provider ID.
+     */
+    fun copy(providerId: String): OAuthProviderConfiguration {
+        return OAuthProviderConfiguration().apply {
+            this.clientId = this@OAuthProviderConfiguration.clientId
+            this.clientSecret = this@OAuthProviderConfiguration.clientSecret
+            this.redirectUri = this@OAuthProviderConfiguration.redirectUri
+            this.scopes = this@OAuthProviderConfiguration.scopes
+            this.customAuthUrl = this@OAuthProviderConfiguration.customAuthUrl
+            this.customTokenUrl = this@OAuthProviderConfiguration.customTokenUrl
+            this.customUserInfoUrl = this@OAuthProviderConfiguration.customUserInfoUrl
+            this.customRevokeUrl = this@OAuthProviderConfiguration.customRevokeUrl
+            this.usePKCE = this@OAuthProviderConfiguration.usePKCE
+            this.additionalParams = this@OAuthProviderConfiguration.additionalParams
+            this.isEnabled = this@OAuthProviderConfiguration.isEnabled
+            this.providerId = providerId
+        }
+    }
 }
