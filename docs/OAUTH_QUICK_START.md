@@ -1,6 +1,6 @@
-# OAuth Quick Start Guide
+# Multi-Auth Quick Start Guide
 
-This guide shows you how to quickly set up OAuth authentication with the Multi-Auth library using Gradle configuration.
+This guide shows you how to quickly set up authentication with the Multi-Auth library using Gradle configuration. Multi-Auth supports OAuth, email, SMS, and other providers.
 
 ## 1. Add the Plugin
 
@@ -10,13 +10,13 @@ Add the Multi-Auth plugin to your `build.gradle.kts`:
 plugins {
     kotlin("multiplatform")
     id("com.android.application") // or other plugins
-    id("multiauth")
+    id("app.favorize.multiauth") version "1.0.1"
 }
 ```
 
-## 2. Configure OAuth Providers
+## 2. Configure Providers
 
-Add OAuth provider configuration to your `build.gradle.kts`:
+Add provider configuration to your `build.gradle.kts`:
 
 ```kotlin
 multiauth {
@@ -27,7 +27,6 @@ multiauth {
             redirectUri = "com.example.yourapp://oauth/callback"
             scopes = listOf("openid", "email", "profile")
         }
-        
         github {
             clientId = "your-github-client-id"
             clientSecret = "your-github-client-secret"
@@ -35,6 +34,16 @@ multiauth {
             scopes = listOf("user:email")
         }
     }
+    // Example for other providers (if supported in your plugin implementation):
+    // email {
+    //     smtpServer = "smtp.example.com"
+    //     username = "user@example.com"
+    //     password = project.findProperty("email.password") as? String
+    // }
+    // sms {
+    //     provider = "twilio"
+    //     apiKey = project.findProperty("sms.apiKey") as? String
+    // }
 }
 ```
 
@@ -50,11 +59,8 @@ class MyApp {
     fun initializeAuth() {
         // Initialize the library
         MultiAuth.initialize()
-        
-        // Now you can use OAuth authentication
+        // Now you can use authentication
         val oauthManager = MultiAuth.getOAuthManager()
-        
-        // Check if providers are configured
         if (MultiAuth.isProviderEnabled(OAuthProvider.GOOGLE)) {
             println("Google OAuth is configured!")
         }
@@ -62,7 +68,7 @@ class MyApp {
 }
 ```
 
-## 4. Use OAuth Authentication
+## 4. Use Authentication
 
 Here's a simple example of using OAuth authentication:
 
@@ -72,11 +78,9 @@ import app.multiauth.oauth.OAuthProvider
 
 class AuthService {
     private val oauthManager = MultiAuth.getOAuthManager()
-    
     suspend fun signInWithGoogle(): Result<User> {
         return oauthManager.signInWithOAuth(OAuthProvider.GOOGLE)
     }
-    
     suspend fun signInWithGitHub(): Result<User> {
         return oauthManager.signInWithOAuth(OAuthProvider.GITHUB)
     }
@@ -90,7 +94,6 @@ class AuthService {
 Create a `gradle.properties` file (don't commit it to version control):
 
 ```properties
-# gradle.properties
 oauth.google.clientId=your-actual-google-client-id
 oauth.google.clientSecret=your-actual-google-client-secret
 oauth.github.clientId=your-actual-github-client-id
@@ -108,7 +111,6 @@ multiauth {
             redirectUri = "com.example.yourapp://oauth/callback"
             scopes = listOf("openid", "email", "profile")
         }
-        
         github {
             clientId = project.findProperty("oauth.github.clientId") as? String ?: ""
             clientSecret = project.findProperty("oauth.github.clientSecret") as? String
@@ -128,7 +130,7 @@ Here's a complete example for an Android app:
 plugins {
     kotlin("multiplatform")
     id("com.android.application")
-    id("multiauth")
+    id("app.favorize.multiauth") version "1.0.1"
 }
 
 multiauth {
@@ -140,6 +142,8 @@ multiauth {
             scopes = listOf("openid", "email", "profile")
         }
     }
+    // email { ... } // Example for other providers
+    // sms { ... }
 }
 ```
 
@@ -153,11 +157,9 @@ import app.multiauth.oauth.OAuthProvider
 fun LoginScreen() {
     var isLoading by remember { mutableStateOf(false) }
     var user by remember { mutableStateOf<User?>(null) }
-    
     LaunchedEffect(Unit) {
         MultiAuth.initialize()
     }
-    
     Column {
         if (isLoading) {
             Text("Signing in...")
@@ -168,7 +170,6 @@ fun LoginScreen() {
                 onClick = {
                     isLoading = true
                     // Sign in with Google
-                    // Implementation depends on your UI framework
                 }
             ) {
                 Text("Sign in with Google")
@@ -179,7 +180,6 @@ fun LoginScreen() {
 ```
 
 ## Next Steps
-
 - Read the [Gradle Configuration Guide](GRADLE_CONFIGURATION_GUIDE.md) for advanced configuration options
 - Check out the [API Documentation](API_DOCUMENTATION.md) for detailed API reference
 - See [Real World Examples](REAL_WORLD_EXAMPLES.md) for more complex use cases
@@ -187,12 +187,12 @@ fun LoginScreen() {
 ## Troubleshooting
 
 ### Build Issues
-- Make sure you've applied the `multiauth` plugin
+- Make sure you've applied the `app.favorize.multiauth` plugin
 - Check that your provider names are correct (e.g., "google", not "Google")
 
 ### Runtime Issues
 - Ensure you call `MultiAuth.initialize()` before using any authentication features
-- Verify your OAuth provider configuration matches what you've set up with the provider
+- Verify your provider configuration matches what you've set up with the provider
 
 ### OAuth Flow Issues
 - Double-check your redirect URI matches exactly what's configured with your OAuth provider

@@ -6,7 +6,7 @@ plugins {
     kotlin("plugin.compose")
     id("org.jetbrains.compose")
     id("com.android.application")
-    id("multiauth")
+    id("app.favorize.multiauth") version "1.0.1"
 }
 kotlin {
     androidTarget()

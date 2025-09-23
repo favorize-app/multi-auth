@@ -6,7 +6,7 @@ plugins {
     alias(libs.plugins.androidLibrary)
     id("maven-publish")
     id("signing")
-    id("multiauth")
+    id("app.favorize.multiauth") version "1.0.1"
 }
 
 kotlin {

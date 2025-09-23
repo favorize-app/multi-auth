@@ -22,5 +22,5 @@ subprojects {
     apply(plugin = "org.jetbrains.compose")
 
     group = "app.favorize.multiauth"
-    version = "1.0.0"
+    version = "1.0.1"
 }
